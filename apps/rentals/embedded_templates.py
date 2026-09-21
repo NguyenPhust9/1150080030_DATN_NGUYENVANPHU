@@ -71,6 +71,34 @@ TEMPLATES = {'base.html': '{% load static %}\n'
               '}}</small></span><form method="post" action="{% url \'logout\' %}">{% csrf_token %}<button '
               'class="link-button" type="submit" title="Đăng xuất"><i '
               'data-lucide="log-out"></i></button></form></div></header>\n'
+              "    {% with route=request.resolver_match.url_name %}{% if route != 'dashboard' and route != "
+              '\'tenant-portal\' %}<nav class="breadcrumbs" aria-label="Điều hướng trang"><a href="{% if user.role == '
+              '\'tenant\' %}{% url \'tenant-portal\' %}{% else %}{% url \'dashboard\' %}{% endif %}"><i '
+              'data-lucide="house"></i>Trang chủ</a><i data-lucide="chevron-right"></i>\n'
+              "      {% if route == 'buildings' or route == 'building-create' or route == 'building-update' %}{% if "
+              'route != \'buildings\' %}<a href="{% url \'buildings\' %}">Tòa nhà</a><i '
+              'data-lucide="chevron-right"></i><span>{% if route == \'building-create\' %}Thêm tòa nhà{% else %}Chỉnh '
+              'sửa tòa nhà{% endif %}</span>{% else %}<span>Tòa nhà</span>{% endif %}\n'
+              "      {% elif route == 'rooms' or route == 'room-create' %}{% if route == 'room-create' %}<a "
+              'href="{% url \'rooms\' %}">Phòng</a><i data-lucide="chevron-right"></i><span>Thêm phòng</span>{% else '
+              '%}<span>Phòng</span>{% endif %}\n'
+              "      {% elif route == 'room-map' %}<span>Sơ đồ phòng</span>\n"
+              "      {% elif route == 'tenants' or route == 'tenant-create' %}{% if route == 'tenant-create' %}<a "
+              'href="{% url \'tenants\' %}">Khách thuê</a><i data-lucide="chevron-right"></i><span>Thêm khách '
+              'thuê</span>{% else %}<span>Khách thuê</span>{% endif %}\n'
+              "      {% elif route == 'contracts' or route == 'contract-create' or route == 'tenant-contracts' %}{% if "
+              'route == \'contract-create\' %}<a href="{% url \'contracts\' %}">Hợp đồng</a><i '
+              'data-lucide="chevron-right"></i><span>Thêm hợp đồng</span>{% else %}<span>Hợp đồng</span>{% endif %}\n'
+              "      {% elif route == 'meters' or route == 'meter-create' %}{% if route == 'meter-create' %}<a "
+              'href="{% url \'meters\' %}">Điện nước</a><i data-lucide="chevron-right"></i><span>Thêm chỉ số</span>{% '
+              'else %}<span>Điện nước</span>{% endif %}\n'
+              "      {% elif route == 'invoices' or route == 'tenant-invoices' or route == 'tenant-invoice-detail' "
+              '%}<span>Hóa đơn</span>\n'
+              "      {% elif route == 'payments' %}<span>Thanh toán</span>\n"
+              "      {% elif route == 'incidents' or route == 'tenant-incidents' or route == 'tenant-incident-create' "
+              '%}<span>Sự cố</span>\n'
+              "      {% elif route == 'tenant-notifications' %}<span>Thông báo</span>{% endif %}\n"
+              '    </nav>{% endif %}{% endwith %}\n'
               '    {% if messages %}{% for message in messages %}<div class="alert">{{ message }}</div>{% endfor %}{% '
               'endif %}{% block content %}{% endblock %}\n'
               '  </main>\n'

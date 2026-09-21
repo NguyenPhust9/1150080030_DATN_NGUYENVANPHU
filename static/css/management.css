@@ -18,3 +18,5 @@ body{background:radial-gradient(circle at 65% 0,#eaf3ff 0,transparent 34%),var(-
 .property-card>header>div:nth-child(2){min-width:0}
 .card-actions{position:absolute;top:-3px;right:0}
 .card-actions a{background:#fff}
+
+.breadcrumbs{display:flex;align-items:center;gap:5px;margin:-11px 0 20px;color:#73839b;font-size:12px}.breadcrumbs a{display:flex;align-items:center;gap:5px;color:#8796aa;text-decoration:none}.breadcrumbs a:hover{color:var(--admin-blue)}.breadcrumbs>svg{width:13px;height:13px;color:#a9b3c1}.breadcrumbs a svg{width:13px;height:13px}.breadcrumbs span{color:#466081;font-weight:600}
