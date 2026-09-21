@@ -1,1 +1,13 @@
-{% extends "public/base.html" %}{% block title %}Danh sách phòng cho thuê{% endblock %}{% block content %}<section class="public-section"><div class="section-heading"><div><span class="eyebrow">PHÒNG CHO THUÊ</span><h1>Tìm phòng phù hợp</h1></div></div><form class="public-filter" method="get"><input name="q" value="{{ q }}" placeholder="Khu vực, tòa nhà, số phòng"><input name="min_price" type="number" min="0" value="{{ min_price }}" placeholder="Giá từ"><input name="max_price" type="number" min="0" value="{{ max_price }}" placeholder="Giá đến"><button class="btn primary">Áp dụng</button></form><p class="result-count">Tìm thấy {{ rooms|length }} phòng còn trống</p><div class="room-grid">{% for room in rooms %}{% include 'public/room_card.html' %}{% empty %}<div class="empty-state">Không tìm thấy phòng phù hợp. Hãy thử thay đổi điều kiện tìm kiếm.</div>{% endfor %}</div></section>{% endblock %}
+{% extends "public/base.html" %}
+{% block title %}Danh sách phòng cho thuê{% endblock %}
+{% block content %}<section class="public-section"><div class="section-heading"><div><span class="eyebrow">PHÒNG CHO THUÊ</span><h1>Tìm phòng phù hợp</h1></div><a href="{% url 'public-home' %}#gioi-thieu">← Quay lại bộ lọc</a></div>
+<form class="public-filter" method="get">
+  <input name="q" value="{{ q }}" placeholder="Khu vực, tòa nhà, số phòng">
+  <select name="building"><option value="">Tất cả tòa nhà</option>{% for building in buildings %}<option value="{{ building.name }}" {% if building.name in selected_buildings %}selected{% endif %}>{{ building.name }}</option>{% endfor %}</select>
+  <input name="min_price" type="number" min="0" value="{{ min_price }}" placeholder="Giá từ">
+  <input name="max_price" type="number" min="0" value="{{ max_price }}" placeholder="Giá đến">
+  <select name="sort"><option value="">Mặc định</option><option value="price_asc" {% if sort == 'price_asc' %}selected{% endif %}>Giá thấp đến cao</option><option value="price_desc" {% if sort == 'price_desc' %}selected{% endif %}>Giá cao đến thấp</option></select>
+  <button class="btn primary">Áp dụng</button>
+</form>
+{% if district or selected_buildings or selected_amenities or min_price or max_price %}<div class="active-filters"><strong>Đang lọc:</strong>{% if district %}<span>{{ district }}</span>{% endif %}{% for name in selected_buildings %}<span>{{ name }}</span>{% endfor %}{% for name in selected_amenities %}<span>{{ name }}</span>{% endfor %}{% if max_price %}<span>Tối đa {{ max_price }} đ</span>{% endif %}<a href="{% url 'public-rooms' %}">Xóa bộ lọc</a></div>{% endif %}
+<p class="result-count">Tìm thấy <strong>{{ rooms|length }}</strong> phòng còn trống</p><div class="room-grid">{% for room in rooms %}{% include 'public/room_card.html' %}{% empty %}<div class="empty-state">Không tìm thấy phòng phù hợp. Hãy thử thay đổi điều kiện tìm kiếm.</div>{% endfor %}</div></section>{% endblock %}

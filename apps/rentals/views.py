@@ -54,13 +54,20 @@ def public_home(request):
 def public_rooms(request):
     rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building", "building__owner").prefetch_related("amenities")
     q = request.GET.get("q", "").strip()
+    district = request.GET.get("district", "").strip()
     selected_buildings = [name.strip() for name in request.GET.getlist("building") if name.strip()]
+    selected_amenities = [name.strip() for name in request.GET.getlist("amenity") if name.strip()]
     min_price = request.GET.get("min_price", "").strip()
     max_price = request.GET.get("max_price", "").strip()
+    sort = request.GET.get("sort", "").strip()
     if q:
         rooms = rooms.filter(Q(number__icontains=q) | Q(building__name__icontains=q) | Q(building__address__icontains=q))
+    if district:
+        rooms = rooms.filter(building__address__icontains=district)
     if selected_buildings:
         rooms = rooms.filter(building__name__in=selected_buildings)
+    for amenity in selected_amenities:
+        rooms = rooms.filter(amenities__name=amenity)
     try:
         if min_price:
             rooms = rooms.filter(monthly_rent__gte=min_price)
@@ -68,7 +75,16 @@ def public_rooms(request):
             rooms = rooms.filter(monthly_rent__lte=max_price)
     except (TypeError, ValueError):
         min_price = max_price = ""
-    return render(request, "public/room_list.html", {"rooms": rooms, "q": q, "min_price": min_price, "max_price": max_price, "selected_buildings": selected_buildings})
+    if sort == "price_asc":
+        rooms = rooms.order_by("monthly_rent")
+    elif sort == "price_desc":
+        rooms = rooms.order_by("-monthly_rent")
+    return render(request, "public/room_list.html", {
+        "rooms": rooms.distinct(), "q": q, "district": district,
+        "min_price": min_price, "max_price": max_price, "sort": sort,
+        "selected_buildings": selected_buildings, "selected_amenities": selected_amenities,
+        "buildings": Building.objects.filter(is_active=True).order_by("name"),
+    })
 
 
 def public_room_detail(request, room_id):
