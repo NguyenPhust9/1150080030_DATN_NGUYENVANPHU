@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Thêm phòng mới{% endblock %}{% block page_title %}Thêm phòng mới{% endblock %}{% block page_subtitle %}Nhập thông tin và tải ảnh/video phòng lên Cloudinary{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/room-form.css' %}">
+<section class="room-form-panel">
+  <div class="room-form-tabs"><button type="button" class="active" data-tab="info"><i data-lucide="info"></i>Thông tin</button><button type="button" data-tab="images"><i data-lucide="image"></i>Ảnh phòng</button><button type="button" data-tab="videos"><i data-lucide="video"></i>Video phòng</button></div>
+  <form id="room-create-form" method="post">{% csrf_token %}<input id="media-payload" type="hidden" name="media_payload" value="[]">
+    {% if form.non_field_errors %}<div class="auth-error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="room-tab-content active" data-panel="info">
+      <div class="room-fields">
+        <label><span>Mã phòng</span>{{ form.number }}{{ form.number.errors }}</label><label><span>Tòa nhà</span>{{ form.building }}{{ form.building.errors }}</label><label><span>Trạng thái</span>{{ form.status }}{{ form.status.errors }}</label>
+        <label><span>Tầng</span>{{ form.floor }}{{ form.floor.errors }}</label><label><span>Diện tích (m²)</span>{{ form.area }}{{ form.area.errors }}</label><label><span>Số người tối đa</span>{{ form.max_occupants }}{{ form.max_occupants.errors }}</label>
+        <label class="wide"><span>Giá thuê (VNĐ)</span>{{ form.monthly_rent }}{{ form.monthly_rent.errors }}</label><label class="wide"><span>Tiền cọc (VNĐ)</span>{{ form.deposit_amount }}{{ form.deposit_amount.errors }}</label>
+        <label class="full"><span>Mô tả</span>{{ form.description }}{{ form.description.errors }}</label><label class="full amenities-field"><span>Tiện nghi</span>{{ form.amenities }}{{ form.amenities.errors }}</label>
+      </div>
+    </div>
+    <div class="room-tab-content" data-panel="images"><div class="upload-zone" data-target="room-images"><i data-lucide="images"></i><h3>Thêm ảnh phòng</h3><p>Kéo thả hoặc chọn nhiều ảnh JPG, PNG, WEBP</p><button type="button" class="btn">Chọn ảnh</button><input id="room-images" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></div><div id="image-previews" class="media-previews"></div></div>
+    <div class="room-tab-content" data-panel="videos"><div class="upload-zone" data-target="room-videos"><i data-lucide="video"></i><h3>Thêm video phòng</h3><p>Video được tải trực tiếp và lưu trữ trên Cloudinary</p><button type="button" class="btn">Chọn video</button><input id="room-videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple hidden></div><div id="video-previews" class="media-previews"></div></div>
+    <div id="upload-status" class="upload-status" hidden></div>
+    <footer class="room-form-actions"><a class="btn" href="{% url 'rooms' %}">Hủy</a><button id="save-room" class="btn primary" type="submit"><i data-lucide="save"></i>Lưu phòng</button></footer>
+  </form>
+</section>
+<script>
+document.addEventListener("DOMContentLoaded",()=>{
+ const tabs=[...document.querySelectorAll(".room-form-tabs button")],panels=[...document.querySelectorAll(".room-tab-content")],form=document.getElementById("room-create-form"),status=document.getElementById("upload-status"),save=document.getElementById("save-room");
+ tabs.forEach(tab=>tab.addEventListener("click",()=>{tabs.forEach(x=>x.classList.toggle("active",x===tab));panels.forEach(x=>x.classList.toggle("active",x.dataset.panel===tab.dataset.tab))}));
+ function bindPicker(zone){const input=document.getElementById(zone.dataset.target),preview=document.getElementById(input.id==="room-images"?"image-previews":"video-previews");zone.addEventListener("click",e=>{if(e.target.closest("button")||e.target===zone)input.click()});input.addEventListener("change",()=>{preview.innerHTML="";[...input.files].forEach(file=>{const item=document.createElement("div");item.className="media-preview";const url=URL.createObjectURL(file);item.innerHTML=input.accept.startsWith("image")?`<img src="${url}" alt="Ảnh xem trước"><span>${file.name}</span>`:`<video src="${url}" controls></video><span>${file.name}</span>`;preview.appendChild(item)})})}
+ document.querySelectorAll(".upload-zone").forEach(bindPicker);
+ let uploaded=false;
+ form.addEventListener("submit",async event=>{const images=[...document.getElementById("room-images").files],videos=[...document.getElementById("room-videos").files];if(uploaded||(!images.length&&!videos.length))return;event.preventDefault();save.disabled=true;status.hidden=false;status.textContent="Đang chuẩn bị tải ảnh/video lên Cloudinary...";
+  try{const csrf=form.querySelector("[name=csrfmiddlewaretoken]").value,signed=await fetch("{% url 'cloudinary-upload-signature' %}",{method:"POST",headers:{"X-CSRFToken":csrf}}),config=await signed.json();if(!signed.ok)throw new Error(config.error||"Không thể kết nối Cloudinary");const results=[];async function upload(file,type){status.textContent=`Đang tải ${file.name}...`;const body=new FormData();body.append("file",file);body.append("api_key",config.api_key);body.append("timestamp",config.timestamp);body.append("signature",config.signature);body.append("folder",config.folder);const response=await fetch(`https://api.cloudinary.com/v1_1/${config.cloud_name}/${type}/upload`,{method:"POST",body}),data=await response.json();if(!response.ok)throw new Error(data.error?.message||`Không tải được ${file.name}`);results.push({media_type:type,url:data.secure_url,public_id:data.public_id,format:data.format||"",bytes:data.bytes||0})}for(const file of images)await upload(file,"image");for(const file of videos)await upload(file,"video");document.getElementById("media-payload").value=JSON.stringify(results);uploaded=true;status.textContent="Tải lên hoàn tất. Đang lưu thông tin phòng...";form.submit()}catch(error){status.textContent=error.message;status.classList.add("error");save.disabled=false}}
+ );
+});
+</script>
+{% endblock %}

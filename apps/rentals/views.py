@@ -1,13 +1,19 @@
+import json
+import os
+import time
+
+import cloudinary
+from cloudinary.utils import api_sign_request
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 
 from .forms import BuildingForm, ContractForm, MeterReadingForm, RoomForm, TenantForm, TenantIncidentForm
-from .models import Amenity, Building, Contract, Incident, Invoice, MeterReading, Payment, Room, Tenant
+from .models import Amenity, Building, Contract, Incident, Invoice, MeterReading, Payment, Room, RoomMedia, Tenant
 
 
 def _is_tenant(user):
@@ -254,15 +260,60 @@ FORM_CONFIG = {
 def object_create(request, resource):
     _require_operator(request.user)
     form_class, title = FORM_CONFIG[resource]
-    form = form_class(request.POST or None)
+    form = form_class(request.POST or None, request.FILES or None)
+    media_items = []
+    if resource == "rooms" and request.method == "POST":
+        try:
+            media_items = json.loads(request.POST.get("media_payload", "[]"))
+            if not isinstance(media_items, list):
+                raise ValueError
+            for item in media_items:
+                if item.get("media_type") not in {RoomMedia.MediaType.IMAGE, RoomMedia.MediaType.VIDEO}:
+                    raise ValueError
+                if not item.get("url", "").startswith("https://res.cloudinary.com/") or not item.get("public_id"):
+                    raise ValueError
+                item["bytes"] = max(0, int(item.get("bytes", 0)))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            form.add_error(None, "Thông tin ảnh/video tải lên không hợp lệ.")
     if form.is_valid():
         obj = form.save(commit=False)
         if isinstance(obj, MeterReading):
             obj.recorded_by = request.user
         obj.save()
         form.save_m2m()
+        if isinstance(obj, Room):
+            RoomMedia.objects.bulk_create([
+                RoomMedia(
+                    room=obj,
+                    media_type=item["media_type"],
+                    url=item["url"],
+                    public_id=item["public_id"],
+                    format=item.get("format", ""),
+                    bytes=item["bytes"],
+                ) for item in media_items
+            ])
         return redirect(resource)
-    return render(request, "rentals/form.html", {"form": form, "title": f"Thêm {title.lower()}"})
+    template = "rentals/room_form.html" if resource == "rooms" else "rentals/form.html"
+    return render(request, template, {"form": form, "title": f"Thêm {title.lower()}"})
+
+
+@login_required
+@require_POST
+def cloudinary_upload_signature(request):
+    _require_operator(request.user)
+    if not os.getenv("CLOUDINARY_URL"):
+        return JsonResponse({"error": "Cloudinary chưa được cấu hình."}, status=503)
+    config = cloudinary.config()
+    timestamp = int(time.time())
+    folder = "ql-phong-cho-thue/rooms"
+    signature = api_sign_request({"folder": folder, "timestamp": timestamp}, config.api_secret)
+    return JsonResponse({
+        "timestamp": timestamp,
+        "folder": folder,
+        "signature": signature,
+        "cloud_name": config.cloud_name,
+        "api_key": config.api_key,
+    })
 
 
 @login_required

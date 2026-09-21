@@ -12,6 +12,7 @@ from .models import (
     Notification,
     Payment,
     Room,
+    RoomMedia,
     Service,
     Tenant,
 )
@@ -89,6 +90,7 @@ class IncidentAdmin(admin.ModelAdmin):
 admin.site.register(Amenity)
 admin.site.register(Service)
 admin.site.register(Notification)
+admin.site.register(RoomMedia)
 
 admin.site.site_header = "Quản lý phòng cho thuê"
 admin.site.site_title = "QL Phòng Cho Thuê"

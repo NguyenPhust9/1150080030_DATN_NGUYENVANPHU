@@ -78,6 +78,24 @@ class Room(UUIDTimeStampedModel):
         return f"{self.building.name} - Phòng {self.number}"
 
 
+class RoomMedia(UUIDTimeStampedModel):
+    class MediaType(models.TextChoices):
+        IMAGE = "image", "Ảnh"
+        VIDEO = "video", "Video"
+
+    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name="media", verbose_name="phòng")
+    media_type = models.CharField("loại", max_length=10, choices=MediaType.choices)
+    url = models.URLField("đường dẫn Cloudinary", max_length=1000)
+    public_id = models.CharField("Cloudinary public ID", max_length=255)
+    format = models.CharField("định dạng", max_length=20, blank=True)
+    bytes = models.PositiveBigIntegerField("dung lượng", default=0)
+
+    class Meta:
+        ordering = ("created_at",)
+        verbose_name = "ảnh/video phòng"
+        verbose_name_plural = "ảnh/video phòng"
+
+
 class Service(UUIDTimeStampedModel):
     class Unit(models.TextChoices):
         KWH = "kwh", "kWh"
