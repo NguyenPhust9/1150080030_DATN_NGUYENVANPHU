@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
 
+from apps.rentals.embedded_templates import TEMPLATES as EMBEDDED_TEMPLATES
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
@@ -51,9 +53,13 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [],
-        "APP_DIRS": True,
+        "APP_DIRS": False,
         "OPTIONS": {
             "builtins": ["apps.rentals.templatetags.vietnamese"],
+            "loaders": [
+                ("django.template.loaders.locmem.Loader", EMBEDDED_TEMPLATES),
+                "django.template.loaders.app_directories.Loader",
+            ],
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
