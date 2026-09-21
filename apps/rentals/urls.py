@@ -1,0 +1,33 @@
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.public_home, name="public-home"),
+    path("phong-cho-thue/", views.public_rooms, name="public-rooms"),
+    path("phong-cho-thue/<uuid:room_id>/", views.public_room_detail, name="public-room-detail"),
+    path("quan-ly/", views.dashboard, name="dashboard"),
+    path("toa-nha/", views.object_list, {"resource": "buildings"}, name="buildings"),
+    path("toa-nha/them/", views.object_create, {"resource": "buildings"}, name="building-create"),
+    path("phong/", views.object_list, {"resource": "rooms"}, name="rooms"),
+    path("phong/them/", views.object_create, {"resource": "rooms"}, name="room-create"),
+    path("so-do-phong/", views.room_map, name="room-map"),
+    path("khach-thue/", views.object_list, {"resource": "tenants"}, name="tenants"),
+    path("khach-thue/them/", views.object_create, {"resource": "tenants"}, name="tenant-create"),
+    path("hop-dong/", views.object_list, {"resource": "contracts"}, name="contracts"),
+    path("hop-dong/them/", views.object_create, {"resource": "contracts"}, name="contract-create"),
+    path("chi-so/", views.object_list, {"resource": "meters"}, name="meters"),
+    path("chi-so/them/", views.object_create, {"resource": "meters"}, name="meter-create"),
+    path("hoa-don/", views.object_list, {"resource": "invoices"}, name="invoices"),
+    path("thanh-toan/", views.object_list, {"resource": "payments"}, name="payments"),
+    path("su-co/", views.object_list, {"resource": "incidents"}, name="incidents"),
+    path("api/v1/dashboard/summary/", views.api_dashboard_summary, name="api-dashboard-summary"),
+    path("api/v1/rooms/<uuid:room_id>/", views.api_room_detail, name="api-room-detail"),
+    path("nguoi-thue/", views.tenant_portal, name="tenant-portal"),
+    path("nguoi-thue/hop-dong/", views.tenant_contracts, name="tenant-contracts"),
+    path("nguoi-thue/hoa-don/", views.tenant_invoices, name="tenant-invoices"),
+    path("nguoi-thue/hoa-don/<uuid:invoice_id>/", views.tenant_invoice_detail, name="tenant-invoice-detail"),
+    path("nguoi-thue/su-co/", views.tenant_incidents, name="tenant-incidents"),
+    path("nguoi-thue/su-co/gui/", views.tenant_report_incident, name="tenant-incident-create"),
+    path("nguoi-thue/thong-bao/", views.tenant_notifications, name="tenant-notifications"),
+]

@@ -1,0 +1,15 @@
+{% extends "public/base.html" %}
+{% block title %}Tìm phòng cho thuê{% endblock %}
+{% block content %}
+<section class="hero-shell">
+  <div class="hero">
+    <div class="hero-copy"><span class="eyebrow">TÌM PHÒNG DỄ DÀNG, AN TÂM Ở LÂU DÀI</span><h1>Chọn một nơi ở<br><em>phù hợp với bạn</em></h1><p>Khám phá các phòng trọ còn trống, giá thuê rõ ràng và tiện nghi đầy đủ trước khi liên hệ chủ nhà. Bắt đầu tìm nơi ở lý tưởng ngay hôm nay!</p>
+      <form class="hero-search" action="{% url 'public-rooms' %}"><label><span class="search-icon"><i data-lucide="map-pin"></i></span><span><small>Nhập khu vực, tòa nhà hoặc số phòng</small><input name="q" placeholder="Ví dụ: Quận 1, Khu B, Tòa A..."></span></label><label class="type-select"><span class="search-icon sliders"><i data-lucide="sliders-horizontal"></i></span><span><small>Loại phòng</small><select name="type"><option>Tất cả</option></select></span></label><button class="btn primary"><i data-lucide="search"></i> Tìm phòng</button></form>
+      <div class="popular"><strong>Tìm kiếm phổ biến:</strong><a href="{% url 'public-rooms' %}?q=trường">Gần trường ĐH</a><a href="{% url 'public-rooms' %}?q=trung tâm">Gần trung tâm</a><a href="{% url 'public-rooms' %}">Có máy lạnh</a><a href="{% url 'public-rooms' %}?max_price=3000000">Dưới 3 triệu</a></div>
+    </div>
+    <div class="hero-photo"><div class="feature-card safety"><i><span data-lucide="shield-check"></span></i><span><strong>An toàn, minh bạch</strong><small>Thông tin rõ ràng</small></span></div><div class="feature-stack"><div class="feature-card"><i><span data-lucide="house"></span></i><span><strong>Nhiều lựa chọn</strong><small>Phù hợp nhu cầu</small></span></div><div class="feature-card green"><i><span data-lucide="map-pin"></span></i><span><strong>Vị trí thuận tiện</strong><small>Gần trường, trung tâm</small></span></div><div class="feature-card pink"><i><span data-lucide="heart"></span></i><span><strong>Tiện nghi đầy đủ</strong><small>Ở lâu dài, an tâm</small></span></div></div><div class="photo-slogan">Một nơi ở tốt<br>cho hành trình tốt hơn!</div></div>
+  </div>
+  <div class="stats-banner"><div><i><span data-lucide="house"></span></i><span><strong>{{ available_count }}+</strong><small>Phòng đang còn trống</small></span></div><div><i><span data-lucide="users"></span></i><span><strong>{{ building_count }}+</strong><small>Khu nhà cho thuê</small></span></div><div><i><span data-lucide="map-pin"></span></i><span><strong>10+</strong><small>Khu vực, quận/huyện</small></span></div><div><i><span data-lucide="heart"></span></i><span><strong>98%</strong><small>Khách hàng hài lòng</small></span></div></div>
+</section>
+<section id="gioi-thieu" class="public-section room-showcase"><div class="section-heading"><div><span class="eyebrow">GỢI Ý CHO BẠN</span><h2>Phòng đang còn trống</h2><p>Một số phòng phù hợp với nhu cầu của bạn</p></div><a href="{% url 'public-rooms' %}">Xem tất cả →</a></div><div class="room-grid">{% for room in featured_rooms %}{% include 'public/room_card.html' %}{% empty %}<div class="empty-state">Hiện chưa có phòng trống được đăng.</div>{% endfor %}</div></section>
+{% endblock %}

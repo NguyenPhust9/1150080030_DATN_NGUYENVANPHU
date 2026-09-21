@@ -1,0 +1,18 @@
+{% load static %}
+<!doctype html>
+<html lang="vi">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Đăng nhập</title><link rel="stylesheet" href="{% static 'css/app.css' %}"></head>
+<body class="login-page">
+  <section class="login-card">
+    <h1>Quản lý phòng cho thuê</h1>
+    <p>Đăng nhập để tiếp tục</p>
+    {% if form.errors %}<div class="error">Tên đăng nhập hoặc mật khẩu không đúng.</div>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Tên đăng nhập</label>{{ form.username }}
+      <label for="id_password">Mật khẩu</label>{{ form.password }}
+      <button class="btn primary full" type="submit">Đăng nhập</button>
+    </form>
+  </section>
+</body>
+</html>

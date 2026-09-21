@@ -1,0 +1,9 @@
+{
+  "name": "ql-phong-cho-thue-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend assets for the Django rental management application",
+  "dependencies": {
+    "lucide": "^1.0.0"
+  }
+}

@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Quản lý phòng cho thuê{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
+  <link rel="stylesheet" href="{% static 'css/room-map.css' %}">
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}">QL Phòng Cho Thuê</a>
+    <nav>
+      {% if user.role == 'tenant' %}
+      <a href="{% url 'tenant-portal' %}">Trang của tôi</a>
+      <a href="{% url 'tenant-contracts' %}">Hợp đồng</a>
+      <a href="{% url 'tenant-invoices' %}">Hóa đơn</a>
+      <a href="{% url 'tenant-incidents' %}">Yêu cầu hỗ trợ</a>
+      <a href="{% url 'tenant-notifications' %}">Thông báo</a>
+      {% else %}
+      <a href="{% url 'dashboard' %}">Tổng quan</a>
+      <a href="{% url 'buildings' %}">Tòa nhà</a>
+      <a href="{% url 'rooms' %}">Phòng</a>
+      <a href="{% url 'room-map' %}">Sơ đồ phòng</a>
+      <a href="{% url 'tenants' %}">Khách thuê</a>
+      <a href="{% url 'contracts' %}">Hợp đồng</a>
+      <a href="{% url 'meters' %}">Điện nước</a>
+      <a href="{% url 'invoices' %}">Hóa đơn</a>
+      <a href="{% url 'payments' %}">Thanh toán</a>
+      <a href="{% url 'incidents' %}">Sự cố</a>
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">Quản trị</a>{% endif %}
+      {% endif %}
+    </nav>
+  </aside>
+  <main class="content">
+    <header class="topbar">
+      <div>{% block page_title %}Quản lý phòng cho thuê{% endblock %}</div>
+      <div class="userbox">
+        <span>{{ user.get_full_name|default:user.username }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit">Đăng xuất</button></form>
+      </div>
+    </header>
+    {% if messages %}{% for message in messages %}<div class="alert">{{ message }}</div>{% endfor %}{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{% static 'lucide.min.js' %}"></script><script>lucide.createIcons({attrs:{"stroke-width":2}});</script>
+</body>
+</html>

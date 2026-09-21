@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block page_title %}Phòng{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm số phòng hoặc tòa nhà...">
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or selected_building %}<a class="btn" href="{% url 'rooms' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <a class="btn primary" href="{% url 'room-create' %}">Thêm phòng</a>
+</div>
+<section class="panel">
+  <div class="list-summary">Hiển thị {{ page_obj.start_index }}–{{ page_obj.end_index }} trong tổng số <strong>{{ paginator.count }}</strong> phòng</div>
+  <div class="table-wrap"><table><thead><tr><th>Phòng</th><th>Tòa nhà</th><th>Tầng</th><th>Giá thuê</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td>{{ x.number }}</td><td>{{ x.building }}</td><td>{{ x.floor }}</td><td>{{ x.monthly_rent|vnd }} đ</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">Không tìm thấy phòng phù hợp.</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% if page_obj.has_other_pages %}<nav class="pagination" aria-label="Phân trang phòng">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>{% endif %}
+{% endblock %}

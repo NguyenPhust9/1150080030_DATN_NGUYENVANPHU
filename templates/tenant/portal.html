@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Trang người thuê{% endblock %}
+{% block page_title %}Xin chào, {{ tenant.full_name }}{% endblock %}
+{% block content %}
+<section class="stats-grid">
+  <article class="stat info"><span>Phòng hiện tại</span><strong>{% if active_contract %}{{ active_contract.room.number }}{% else %}—{% endif %}</strong></article>
+  <article class="stat"><span>Tòa nhà</span><strong class="small-value">{% if active_contract %}{{ active_contract.room.building.name }}{% else %}Chưa có{% endif %}</strong></article>
+  <article class="stat danger"><span>Tổng cần thanh toán</span><strong>{{ total_debt|vnd }} đ</strong></article>
+  <article class="stat warning"><span>Thông báo chưa đọc</span><strong>{{ unread_count }}</strong></article>
+</section>
+{% if active_contract %}<section class="panel tenant-room"><h2>Thông tin thuê hiện tại</h2><div class="detail-grid"><div><span>Mã hợp đồng</span><strong>{{ active_contract.code }}</strong></div><div><span>Thời hạn</span><strong>{{ active_contract.start_date|date:"d/m/Y" }} – {{ active_contract.end_date|date:"d/m/Y" }}</strong></div><div><span>Giá thuê</span><strong>{{ active_contract.monthly_rent|vnd }} đ/tháng</strong></div><div><span>Địa chỉ</span><strong>{{ active_contract.room.building.address }}</strong></div></div></section>{% endif %}
+<section class="two-columns">
+  <article class="panel"><div class="panel-heading"><h2>Hóa đơn cần thanh toán</h2><a href="{% url 'tenant-invoices' %}">Xem tất cả</a></div><table><thead><tr><th>Kỳ</th><th>Còn nợ</th><th>Hạn trả</th></tr></thead><tbody>{% for x in unpaid_invoices %}<tr><td><a href="{% url 'tenant-invoice-detail' x.id %}">{{ x.period|date:"m/Y" }}</a></td><td>{{ x.balance|vnd }} đ</td><td>{{ x.due_date|date:"d/m/Y" }}</td></tr>{% empty %}<tr><td colspan="3">Không có hóa đơn cần thanh toán.</td></tr>{% endfor %}</tbody></table></article>
+  <article class="panel"><div class="panel-heading"><h2>Yêu cầu gần đây</h2><a class="btn primary compact" href="{% url 'tenant-incident-create' %}">Gửi yêu cầu</a></div><table><thead><tr><th>Nội dung</th><th>Trạng thái</th></tr></thead><tbody>{% for x in incidents %}<tr><td>{{ x.title }}</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="2">Chưa có yêu cầu.</td></tr>{% endfor %}</tbody></table></article>
+</section>
+{% endblock %}

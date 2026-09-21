@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+node_modules
+__pycache__
+**/__pycache__
+*.py[cod]
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+.test.sqlite3
+.env
+media
+staticfiles
+*.log
+LO_TRINH_XAY_DUNG.md

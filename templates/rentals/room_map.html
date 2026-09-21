@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Sơ đồ phòng{% endblock %}
+{% block page_title %}Sơ đồ phòng{% endblock %}
+{% block content %}
+<div class="map-heading">
+  <div class="map-title"><span class="map-title-icon"><i data-lucide="building-2"></i></span><div><h1>Sơ đồ phòng</h1><p>Tổng quan trạng thái phòng theo từng tòa nhà và tầng</p></div></div>
+  <form method="get" class="map-filters">
+    <a class="map-control" href="{% url 'room-map' %}"><i data-lucide="refresh-cw"></i> Tải mới</a>
+    <label class="map-control"><i data-lucide="list-filter"></i><select name="status" onchange="this.form.submit()"><option value="">Tất cả trạng thái</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+    <label class="map-control"><i data-lucide="building-2"></i><select name="building" onchange="this.form.submit()"><option value="">Tất cả tòa nhà</option>{% for building in all_buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}</select></label>
+  </form>
+</div>
+
+<section class="map-stats">
+  <article class="map-stat available"><div><span>TRỐNG</span><strong>{{ stats.available }}</strong><small>/ {{ stats.total }} phòng</small></div><i data-lucide="circle-check"></i></article>
+  <article class="map-stat occupied"><div><span>ĐANG THUÊ</span><strong>{{ stats.occupied }}</strong><small>/ {{ stats.total }} phòng</small></div><i data-lucide="house"></i></article>
+  <article class="map-stat reserved"><div><span>ĐÃ ĐẶT</span><strong>{{ stats.reserved }}</strong><small>/ {{ stats.total }} phòng</small></div><i data-lucide="clock-3"></i></article>
+  <article class="map-stat maintenance"><div><span>BẢO TRÌ</span><strong>{{ stats.maintenance }}</strong><small>/ {{ stats.total }} phòng</small></div><i data-lucide="wrench"></i></article>
+</section>
+<section class="amenity-summary"><span class="amenity-icon"><i data-lucide="snowflake"></i></span><div><b>CÓ ĐIỀU HÒA</b><strong>{{ stats.air_conditioned }}</strong><small>/ {{ stats.total }} phòng</small></div><div class="without-air"><b>KHÔNG CÓ ĐIỀU HÒA</b><strong>{{ stats.without_air_conditioner }}</strong><small>/ {{ stats.total }} phòng</small></div></section>
+
+<section class="building-maps">
+{% for card in building_cards %}
+  <article class="building-map">
+    <header><div class="building-name"><span><i data-lucide="building-2"></i></span><div><h2>{{ card.building.name }}</h2><small>{{ card.total }} phòng · 5 tầng</small></div></div><div class="building-badges"><b class="available">Trống {{ card.counts.available }}</b><b class="occupied">Đang thuê {{ card.counts.occupied }}</b><b class="reserved">Đã đặt {{ card.counts.reserved }}</b><b class="maintenance">Bảo trì {{ card.counts.maintenance }}</b></div></header>
+    <div class="floor-list">
+      {% for floor in card.floors %}<div class="floor-row"><div class="floor-label"><span>TẦNG</span><strong>{{ floor.number }}</strong></div><div class="floor-rooms">{% for room in floor.rooms %}<a href="{% url 'api-room-detail' room.id %}" class="map-room {{ room.status }}" title="{{ room }} — {{ room.monthly_rent|vnd }} đ/tháng"><i data-lucide="door-open"></i><strong>{{ room.number }}</strong><small>{{ room.get_status_display }}</small>{% if room.has_air_conditioner %}<span class="air"><i data-lucide="snowflake"></i></span>{% endif %}</a>{% endfor %}</div></div>{% empty %}<div class="map-empty">Không có phòng phù hợp với bộ lọc.</div>{% endfor %}
+    </div>
+  </article>
+{% empty %}<div class="panel map-empty">Không tìm thấy tòa nhà phù hợp.</div>{% endfor %}
+</section>
+<div class="map-legend"><span><i class="dot available"></i> Phòng trống</span><span><i class="dot occupied"></i> Đang thuê</span><span><i class="dot reserved"></i> Đã đặt</span><span><i class="dot maintenance"></i> Bảo trì</span></div>
+{% endblock %}

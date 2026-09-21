@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Tổng quan{% endblock %}
+{% block page_title %}Tổng quan{% endblock %}
+{% block content %}
+<section class="stats-grid">
+  <article class="stat"><span>Tổng số phòng</span><strong>{{ room_count }}</strong></article>
+  <article class="stat success"><span>Phòng trống</span><strong>{{ available_count }}</strong></article>
+  <article class="stat info"><span>Đang thuê</span><strong>{{ occupied_count }}</strong></article>
+  <article class="stat warning"><span>Hợp đồng hiệu lực</span><strong>{{ active_contract_count }}</strong></article>
+  <article class="stat danger"><span>Tổng công nợ</span><strong>{{ unpaid_total|vnd }} đ</strong></article>
+  <article class="stat"><span>Sự cố cần xử lý</span><strong>{{ open_incident_count }}</strong></article>
+</section>
+<section class="two-columns">
+  <article class="panel"><h2>Hóa đơn gần đây</h2><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Phòng</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead><tbody>{% for item in recent_invoices %}<tr><td>{{ item.code }}</td><td>{{ item.contract.room }}</td><td>{{ item.total_amount|vnd }} đ</td><td><span class="badge">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">Chưa có hóa đơn.</td></tr>{% endfor %}</tbody></table></div></article>
+  <article class="panel"><h2>Hợp đồng sắp hết hạn</h2><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Khách thuê</th><th>Ngày hết hạn</th></tr></thead><tbody>{% for item in expiring_contracts %}<tr><td>{{ item.code }}</td><td>{{ item.representative }}</td><td>{{ item.end_date|date:"d/m/Y" }}</td></tr>{% empty %}<tr><td colspan="3">Chưa có hợp đồng.</td></tr>{% endfor %}</tbody></table></div></article>
+</section>
+{% endblock %}
