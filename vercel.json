@@ -1,8 +1,14 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "manage.py": {
-      "includeFiles": "{templates/**,static/**}"
+    "api/index.py": {
+      "includeFiles": "{apps/**,config/**,static/**}"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
+    }
+  ]
 }
