@@ -12,3 +12,9 @@ body{background:radial-gradient(circle at 65% 0,#eaf3ff 0,transparent 34%),var(-
 @media(max-width:1450px){.building-card-grid{grid-template-columns:repeat(3,1fr)}.card-filter-bar{grid-template-columns:1fr 180px 180px auto}.view-switch{display:none}}
 @media(max-width:1100px){.building-card-grid{grid-template-columns:repeat(2,1fr)}.card-filter-bar{grid-template-columns:1fr 1fr}.building-search{grid-column:1/-1}}
 @media(max-width:650px){.building-card-grid{grid-template-columns:1fr;padding:0 12px 12px}.card-filter-bar{grid-template-columns:1fr;padding:12px!important}.building-search{grid-column:auto}.card-list-heading{padding:18px}.card-list-heading .add-building{font-size:0}.card-list-heading .add-building svg{margin:0}.property-card{padding:14px}}
+
+/* Keep card actions anchored inside each card, even with long names/addresses. */
+.property-card>header{position:relative;grid-template-columns:21px minmax(0,1fr);padding-right:64px}
+.property-card>header>div:nth-child(2){min-width:0}
+.card-actions{position:absolute;top:-3px;right:0}
+.card-actions a{background:#fff}
