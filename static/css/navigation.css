@@ -1,0 +1,5 @@
+.sidebar nav a{border-left:3px solid transparent;transition:background .18s,color .18s,border-color .18s}
+.sidebar nav a.active{background:#3563e9;color:#fff;border-left-color:#a9bfff;font-weight:700;box-shadow:0 5px 14px #090f2038}
+.row-number{width:64px;text-align:center!important;color:#6b7280;font-weight:700}
+.list-summary{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:13px;margin-bottom:12px}
+.list-summary strong{color:var(--ink)}

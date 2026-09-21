@@ -8,28 +8,29 @@
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
   <link rel="stylesheet" href="{% static 'css/room-map.css' %}">
+  <link rel="stylesheet" href="{% static 'css/navigation.css' %}">
 </head>
 <body>
   <aside class="sidebar">
     <a class="brand" href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}">QL Phòng Cho Thuê</a>
     <nav>
       {% if user.role == 'tenant' %}
-      <a href="{% url 'tenant-portal' %}">Trang của tôi</a>
-      <a href="{% url 'tenant-contracts' %}">Hợp đồng</a>
-      <a href="{% url 'tenant-invoices' %}">Hóa đơn</a>
-      <a href="{% url 'tenant-incidents' %}">Yêu cầu hỗ trợ</a>
-      <a href="{% url 'tenant-notifications' %}">Thông báo</a>
+      <a class="{% if request.resolver_match.url_name == 'tenant-portal' %}active{% endif %}" href="{% url 'tenant-portal' %}">Trang của tôi</a>
+      <a class="{% if request.resolver_match.url_name == 'tenant-contracts' %}active{% endif %}" href="{% url 'tenant-contracts' %}">Hợp đồng</a>
+      <a class="{% if request.resolver_match.url_name == 'tenant-invoices' or request.resolver_match.url_name == 'tenant-invoice-detail' %}active{% endif %}" href="{% url 'tenant-invoices' %}">Hóa đơn</a>
+      <a class="{% if request.resolver_match.url_name == 'tenant-incidents' or request.resolver_match.url_name == 'tenant-incident-create' %}active{% endif %}" href="{% url 'tenant-incidents' %}">Yêu cầu hỗ trợ</a>
+      <a class="{% if request.resolver_match.url_name == 'tenant-notifications' %}active{% endif %}" href="{% url 'tenant-notifications' %}">Thông báo</a>
       {% else %}
-      <a href="{% url 'dashboard' %}">Tổng quan</a>
-      <a href="{% url 'buildings' %}">Tòa nhà</a>
-      <a href="{% url 'rooms' %}">Phòng</a>
-      <a href="{% url 'room-map' %}">Sơ đồ phòng</a>
-      <a href="{% url 'tenants' %}">Khách thuê</a>
-      <a href="{% url 'contracts' %}">Hợp đồng</a>
-      <a href="{% url 'meters' %}">Điện nước</a>
-      <a href="{% url 'invoices' %}">Hóa đơn</a>
-      <a href="{% url 'payments' %}">Thanh toán</a>
-      <a href="{% url 'incidents' %}">Sự cố</a>
+      <a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">Tổng quan</a>
+      <a class="{% if request.resolver_match.url_name == 'buildings' or request.resolver_match.url_name == 'building-create' %}active{% endif %}" href="{% url 'buildings' %}">Tòa nhà</a>
+      <a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' %}active{% endif %}" href="{% url 'rooms' %}">Phòng</a>
+      <a class="{% if request.resolver_match.url_name == 'room-map' %}active{% endif %}" href="{% url 'room-map' %}">Sơ đồ phòng</a>
+      <a class="{% if request.resolver_match.url_name == 'tenants' or request.resolver_match.url_name == 'tenant-create' %}active{% endif %}" href="{% url 'tenants' %}">Khách thuê</a>
+      <a class="{% if request.resolver_match.url_name == 'contracts' or request.resolver_match.url_name == 'contract-create' %}active{% endif %}" href="{% url 'contracts' %}">Hợp đồng</a>
+      <a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' %}active{% endif %}" href="{% url 'meters' %}">Điện nước</a>
+      <a class="{% if request.resolver_match.url_name == 'invoices' %}active{% endif %}" href="{% url 'invoices' %}">Hóa đơn</a>
+      <a class="{% if request.resolver_match.url_name == 'payments' %}active{% endif %}" href="{% url 'payments' %}">Thanh toán</a>
+      <a class="{% if request.resolver_match.url_name == 'incidents' %}active{% endif %}" href="{% url 'incidents' %}">Sự cố</a>
       {% if user.is_staff %}<a href="{% url 'admin:index' %}">Quản trị</a>{% endif %}
       {% endif %}
     </nav>

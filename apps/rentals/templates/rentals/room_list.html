@@ -15,7 +15,7 @@
 </div>
 <section class="panel">
   <div class="list-summary">Hiển thị {{ page_obj.start_index }}–{{ page_obj.end_index }} trong tổng số <strong>{{ paginator.count }}</strong> phòng</div>
-  <div class="table-wrap"><table><thead><tr><th>Phòng</th><th>Tòa nhà</th><th>Tầng</th><th>Giá thuê</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td>{{ x.number }}</td><td>{{ x.building }}</td><td>{{ x.floor }}</td><td>{{ x.monthly_rent|vnd }} đ</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="5">Không tìm thấy phòng phù hợp.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="table-wrap"><table><thead><tr><th class="row-number">STT</th><th>Phòng</th><th>Tòa nhà</th><th>Tầng</th><th>Giá thuê</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.number }}</td><td>{{ x.building }}</td><td>{{ x.floor }}</td><td>{{ x.monthly_rent|vnd }} đ</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="6">Không tìm thấy phòng phù hợp.</td></tr>{% endfor %}</tbody></table></div>
 </section>
 {% if page_obj.has_other_pages %}<nav class="pagination" aria-label="Phân trang phòng">
   {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
