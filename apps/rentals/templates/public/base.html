@@ -6,7 +6,7 @@
   <header class="public-header">
     <a class="public-brand" href="{% url 'public-home' %}"><span class="logo-mark"><i data-lucide="house"></i></span><span><strong>Nhà Trọ An Tâm</strong><small>An cư để vững bước</small></span></a>
     <nav><a class="active" href="{% url 'public-home' %}"><i data-lucide="house"></i> Trang chủ</a><a href="{% url 'public-rooms' %}"><i data-lucide="search"></i> Tìm phòng</a><a href="#gioi-thieu"><i data-lucide="building-2"></i> Về chúng tôi</a><a href="#lien-he"><i data-lucide="phone"></i> Liên hệ</a></nav>
-    {% if user.is_authenticated %}<a class="btn primary login-cta" href="{% url 'dashboard' %}"><i data-lucide="circle-user-round"></i> Vào hệ thống</a>{% else %}<a class="btn primary login-cta" href="{% url 'login' %}"><i data-lucide="circle-user-round"></i> Đăng nhập</a>{% endif %}
+    <div class="header-actions"><a class="favorite-link" href="{% url 'public-rooms' %}"><i data-lucide="heart"></i> Yêu thích</a>{% if user.is_authenticated %}<a class="btn primary login-cta" href="{% url 'dashboard' %}"><i data-lucide="circle-user-round"></i> Vào hệ thống</a>{% else %}<a class="btn primary login-cta" href="{% url 'login' %}"><i data-lucide="circle-user-round"></i> Đăng nhập</a>{% endif %}</div>
   </header>
   <main>{% block content %}{% endblock %}</main>
   <footer id="lien-he" class="public-footer"><strong>Nhà Trọ An Tâm</strong><span>Nền tảng tìm và quản lý phòng cho thuê minh bạch, thuận tiện.</span></footer>

@@ -32,10 +32,21 @@ def _tenant_contracts(tenant):
 
 def public_home(request):
     rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building").prefetch_related("amenities")
+    buildings = Building.objects.filter(is_active=True, rooms__status=Room.Status.AVAILABLE).distinct().order_by("name")
+    building_groups = []
+    for building in buildings:
+        building_groups.append({
+            "building": building,
+            "rooms": list(rooms.filter(building=building)[:4]),
+            "available_count": rooms.filter(building=building).count(),
+            "floor_count": Room.objects.filter(building=building).values("floor").distinct().count(),
+        })
     context = {
         "featured_rooms": rooms[:6],
+        "building_groups": building_groups,
+        "buildings": buildings,
         "available_count": rooms.count(),
-        "building_count": Building.objects.filter(is_active=True, rooms__status=Room.Status.AVAILABLE).distinct().count(),
+        "building_count": buildings.count(),
     }
     return render(request, "public/home.html", context)
 
@@ -43,10 +54,13 @@ def public_home(request):
 def public_rooms(request):
     rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building", "building__owner").prefetch_related("amenities")
     q = request.GET.get("q", "").strip()
+    selected_buildings = [name.strip() for name in request.GET.getlist("building") if name.strip()]
     min_price = request.GET.get("min_price", "").strip()
     max_price = request.GET.get("max_price", "").strip()
     if q:
         rooms = rooms.filter(Q(number__icontains=q) | Q(building__name__icontains=q) | Q(building__address__icontains=q))
+    if selected_buildings:
+        rooms = rooms.filter(building__name__in=selected_buildings)
     try:
         if min_price:
             rooms = rooms.filter(monthly_rent__gte=min_price)
@@ -54,7 +68,7 @@ def public_rooms(request):
             rooms = rooms.filter(monthly_rent__lte=max_price)
     except (TypeError, ValueError):
         min_price = max_price = ""
-    return render(request, "public/room_list.html", {"rooms": rooms, "q": q, "min_price": min_price, "max_price": max_price})
+    return render(request, "public/room_list.html", {"rooms": rooms, "q": q, "min_price": min_price, "max_price": max_price, "selected_buildings": selected_buildings})
 
 
 def public_room_detail(request, room_id):

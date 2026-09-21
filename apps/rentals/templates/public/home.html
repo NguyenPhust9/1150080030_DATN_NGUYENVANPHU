@@ -1,15 +1,56 @@
 {% extends "public/base.html" %}
-{% block title %}Tìm phòng cho thuê{% endblock %}
+{% block title %}Tìm phòng trọ phù hợp{% endblock %}
 {% block content %}
-<section class="hero-shell">
-  <div class="hero">
-    <div class="hero-copy"><span class="eyebrow">TÌM PHÒNG DỄ DÀNG, AN TÂM Ở LÂU DÀI</span><h1>Chọn một nơi ở<br><em>phù hợp với bạn</em></h1><p>Khám phá các phòng trọ còn trống, giá thuê rõ ràng và tiện nghi đầy đủ trước khi liên hệ chủ nhà. Bắt đầu tìm nơi ở lý tưởng ngay hôm nay!</p>
-      <form class="hero-search" action="{% url 'public-rooms' %}"><label><span class="search-icon"><i data-lucide="map-pin"></i></span><span><small>Nhập khu vực, tòa nhà hoặc số phòng</small><input name="q" placeholder="Ví dụ: Quận 1, Khu B, Tòa A..."></span></label><label class="type-select"><span class="search-icon sliders"><i data-lucide="sliders-horizontal"></i></span><span><small>Loại phòng</small><select name="type"><option>Tất cả</option></select></span></label><button class="btn primary"><i data-lucide="search"></i> Tìm phòng</button></form>
-      <div class="popular"><strong>Tìm kiếm phổ biến:</strong><a href="{% url 'public-rooms' %}?q=trường">Gần trường ĐH</a><a href="{% url 'public-rooms' %}?q=trung tâm">Gần trung tâm</a><a href="{% url 'public-rooms' %}">Có máy lạnh</a><a href="{% url 'public-rooms' %}?max_price=3000000">Dưới 3 triệu</a></div>
-    </div>
-    <div class="hero-photo"><div class="feature-card safety"><i><span data-lucide="shield-check"></span></i><span><strong>An toàn, minh bạch</strong><small>Thông tin rõ ràng</small></span></div><div class="feature-stack"><div class="feature-card"><i><span data-lucide="house"></span></i><span><strong>Nhiều lựa chọn</strong><small>Phù hợp nhu cầu</small></span></div><div class="feature-card green"><i><span data-lucide="map-pin"></span></i><span><strong>Vị trí thuận tiện</strong><small>Gần trường, trung tâm</small></span></div><div class="feature-card pink"><i><span data-lucide="heart"></span></i><span><strong>Tiện nghi đầy đủ</strong><small>Ở lâu dài, an tâm</small></span></div></div><div class="photo-slogan">Một nơi ở tốt<br>cho hành trình tốt hơn!</div></div>
+<section class="guest-hero">
+  <div class="guest-hero-inner">
+    <div class="guest-hero-copy"><h1>Tìm phòng trọ phù hợp<br>với cuộc sống của bạn</h1><p>Đa dạng lựa chọn <b>•</b> Thông tin minh bạch <b>•</b> An tâm dài lâu</p></div>
+    <div class="hero-assurance"><i data-lucide="shield-check"></i><span>Không chỉ là phòng trọ<small>Mà là nơi để vững bước</small></span></div>
+    <form class="guest-search" action="{% url 'public-rooms' %}">
+      <label><i data-lucide="map-pin"></i><input name="q" placeholder="Khu vực, quận huyện, địa chỉ..."></label>
+      <label><i data-lucide="building-2"></i><select name="building"><option value="">Chọn tòa nhà</option>{% for building in buildings %}<option value="{{ building.name }}">{{ building.name }}</option>{% endfor %}</select></label>
+      <label class="price-range"><i data-lucide="circle-dollar-sign"></i><input name="min_price" type="number" placeholder="Giá từ"><b>-</b><input name="max_price" type="number" placeholder="Giá đến"></label>
+      <label><i data-lucide="bed-double"></i><select><option>Loại phòng</option><option>Phòng trọ</option><option>Căn hộ mini</option></select></label>
+      <button class="btn primary"><i data-lucide="search"></i> Tìm phòng</button>
+    </form>
   </div>
-  <div class="stats-banner"><div><i><span data-lucide="house"></span></i><span><strong>{{ available_count }}+</strong><small>Phòng đang còn trống</small></span></div><div><i><span data-lucide="users"></span></i><span><strong>{{ building_count }}+</strong><small>Khu nhà cho thuê</small></span></div><div><i><span data-lucide="map-pin"></span></i><span><strong>10+</strong><small>Khu vực, quận/huyện</small></span></div><div><i><span data-lucide="heart"></span></i><span><strong>98%</strong><small>Khách hàng hài lòng</small></span></div></div>
 </section>
-<section id="gioi-thieu" class="public-section room-showcase"><div class="section-heading"><div><span class="eyebrow">GỢI Ý CHO BẠN</span><h2>Phòng đang còn trống</h2><p>Một số phòng phù hợp với nhu cầu của bạn</p></div><a href="{% url 'public-rooms' %}">Xem tất cả →</a></div><div class="room-grid">{% for room in featured_rooms %}{% include 'public/room_card.html' %}{% empty %}<div class="empty-state">Hiện chưa có phòng trống được đăng.</div>{% endfor %}</div></section>
+<section class="benefit-strip">
+  <div><i data-lucide="house"></i><span><strong>Nhiều tòa nhà</strong><small>và vị trí thuận tiện</small></span></div>
+  <div><i data-lucide="shield-check"></i><span><strong>Thông tin rõ ràng</strong><small>hình ảnh thực tế</small></span></div>
+  <div><i data-lucide="heart"></i><span><strong>Dễ dàng so sánh</strong><small>và lưu phòng yêu thích</small></span></div>
+  <div><i data-lucide="headphones"></i><span><strong>Hỗ trợ nhanh chóng</strong><small>tận tình, chuyên nghiệp</small></span></div>
+</section>
+<section id="gioi-thieu" class="property-browser">
+  <aside class="filter-panel">
+    <h2>Bộ lọc tìm kiếm</h2>
+    <form action="{% url 'public-rooms' %}">
+      <h3>Khu vực</h3>
+      <select name="q"><option value="">Chọn quận / huyện</option><option>Quận 3</option><option>Quận 10</option><option>Thủ Đức</option></select>
+      <select><option>Chọn phường / xã</option></select>
+      <h3>Tòa nhà</h3>
+      {% for group in building_groups %}<label class="check-row"><input type="checkbox" name="building" value="{{ group.building.name }}"><span>{{ group.building.name }}</span><small>{{ group.available_count }}</small></label>{% endfor %}
+      <h3>Khoảng giá</h3>
+      <input class="range-control" type="range" min="0" max="10000000" step="500000" value="7500000">
+      <div class="range-label"><span>0 đ</span><span>10.000.000 đ+</span></div>
+      <h3>Tiện ích</h3>
+      <label class="check-row"><input type="checkbox"><span>Có máy lạnh</span></label>
+      <label class="check-row"><input type="checkbox"><span>Có nội thất</span></label>
+      <label class="check-row"><input type="checkbox"><span>WiFi miễn phí</span></label>
+      <button class="btn primary mobile-filter-submit">Áp dụng bộ lọc</button>
+    </form>
+  </aside>
+  <div class="building-results">
+    <div class="results-heading"><div><h2>Danh sách tòa nhà</h2><p>Chọn tòa nhà để xem các phòng bên trong</p></div><label>Sắp xếp <select><option>Mới nhất</option><option>Giá thấp nhất</option></select></label></div>
+    {% for group in building_groups %}
+    <article class="building-block">
+      <header>
+        <div class="building-thumb building-thumb-{{ forloop.counter }}"></div>
+        <div class="building-info"><h3>{{ group.building.name }} {% if forloop.first %}<span>Tòa nhà nổi bật</span>{% endif %}</h3><p><i data-lucide="map-pin"></i> {{ group.building.address }}</p><div><span><i data-lucide="building-2"></i> {{ group.floor_count }} tầng</span><span><i data-lucide="bed-double"></i> {{ group.available_count }} phòng trống</span><span><i data-lucide="map-pin"></i> Gần chợ, trường học, trung tâm</span></div></div>
+        <a class="view-building" href="{% url 'public-rooms' %}?q={{ group.building.name|urlencode }}">Xem tất cả {{ group.available_count }} phòng <i data-lucide="arrow-right"></i></a>
+      </header>
+      <div class="compact-room-grid">{% for room in group.rooms %}{% include "public/room_card.html" %}{% endfor %}</div>
+    </article>
+    {% empty %}<div class="empty-state">Hiện chưa có phòng trống được đăng.</div>{% endfor %}
+  </div>
+</section>
 {% endblock %}
