@@ -1,1 +1,26 @@
-{% extends "base.html" %}{% block page_title %}Tòa nhà{% endblock %}{% block content %}{% with create_url='building-create' %}{% include 'rentals/_list_header.html' %}{% endwith %}<section class="panel"><div class="list-summary"><span>Danh sách tòa nhà</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Tên</th><th>Địa chỉ</th><th>Chủ sở hữu</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.name }}</td><td>{{ x.address }}</td><td>{{ x.owner }}</td><td>{{ x.is_active|yesno:"Hoạt động,Ngừng" }}</td></tr>{% empty %}<tr><td colspan="5">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Tòa nhà{% endblock %}
+{% block page_subtitle %}Quản lý danh sách tòa nhà trong hệ thống{% endblock %}
+{% block content %}
+<section class="building-overview">
+  <article class="overview-card total"><span><i data-lucide="building-2"></i></span><strong>{{ building_total }}</strong><small>Tổng số tòa nhà</small></article>
+  <article class="overview-card active"><span><i data-lucide="circle-check"></i></span><strong>{{ building_active }}</strong><small>Đang hoạt động</small></article>
+  <article class="overview-card paused"><span><i data-lucide="pause"></i></span><strong>0</strong><small>Tạm ngừng</small></article>
+  <article class="overview-card inactive"><span><i data-lucide="circle-x"></i></span><strong>{{ building_inactive }}</strong><small>Ngừng hoạt động</small></article>
+  <div class="building-quote"><i data-lucide="building"></i><p>“Quản lý tòa nhà<br>hiệu quả hơn mỗi ngày”</p></div>
+</section>
+<section class="building-panel">
+  <form method="get" class="building-toolbar">
+    <label class="building-search"><i data-lucide="search"></i><input name="q" value="{{ q }}" placeholder="Tìm kiếm tên tòa nhà, địa chỉ..."></label>
+    <label class="select-field"><span>Trạng thái</span><select name="status" onchange="this.form.submit()"><option value="">Tất cả</option><option value="active" {% if status == 'active' %}selected{% endif %}>Hoạt động</option><option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Ngừng hoạt động</option></select></label>
+    <label class="select-field"><span>Sắp xếp</span><select name="sort" onchange="this.form.submit()"><option value="newest" {% if sort == 'newest' %}selected{% endif %}>Mới nhất</option><option value="name" {% if sort == 'name' %}selected{% endif %}>Tên A–Z</option></select></label>
+    <button class="btn filter-button" type="submit">Tìm kiếm</button>
+    <a class="btn primary add-building" href="{% url 'building-create' %}"><i data-lucide="plus"></i>Thêm tòa nhà</a>
+  </form>
+  <div class="table-wrap"><table class="building-table"><thead><tr><th class="row-number">STT</th><th>Tên tòa nhà</th><th>Địa chỉ</th><th>Chủ sở hữu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
+    {% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td><div class="building-name"><span class="building-mini building-mini-{{ forloop.counter }}"></span><strong>{{ x.name }}</strong></div></td><td><span class="cell-icon"><i data-lucide="map-pin"></i>{{ x.address }}</span></td><td><span class="cell-icon"><i data-lucide="user-round"></i>{{ x.owner }}</span></td><td>{% if x.is_active %}<span class="status-pill active"><b></b>Hoạt động</span>{% else %}<span class="status-pill inactive"><b></b>Ngừng hoạt động</span>{% endif %}</td><td><div class="row-actions"><a href="{% url 'public-rooms' %}?building={{ x.name|urlencode }}" title="Xem phòng"><i data-lucide="eye"></i></a><a class="edit" href="{% url 'building-update' x.id %}" title="Chỉnh sửa"><i data-lucide="pencil"></i></a>{% if user.is_staff %}<a href="{% url 'admin:rentals_building_change' x.id %}" title="Quản lý nâng cao"><i data-lucide="ellipsis"></i></a>{% endif %}</div></td></tr>
+    {% empty %}<tr><td colspan="6" class="empty-state">Không tìm thấy tòa nhà phù hợp.</td></tr>{% endfor %}
+  </tbody></table></div>
+  <footer class="building-footer"><span>Hiển thị {{ page_obj.start_index }}–{{ page_obj.end_index }} của {{ paginator.count }} tòa nhà</span>{% if page_obj.has_other_pages %}<nav class="pagination">{% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&status={{ status }}&sort={{ sort }}">←</a>{% endif %}<span class="current">{{ page_obj.number }}</span>{% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&status={{ status }}&sort={{ sort }}">→</a>{% endif %}</nav>{% endif %}</footer>
+</section>
+{% endblock %}

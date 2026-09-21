@@ -131,6 +131,22 @@ def object_list(request, resource):
         }
         queryset = queryset.filter(search_map[resource])
     context = {"q": q}
+    if resource == "buildings":
+        status = request.GET.get("status", "").strip()
+        sort = request.GET.get("sort", "newest").strip()
+        if status == "active":
+            queryset = queryset.filter(is_active=True)
+        elif status == "inactive":
+            queryset = queryset.filter(is_active=False)
+        queryset = queryset.order_by("name" if sort == "name" else "-created_at")
+        all_buildings = Building.objects.all()
+        context.update({
+            "status": status,
+            "sort": sort,
+            "building_total": all_buildings.count(),
+            "building_active": all_buildings.filter(is_active=True).count(),
+            "building_inactive": all_buildings.filter(is_active=False).count(),
+        })
     if resource == "rooms":
         building_id = request.GET.get("building", "").strip()
         if building_id:
@@ -220,6 +236,19 @@ def object_create(request, resource):
         form.save_m2m()
         return redirect(resource)
     return render(request, "rentals/form.html", {"form": form, "title": f"Thêm {title.lower()}"})
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def object_update(request, resource, object_id):
+    _require_operator(request.user)
+    form_class, title = FORM_CONFIG[resource]
+    obj = get_object_or_404(form_class._meta.model, pk=object_id)
+    form = form_class(request.POST or None, instance=obj)
+    if form.is_valid():
+        form.save()
+        return redirect(resource)
+    return render(request, "rentals/form.html", {"form": form, "title": f"Cập nhật {title.lower()}"})
 
 
 @login_required

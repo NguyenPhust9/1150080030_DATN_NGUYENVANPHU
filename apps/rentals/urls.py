@@ -9,6 +9,7 @@ urlpatterns = [
     path("quan-ly/", views.dashboard, name="dashboard"),
     path("toa-nha/", views.object_list, {"resource": "buildings"}, name="buildings"),
     path("toa-nha/them/", views.object_create, {"resource": "buildings"}, name="building-create"),
+    path("toa-nha/<uuid:object_id>/sua/", views.object_update, {"resource": "buildings"}, name="building-update"),
     path("phong/", views.object_list, {"resource": "rooms"}, name="rooms"),
     path("phong/them/", views.object_create, {"resource": "rooms"}, name="room-create"),
     path("so-do-phong/", views.room_map, name="room-map"),
