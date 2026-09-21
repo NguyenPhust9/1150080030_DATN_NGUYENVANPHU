@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import parse_qsl, unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -64,9 +65,25 @@ TEMPLATES = [
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
 
+database_url = env("DATABASE_URL").strip()
+
 if env("DJANGO_TEST_SQLITE", "false").lower() == "true":
     # Chỉ dùng cho kiểm thử code độc lập; môi trường chạy thật luôn dùng PostgreSQL.
     DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / ".test.sqlite3"}}
+elif database_url:
+    parsed_database_url = urlparse(database_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": unquote(parsed_database_url.path.lstrip("/")),
+            "USER": unquote(parsed_database_url.username or ""),
+            "PASSWORD": unquote(parsed_database_url.password or ""),
+            "HOST": parsed_database_url.hostname or "",
+            "PORT": parsed_database_url.port or 5432,
+            "CONN_MAX_AGE": 0,
+            "OPTIONS": dict(parse_qsl(parsed_database_url.query)),
+        }
+    }
 else:
     DATABASES = {
         "default": {
