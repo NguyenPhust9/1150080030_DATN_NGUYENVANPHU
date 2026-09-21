@@ -15,9 +15,12 @@ def env_int(name: str, default: int = 0) -> int:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "unsafe-development-key-change-me")
 DEBUG = env("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.vercel.app").split(",") if host.strip()]
-
 VERCEL_URL = env("VERCEL_URL")
+allowed_hosts_value = env("DJANGO_ALLOWED_HOSTS").strip() or "localhost,127.0.0.1,.vercel.app"
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_value.split(",") if host.strip()]
+if VERCEL_URL and VERCEL_URL not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(VERCEL_URL)
+
 CSRF_TRUSTED_ORIGINS = [f"https://{VERCEL_URL}"] if VERCEL_URL else []
 
 INSTALLED_APPS = [
