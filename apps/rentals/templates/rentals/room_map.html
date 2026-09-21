@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Sơ đồ phòng{% endblock %}
 {% block page_title %}Sơ đồ phòng{% endblock %}
+{% block page_subtitle %}Tổng quan trạng thái phòng theo từng tòa nhà và tầng{% endblock %}
 {% block content %}
 <div class="map-heading">
-  <div class="map-title"><span class="map-title-icon"><i data-lucide="building-2"></i></span><div><h1>Sơ đồ phòng</h1><p>Tổng quan trạng thái phòng theo từng tòa nhà và tầng</p></div></div>
   <form method="get" class="map-filters">
     <a class="map-control" href="{% url 'room-map' %}"><i data-lucide="refresh-cw"></i> Tải mới</a>
     <label class="map-control"><i data-lucide="list-filter"></i><select name="status" onchange="this.form.submit()"><option value="">Tất cả trạng thái</option>{% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
