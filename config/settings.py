@@ -10,7 +10,10 @@ def env(name: str, default: str = "") -> str:
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", "unsafe-development-key-change-me")
 DEBUG = env("DJANGO_DEBUG", "true").lower() == "true"
-ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if host.strip()]
+ALLOWED_HOSTS = [host.strip() for host in env("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,.vercel.app").split(",") if host.strip()]
+
+VERCEL_URL = env("VERCEL_URL")
+CSRF_TRUSTED_ORIGINS = [f"https://{VERCEL_URL}"] if VERCEL_URL else []
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -81,7 +84,7 @@ TIME_ZONE = "Asia/Ho_Chi_Minh"
 USE_I18N = True
 USE_TZ = True
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [
     BASE_DIR / "static",

@@ -1,3 +1,15 @@
+[project]
+name = "ql-phong-cho-thue"
+version = "0.1.0"
+description = "He thong quan ly phong cho thue bang Django"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "Django==6.0.5",
+    "psycopg[binary]==3.3.5",
+    "whitenoise==6.11.0",
+]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py"]
