@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods
 
 from .forms import BuildingForm, ContractForm, MeterReadingForm, RoomForm, TenantForm, TenantIncidentForm
-from .models import Building, Contract, Incident, Invoice, MeterReading, Payment, Room, Tenant
+from .models import Amenity, Building, Contract, Incident, Invoice, MeterReading, Payment, Room, Tenant
 
 
 def _is_tenant(user):
@@ -132,6 +132,11 @@ def object_list(request, resource):
         queryset = queryset.filter(search_map[resource])
     context = {"q": q}
     if resource == "buildings":
+        queryset = queryset.annotate(
+            total_rooms=Count("rooms", distinct=True),
+            available_rooms=Count("rooms", filter=Q(rooms__status=Room.Status.AVAILABLE), distinct=True),
+            occupied_rooms=Count("rooms", filter=Q(rooms__status=Room.Status.OCCUPIED), distinct=True),
+        )
         status = request.GET.get("status", "").strip()
         sort = request.GET.get("sort", "newest").strip()
         if status == "active":
@@ -158,6 +163,12 @@ def object_list(request, resource):
         })
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
+    if resource == "buildings":
+        for building in page_obj.object_list:
+            amenity_names = list(Amenity.objects.filter(rooms__building=building).values_list("name", flat=True).distinct())
+            building.amenity_tags = amenity_names[:3]
+            building.amenity_extra = max(0, len(amenity_names) - 3)
+            building.occupancy_percent = round(building.occupied_rooms * 100 / building.total_rooms) if building.total_rooms else 0
     context.update({"objects": page_obj, "page_obj": page_obj, "paginator": paginator})
     return render(request, template, context)
 
