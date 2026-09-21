@@ -5,10 +5,10 @@
       "includeFiles": "{apps/**,config/**,static/**}"
     }
   },
-  "rewrites": [
+  "routes": [
     {
-      "source": "/(.*)",
-      "destination": "/api"
+      "src": "/(.*)",
+      "dest": "api/index.py"
     }
   ]
 }
