@@ -34,3 +34,16 @@ class RoomEditTests(TestCase):
     def test_anonymous_user_cannot_edit_room(self):
         response = self.client.get(reverse("room-update", args=[self.room.id]))
         self.assertEqual(response.status_code, 302)
+
+    def test_public_home_uses_latest_cloudinary_image_as_room_cover(self):
+        first = RoomMedia.objects.create(
+            room=self.room, media_type="image", url="https://res.cloudinary.com/example/image/upload/old.jpg",
+            public_id="old",
+        )
+        newest = RoomMedia.objects.create(
+            room=self.room, media_type="image", url="https://res.cloudinary.com/example/image/upload/new.jpg",
+            public_id="new",
+        )
+        response = self.client.get(reverse("public-home"))
+        self.assertContains(response, newest.url)
+        self.assertNotContains(response, first.url)

@@ -7,7 +7,7 @@ from cloudinary.utils import api_sign_request
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, Q, Sum
+from django.db.models import Count, OuterRef, Q, Subquery, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
@@ -36,8 +36,15 @@ def _tenant_contracts(tenant):
     return Contract.objects.filter(Q(representative=tenant) | Q(members__tenant=tenant)).distinct()
 
 
+def _with_cover_image(rooms):
+    latest_image = RoomMedia.objects.filter(
+        room_id=OuterRef("pk"), media_type=RoomMedia.MediaType.IMAGE
+    ).order_by("-created_at", "-id")
+    return rooms.annotate(cover_image_url=Subquery(latest_image.values("url")[:1]))
+
+
 def public_home(request):
-    rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building").prefetch_related("amenities")
+    rooms = _with_cover_image(Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building").prefetch_related("amenities"))
     buildings = Building.objects.filter(is_active=True, rooms__status=Room.Status.AVAILABLE).distinct().order_by("name")
     building_groups = []
     for building in buildings:
@@ -58,7 +65,7 @@ def public_home(request):
 
 
 def public_rooms(request):
-    rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building", "building__owner").prefetch_related("amenities")
+    rooms = _with_cover_image(Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building", "building__owner").prefetch_related("amenities"))
     q = request.GET.get("q", "").strip()
     district = request.GET.get("district", "").strip()
     selected_buildings = [name.strip() for name in request.GET.getlist("building") if name.strip()]
@@ -95,7 +102,7 @@ def public_rooms(request):
 
 def public_room_detail(request, room_id):
     room = get_object_or_404(
-        Room.objects.select_related("building", "building__owner").prefetch_related("amenities"),
+        _with_cover_image(Room.objects.select_related("building", "building__owner").prefetch_related("amenities")),
         pk=room_id,
         status=Room.Status.AVAILABLE,
         building__is_active=True,
