@@ -47,3 +47,16 @@ class RoomEditTests(TestCase):
         response = self.client.get(reverse("public-home"))
         self.assertContains(response, newest.url)
         self.assertNotContains(response, first.url)
+
+    def test_room_detail_shows_images_and_videos(self):
+        image = RoomMedia.objects.create(
+            room=self.room, media_type="image", url="https://res.cloudinary.com/example/image/upload/room.jpg",
+            public_id="room-image",
+        )
+        video = RoomMedia.objects.create(
+            room=self.room, media_type="video", url="https://res.cloudinary.com/example/video/upload/room.mp4",
+            public_id="room-video",
+        )
+        response = self.client.get(reverse("public-room-detail", args=[self.room.id]))
+        self.assertContains(response, image.url)
+        self.assertContains(response, video.url)

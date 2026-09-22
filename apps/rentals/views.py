@@ -107,7 +107,11 @@ def public_room_detail(request, room_id):
         status=Room.Status.AVAILABLE,
         building__is_active=True,
     )
-    return render(request, "public/room_detail.html", {"room": room})
+    return render(request, "public/room_detail.html", {
+        "room": room,
+        "room_images": room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-created_at", "-id"),
+        "room_videos": room.media.filter(media_type=RoomMedia.MediaType.VIDEO).order_by("-created_at", "-id"),
+    })
 
 
 @login_required
