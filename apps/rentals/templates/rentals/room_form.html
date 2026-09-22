@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% load static %}
-{% block title %}Thêm phòng mới{% endblock %}{% block page_title %}Thêm phòng mới{% endblock %}{% block page_subtitle %}Nhập thông tin và tải ảnh/video phòng lên Cloudinary{% endblock %}
+{% block title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_subtitle %}Cập nhật thông tin và tải ảnh/video phòng lên Cloudinary{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/room-form.css' %}">
 <section class="room-form-panel">
@@ -14,10 +14,10 @@
         <label class="full"><span>Mô tả</span>{{ form.description }}{{ form.description.errors }}</label><label class="full amenities-field"><span>Tiện nghi</span>{{ form.amenities }}{{ form.amenities.errors }}</label>
       </div>
     </div>
-    <div class="room-tab-content" data-panel="images"><div class="upload-zone" data-target="room-images"><i data-lucide="images"></i><h3>Thêm ảnh phòng</h3><p>Kéo thả hoặc chọn nhiều ảnh JPG, PNG, WEBP</p><button type="button" class="btn">Chọn ảnh</button><input id="room-images" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></div><div id="image-previews" class="media-previews"></div></div>
-    <div class="room-tab-content" data-panel="videos"><div class="upload-zone" data-target="room-videos"><i data-lucide="video"></i><h3>Thêm video phòng</h3><p>Video được tải trực tiếp và lưu trữ trên Cloudinary</p><button type="button" class="btn">Chọn video</button><input id="room-videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple hidden></div><div id="video-previews" class="media-previews"></div></div>
+    <div class="room-tab-content" data-panel="images"><div class="upload-zone" data-target="room-images"><i data-lucide="images"></i><h3>Thêm ảnh phòng</h3><p>Chọn nhiều ảnh JPG, PNG, WEBP</p><button type="button" class="btn">Chọn ảnh</button><input id="room-images" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden></div>{% if existing_images %}<h3>Ảnh hiện có</h3><div class="media-previews">{% for media in existing_images %}<a class="media-preview" href="{{ media.url }}" target="_blank" rel="noopener"><img src="{{ media.url }}" alt="Ảnh phòng {{ form.instance.number }}"></a>{% endfor %}</div>{% endif %}<div id="image-previews" class="media-previews"></div></div>
+    <div class="room-tab-content" data-panel="videos"><div class="upload-zone" data-target="room-videos"><i data-lucide="video"></i><h3>Thêm video phòng</h3><p>Video được tải trực tiếp và lưu trữ trên Cloudinary</p><button type="button" class="btn">Chọn video</button><input id="room-videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple hidden></div>{% if existing_videos %}<h3>Video hiện có</h3><div class="media-previews">{% for media in existing_videos %}<div class="media-preview"><video src="{{ media.url }}" controls></video></div>{% endfor %}</div>{% endif %}<div id="video-previews" class="media-previews"></div></div>
     <div id="upload-status" class="upload-status" hidden></div>
-    <footer class="room-form-actions"><a class="btn" href="{% url 'rooms' %}">Hủy</a><button id="save-room" class="btn primary" type="submit"><i data-lucide="save"></i>Lưu phòng</button></footer>
+    <footer class="room-form-actions"><a class="btn" href="{% url 'rooms' %}">Hủy</a><button id="save-room" class="btn primary" type="submit"><i data-lucide="save"></i>{% if editing %}Lưu thay đổi{% else %}Lưu phòng{% endif %}</button></footer>
   </form>
 </section>
 <script>

@@ -323,9 +323,35 @@ def object_update(request, resource, object_id):
     form_class, title = FORM_CONFIG[resource]
     obj = get_object_or_404(form_class._meta.model, pk=object_id)
     form = form_class(request.POST or None, instance=obj)
+    media_items = []
+    if resource == "rooms" and request.method == "POST":
+        try:
+            media_items = json.loads(request.POST.get("media_payload", "[]"))
+            if not isinstance(media_items, list):
+                raise ValueError
+            for item in media_items:
+                if item.get("media_type") not in {RoomMedia.MediaType.IMAGE, RoomMedia.MediaType.VIDEO}:
+                    raise ValueError
+                if not item.get("url", "").startswith("https://res.cloudinary.com/") or not item.get("public_id"):
+                    raise ValueError
+                item["bytes"] = max(0, int(item.get("bytes", 0)))
+        except (TypeError, ValueError, AttributeError):
+            form.add_error(None, "Thông tin ảnh/video tải lên không hợp lệ.")
     if form.is_valid():
         form.save()
+        if resource == "rooms" and media_items:
+            RoomMedia.objects.bulk_create([
+                RoomMedia(room=obj, media_type=item["media_type"], url=item["url"],
+                          public_id=item["public_id"], format=item.get("format", ""), bytes=item["bytes"])
+                for item in media_items
+            ])
         return redirect(resource)
+    if resource == "rooms":
+        return render(request, "rentals/room_form.html", {
+            "form": form, "title": f"Sửa phòng {obj.number}", "editing": True,
+            "existing_images": obj.media.filter(media_type=RoomMedia.MediaType.IMAGE),
+            "existing_videos": obj.media.filter(media_type=RoomMedia.MediaType.VIDEO),
+        })
     return render(request, "rentals/form.html", {"form": form, "title": f"Cập nhật {title.lower()}"})
 
 
