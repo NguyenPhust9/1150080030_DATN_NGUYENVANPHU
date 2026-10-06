@@ -13,14 +13,14 @@
   <main class="auth-shell">
     <section class="auth-visual" style="--login-image:url('{% static 'images/anhlogin.png' %}')">
       <a class="auth-brand auth-brand-light" href="{% url 'public-home' %}"><span><i data-lucide="house"></i></span><div><strong>Nhà Trọ An Tâm</strong><small>An cư để vững bước</small></div></a>
-      <div class="visual-copy"><span class="visual-badge"><i data-lucide="shield-check"></i> Không gian sống đáng tin cậy</span><h1>Một nơi ở tốt<br>cho hành trình tốt hơn.</h1><p>Quản lý phòng thuê, hợp đồng và hóa đơn dễ dàng trên cùng một hệ thống.</p></div>
+      <div class="visual-copy"><span class="visual-badge"><i data-lucide="shield-check"></i> Không gian sống đáng tin cậy</span><h1>Một nơi ở tốt<br>cho hành trình tốt hơn.</h1></div>
       <div class="visual-stats"><span><strong>120+</strong><small>Phòng cho thuê</small></span><span><strong>98%</strong><small>Khách hàng hài lòng</small></span></div>
     </section>
     <section class="auth-panel">
       <a class="back-home" href="{% url 'public-home' %}">Về trang chủ</a>
       <div class="auth-form-wrap">
         <a class="auth-brand auth-brand-mobile" href="{% url 'public-home' %}"><span><i data-lucide="house"></i></span><div><strong>Nhà Trọ An Tâm</strong><small>An cư để vững bước</small></div></a>
-        <div class="auth-heading"><span>CHÀO MỪNG TRỞ LẠI</span><h2>Đăng nhập tài khoản</h2><p>Nhập thông tin của bạn để truy cập hệ thống quản lý.</p></div>
+        <div class="auth-heading"><span>CHÀO MỪNG TRỞ LẠI</span><h2>Đăng nhập tài khoản</h2></div>
         {% if form.errors %}<div class="auth-error"><i data-lucide="circle-alert"></i><span>Tên đăng nhập hoặc mật khẩu không đúng.</span></div>{% endif %}
         <form method="post" class="auth-form">
           {% csrf_token %}

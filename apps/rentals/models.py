@@ -89,6 +89,7 @@ class RoomMedia(UUIDTimeStampedModel):
     public_id = models.CharField("Cloudinary public ID", max_length=255)
     format = models.CharField("định dạng", max_length=20, blank=True)
     bytes = models.PositiveBigIntegerField("dung lượng", default=0)
+    is_primary = models.BooleanField("ảnh chính", default=False)
 
     class Meta:
         ordering = ("created_at",)

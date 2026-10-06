@@ -60,3 +60,36 @@ class RoomEditTests(TestCase):
         response = self.client.get(reverse("public-room-detail", args=[self.room.id]))
         self.assertContains(response, image.url)
         self.assertContains(response, video.url)
+
+    def test_admin_can_choose_existing_image_as_primary(self):
+        self.client.force_login(self.admin)
+        first = RoomMedia.objects.create(room=self.room, media_type="image", url="https://res.cloudinary.com/example/image/upload/first.jpg", public_id="first")
+        latest = RoomMedia.objects.create(room=self.room, media_type="image", url="https://res.cloudinary.com/example/image/upload/latest.jpg", public_id="latest")
+        response = self.client.post(reverse("room-update", args=[self.room.id]), {
+            "building": str(self.building.id), "number": self.room.number, "floor": 1,
+            "area": "25", "monthly_rent": "3000000", "deposit_amount": "0",
+            "max_occupants": 2, "status": "available", "description": "",
+            "primary_image": f"existing:{first.id}", "media_payload": "[]",
+        })
+        self.assertRedirects(response, reverse("rooms"))
+        first.refresh_from_db()
+        latest.refresh_from_db()
+        self.assertTrue(first.is_primary)
+        self.assertFalse(latest.is_primary)
+        homepage = self.client.get(reverse("public-home"))
+        self.assertContains(homepage, first.url)
+        self.assertNotContains(homepage, latest.url)
+
+    def test_admin_can_choose_new_image_as_primary(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("room-update", args=[self.room.id]), {
+            "building": str(self.building.id), "number": self.room.number, "floor": 1,
+            "area": "25", "monthly_rent": "3000000", "deposit_amount": "0",
+            "max_occupants": 2, "status": "available", "description": "",
+            "primary_image": "new:0", "media_payload": json.dumps([{
+                "media_type": "image", "url": "https://res.cloudinary.com/example/image/upload/chosen.jpg",
+                "public_id": "chosen", "format": "jpg", "bytes": 100,
+            }]),
+        })
+        self.assertRedirects(response, reverse("rooms"))
+        self.assertTrue(self.room.media.get(public_id="chosen").is_primary)

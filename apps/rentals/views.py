@@ -1,13 +1,17 @@
 import json
 import os
 import time
+from urllib.parse import unquote, urlparse
 
 import cloudinary
+import cloudinary.uploader
 from cloudinary.utils import api_sign_request
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, OuterRef, Q, Subquery, Sum
+from django.db.models import Count, Min, OuterRef, Q, Subquery, Sum
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
@@ -39,8 +43,50 @@ def _tenant_contracts(tenant):
 def _with_cover_image(rooms):
     latest_image = RoomMedia.objects.filter(
         room_id=OuterRef("pk"), media_type=RoomMedia.MediaType.IMAGE
-    ).order_by("-created_at", "-id")
+    ).order_by("-is_primary", "-created_at", "-id")
     return rooms.annotate(cover_image_url=Subquery(latest_image.values("url")[:1]))
+
+
+def _apply_primary_image(room, selection, new_images):
+    """Keep an existing cover unless the operator explicitly selects another image."""
+    selected = None
+    if selection.startswith("new:"):
+        try:
+            selected = new_images[int(selection[4:])]
+        except (ValueError, IndexError):
+            pass
+    elif selection.startswith("existing:"):
+        try:
+            selected = room.media.filter(pk=selection[9:], media_type=RoomMedia.MediaType.IMAGE).first()
+        except (ValueError, ValidationError):
+            pass
+    if selected is None and not room.media.filter(media_type=RoomMedia.MediaType.IMAGE, is_primary=True).exists():
+        selected = room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-created_at", "-id").first()
+    if selected is not None:
+        room.media.filter(media_type=RoomMedia.MediaType.IMAGE, is_primary=True).update(is_primary=False)
+        room.media.filter(pk=selected.pk).update(is_primary=True)
+
+
+def _delete_room_media(room, media_ids):
+    failed = []
+    cloudinary_url = os.getenv("CLOUDINARY_URL", "")
+    parsed = urlparse(cloudinary_url)
+    cloudinary.config(
+        cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME") or parsed.hostname,
+        api_key=os.getenv("CLOUDINARY_API_KEY") or unquote(parsed.username or ""),
+        api_secret=os.getenv("CLOUDINARY_API_SECRET") or unquote(parsed.password or ""),
+        secure=True,
+    )
+    for media in room.media.filter(pk__in=media_ids):
+        try:
+            result = cloudinary.uploader.destroy(media.public_id, resource_type=media.media_type)
+            if result.get("result") not in {"ok", "not found"}:
+                raise RuntimeError(result.get("result", "unknown"))
+        except Exception:
+            failed.append(media.id)
+            continue
+        media.delete()
+    return failed
 
 
 def public_home(request):
@@ -109,7 +155,7 @@ def public_room_detail(request, room_id):
     )
     return render(request, "public/room_detail.html", {
         "room": room,
-        "room_images": room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-created_at", "-id"),
+        "room_images": room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-is_primary", "-created_at", "-id"),
         "room_videos": room.media.filter(media_type=RoomMedia.MediaType.VIDEO).order_by("-created_at", "-id"),
     })
 
@@ -211,7 +257,11 @@ def room_map(request):
     _require_operator(request.user)
     building_id = request.GET.get("building", "").strip()
     status = request.GET.get("status", "").strip()
-    buildings = Building.objects.filter(is_active=True).order_by("name")
+    buildings = (
+        Building.objects.filter(is_active=True)
+        .annotate(first_room_number=Min("rooms__number"))
+        .order_by("first_room_number", "name")
+    )
     if building_id:
         buildings = buildings.filter(pk=building_id)
 
@@ -248,7 +298,11 @@ def room_map(request):
     }
     stats["without_air_conditioner"] = stats["total"] - stats["air_conditioned"]
     return render(request, "rentals/room_map.html", {
-        "all_buildings": Building.objects.filter(is_active=True).order_by("name"),
+        "all_buildings": (
+            Building.objects.filter(is_active=True)
+            .annotate(first_room_number=Min("rooms__number"))
+            .order_by("first_room_number", "name")
+        ),
         "building_cards": building_cards,
         "selected_building": building_id,
         "selected_status": status,
@@ -293,7 +347,7 @@ def object_create(request, resource):
         obj.save()
         form.save_m2m()
         if isinstance(obj, Room):
-            RoomMedia.objects.bulk_create([
+            new_media = RoomMedia.objects.bulk_create([
                 RoomMedia(
                     room=obj,
                     media_type=item["media_type"],
@@ -303,6 +357,9 @@ def object_create(request, resource):
                     bytes=item["bytes"],
                 ) for item in media_items
             ])
+            _apply_primary_image(obj, request.POST.get("primary_image", ""),
+                                 [media for media in new_media if media.media_type == RoomMedia.MediaType.IMAGE])
+            messages.success(request, f"Đã thêm phòng {obj.number} thành công.")
         return redirect(resource)
     template = "rentals/room_form.html" if resource == "rooms" else "rentals/form.html"
     return render(request, template, {"form": form, "title": f"Thêm {title.lower()}"})
@@ -312,18 +369,59 @@ def object_create(request, resource):
 @require_POST
 def cloudinary_upload_signature(request):
     _require_operator(request.user)
-    if not os.getenv("CLOUDINARY_URL"):
+    cloudinary_url = os.getenv("CLOUDINARY_URL", "")
+    if not cloudinary_url:
         return JsonResponse({"error": "Cloudinary chưa được cấu hình."}, status=503)
-    config = cloudinary.config()
+    parsed = urlparse(cloudinary_url)
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME") or parsed.hostname
+    api_key = os.getenv("CLOUDINARY_API_KEY") or unquote(parsed.username or "")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET") or unquote(parsed.password or "")
+    if not cloud_name or not api_key or not api_secret:
+        return JsonResponse({"error": "Cloudinary thiếu Cloud name, API Key hoặc API Secret."}, status=503)
     timestamp = int(time.time())
     folder = "ql-phong-cho-thue/rooms"
-    signature = api_sign_request({"folder": folder, "timestamp": timestamp}, config.api_secret)
+    signature = api_sign_request({"folder": folder, "timestamp": timestamp}, api_secret)
     return JsonResponse({
         "timestamp": timestamp,
         "folder": folder,
         "signature": signature,
-        "cloud_name": config.cloud_name,
-        "api_key": config.api_key,
+        "cloud_name": cloud_name,
+        "api_key": api_key,
+    })
+
+
+@login_required
+@require_POST
+def cloudinary_upload(request):
+    _require_operator(request.user)
+    uploaded_file = request.FILES.get("file")
+    media_type = request.POST.get("media_type")
+    if uploaded_file is None or media_type not in {RoomMedia.MediaType.IMAGE, RoomMedia.MediaType.VIDEO}:
+        return JsonResponse({"error": "Tệp tải lên không hợp lệ."}, status=400)
+
+    cloudinary_url = os.getenv("CLOUDINARY_URL", "")
+    parsed = urlparse(cloudinary_url)
+    cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME") or parsed.hostname
+    api_key = os.getenv("CLOUDINARY_API_KEY") or unquote(parsed.username or "")
+    api_secret = os.getenv("CLOUDINARY_API_SECRET") or unquote(parsed.password or "")
+    if not cloud_name or not api_key or not api_secret:
+        return JsonResponse({"error": "Cloudinary thiếu Cloud name, API Key hoặc API Secret."}, status=503)
+
+    cloudinary.config(cloud_name=cloud_name, api_key=api_key, api_secret=api_secret, secure=True)
+    try:
+        result = cloudinary.uploader.upload(
+            uploaded_file,
+            resource_type=media_type,
+            folder="ql-phong-cho-thue/rooms",
+        )
+    except Exception as exc:
+        return JsonResponse({"error": str(exc)}, status=502)
+    return JsonResponse({
+        "media_type": media_type,
+        "url": result["secure_url"],
+        "public_id": result["public_id"],
+        "format": result.get("format", ""),
+        "bytes": result.get("bytes", 0),
     })
 
 
@@ -350,12 +448,18 @@ def object_update(request, resource, object_id):
             form.add_error(None, "Thông tin ảnh/video tải lên không hợp lệ.")
     if form.is_valid():
         form.save()
-        if resource == "rooms" and media_items:
-            RoomMedia.objects.bulk_create([
+        if resource == "rooms":
+            failed_deletions = _delete_room_media(obj, request.POST.getlist("delete_media"))
+            new_media = RoomMedia.objects.bulk_create([
                 RoomMedia(room=obj, media_type=item["media_type"], url=item["url"],
                           public_id=item["public_id"], format=item.get("format", ""), bytes=item["bytes"])
                 for item in media_items
             ])
+            _apply_primary_image(obj, request.POST.get("primary_image", ""),
+                                 [media for media in new_media if media.media_type == RoomMedia.MediaType.IMAGE])
+            messages.success(request, f"Đã lưu thay đổi phòng {obj.number} thành công.")
+            if failed_deletions:
+                messages.warning(request, "Có ảnh hoặc video chưa xóa được khỏi Cloudinary. Vui lòng thử lại.")
         return redirect(resource)
     if resource == "rooms":
         return render(request, "rentals/room_form.html", {

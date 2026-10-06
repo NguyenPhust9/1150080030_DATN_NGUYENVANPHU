@@ -60,11 +60,11 @@ class Command(BaseCommand):
 
     def _buildings(self, owner):
         data = [
-            ("Khu trọ Bình An", "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM", "Gần trường đại học, an ninh 24/7."),
-            ("An Tâm Residence", "118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", "Tòa nhà hiện đại ngay trung tâm, có thang máy."),
-            ("Nhà trọ Sinh Viên", "42 Linh Trung, TP. Thủ Đức, TP.HCM", "Không gian yên tĩnh, gần khu đại học."),
-            ("Căn hộ Mini Riverside", "86 Bến Vân Đồn, Quận 4, TP.HCM", "Căn hộ mini gần trung tâm và bờ sông."),
-            ("Tòa nhà Ngũ Phúc", "55 Phan Văn Trị, Gò Vấp, TP.HCM", "Tòa nhà 5 tầng, mỗi tầng một phòng riêng tư và thoáng mát."),
+            ("Nhà trọ An Tâm", "118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", "Tòa nhà hiện đại ngay trung tâm, có thang máy."),
+            ("Nhà trọ Bình An", "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM", "Gần trường đại học, an ninh 24/7."),
+            ("Nhà trọ Cát Tường", "42 Linh Trung, TP. Thủ Đức, TP.HCM", "Không gian yên tĩnh, gần khu đại học."),
+            ("Nhà trọ Đại Phát", "86 Bến Vân Đồn, Quận 4, TP.HCM", "Căn hộ mini gần trung tâm và bờ sông."),
+            ("Nhà trọ Eden", "55 Phan Văn Trị, Gò Vấp, TP.HCM", "Tòa nhà 5 tầng, mỗi tầng một phòng riêng tư và thoáng mát."),
         ]
         return [Building.objects.get_or_create(name=n, defaults={"address": a, "description": d, "owner": owner})[0] for n, a, d in data]
 
@@ -73,67 +73,52 @@ class Command(BaseCommand):
         return {name: Amenity.objects.get_or_create(name=name)[0] for name in names}
 
     def _rooms(self, buildings, amenities):
-        specs = [
-            (0, "101", 1, "24", "3500000", Room.Status.OCCUPIED, ("Máy lạnh", "Bếp riêng", "Wi-Fi")),
-            (0, "102", 2, "22", "3200000", Room.Status.AVAILABLE, ("Máy lạnh", "Gác lửng", "Bãi xe")),
-            (0, "201", 3, "28", "3900000", Room.Status.AVAILABLE, ("Ban công", "Máy lạnh", "Bếp riêng")),
-            (0, "202", 4, "20", "2900000", Room.Status.MAINTENANCE, ("Gác lửng", "Wi-Fi")),
-            (0, "501", 5, "30", "4200000", Room.Status.AVAILABLE, ("Ban công", "Máy lạnh", "Bếp riêng", "Wi-Fi")),
-            (1, "A01", 1, "30", "5200000", Room.Status.OCCUPIED, ("Thang máy", "Máy lạnh", "Tủ lạnh", "Bếp riêng")),
-            (1, "A02", 2, "27", "4800000", Room.Status.AVAILABLE, ("Thang máy", "Máy lạnh", "Ban công")),
-            (1, "B01", 3, "32", "5600000", Room.Status.AVAILABLE, ("Thang máy", "Máy lạnh", "Tủ lạnh", "Ban công")),
-            (1, "C01", 4, "34", "5900000", Room.Status.AVAILABLE, ("Thang máy", "Máy lạnh", "Tủ lạnh", "Bếp riêng")),
-            (1, "D01", 5, "36", "6200000", Room.Status.AVAILABLE, ("Thang máy", "Máy lạnh", "Tủ lạnh", "Ban công")),
-            (2, "S01", 1, "18", "2200000", Room.Status.OCCUPIED, ("Gác lửng", "Bãi xe", "Wi-Fi")),
-            (2, "S02", 2, "18", "2300000", Room.Status.AVAILABLE, ("Gác lửng", "Bãi xe", "Wi-Fi")),
-            (2, "S03", 3, "20", "2500000", Room.Status.RESERVED, ("Máy lạnh", "Bãi xe", "Wi-Fi")),
-            (2, "S04", 4, "21", "2700000", Room.Status.AVAILABLE, ("Máy lạnh", "Gác lửng", "Bãi xe", "Wi-Fi")),
-            (2, "S05", 5, "22", "2900000", Room.Status.AVAILABLE, ("Máy lạnh", "Ban công", "Bãi xe", "Wi-Fi")),
-            (3, "R01", 1, "35", "6500000", Room.Status.AVAILABLE, ("Máy lạnh", "Tủ lạnh", "Máy giặt chung", "Ban công", "Bếp riêng")),
-            (3, "R02", 2, "38", "7200000", Room.Status.AVAILABLE, ("Máy lạnh", "Tủ lạnh", "Ban công", "Bếp riêng", "Thang máy")),
-            (3, "R03", 3, "38", "7400000", Room.Status.AVAILABLE, ("Máy lạnh", "Tủ lạnh", "Ban công", "Bếp riêng", "Thang máy")),
-            (3, "R04", 4, "40", "7800000", Room.Status.AVAILABLE, ("Máy lạnh", "Tủ lạnh", "Máy giặt chung", "Ban công", "Bếp riêng")),
-            (3, "R05", 5, "42", "8200000", Room.Status.AVAILABLE, ("Máy lạnh", "Tủ lạnh", "Ban công", "Bếp riêng", "Thang máy")),
-            (4, "P101", 1, "24", "3200000", Room.Status.AVAILABLE, ("Máy lạnh", "Bếp riêng", "Bãi xe", "Wi-Fi")),
-            (4, "P201", 2, "25", "3300000", Room.Status.AVAILABLE, ("Máy lạnh", "Bếp riêng", "Bãi xe", "Wi-Fi")),
-            (4, "P301", 3, "26", "3400000", Room.Status.AVAILABLE, ("Máy lạnh", "Ban công", "Bếp riêng", "Wi-Fi")),
-            (4, "P401", 4, "27", "3500000", Room.Status.AVAILABLE, ("Máy lạnh", "Ban công", "Bếp riêng", "Thang máy")),
-            (4, "P501", 5, "28", "3600000", Room.Status.AVAILABLE, ("Máy lạnh", "Ban công", "Bếp riêng", "Thang máy")),
-        ]
         result = {}
-        for building_index, number, floor, area, rent, status, room_amenities in specs:
-            room, _ = Room.objects.update_or_create(building=buildings[building_index], number=number, defaults={
-                "floor": floor, "area": Decimal(area), "monthly_rent": Decimal(rent), "deposit_amount": Decimal(rent),
-                "max_occupants": 3 if Decimal(area) >= 28 else 2, "status": status,
-                "description": "Phòng sạch đẹp, thoáng mát, giờ giấc tự do và khu vực an ninh.",
-            })
-            room.amenities.set(amenities[name] for name in room_amenities)
-            result[f"{building_index}-{number}"] = room
-
-        # Mỗi tòa có 5 tầng và đúng 5 phòng mỗi tầng (25 phòng/tòa).
+        prefixes = "ABCDE"
         standard_amenities = (amenities["Máy lạnh"], amenities["Bãi xe"], amenities["Wi-Fi"])
         for building_index, building in enumerate(buildings):
+            prefix = prefixes[building_index]
             for floor in range(1, 6):
-                missing = 5 - building.rooms.filter(floor=floor).count()
-                for slot in range(1, missing + 1):
-                    number = f"F{floor}-{slot:02d}"
-                    suffix = slot
-                    while building.rooms.filter(number=number).exists():
-                        suffix += 1
-                        number = f"F{floor}-{suffix:02d}"
-                    monthly_rent = Decimal(2_600_000 + building_index * 450_000 + floor * 120_000 + slot * 50_000)
-                    room = Room.objects.create(
-                        building=building,
-                        number=number,
-                        floor=floor,
-                        area=Decimal(20 + floor + slot),
-                        monthly_rent=monthly_rent,
-                        deposit_amount=monthly_rent,
-                        max_occupants=2 if slot < 4 else 3,
-                        status=Room.Status.AVAILABLE,
-                        description="Phòng sạch đẹp, đủ ánh sáng, giờ giấc tự do và khu vực an ninh.",
+                existing = list(building.rooms.filter(floor=floor))
+                existing.sort(
+                    key=lambda room: (
+                        not (
+                            room.contracts.exists()
+                            or room.meter_readings.exists()
+                            or room.incidents.exists()
+                        ),
+                        room.created_at,
                     )
-                    room.amenities.set(standard_amenities)
+                )
+                kept = existing[:5]
+                for room in existing:
+                    room.number = f"TEMP-{room.id}"
+                    room.save(update_fields=("number", "updated_at"))
+                for room in existing[5:]:
+                    room.delete()
+
+                for slot in range(1, 6):
+                    number = f"{prefix}{floor}{slot:02d}"
+                    monthly_rent = Decimal(2_600_000 + building_index * 450_000 + floor * 120_000 + slot * 50_000)
+                    if slot <= len(kept):
+                        room = kept[slot - 1]
+                        room.number = number
+                        room.floor = floor
+                        room.save(update_fields=("number", "floor", "updated_at"))
+                    else:
+                        room = Room.objects.create(
+                            building=building,
+                            number=number,
+                            floor=floor,
+                            area=Decimal(20 + floor + slot),
+                            monthly_rent=monthly_rent,
+                            deposit_amount=monthly_rent,
+                            max_occupants=2 if slot < 4 else 3,
+                            status=Room.Status.AVAILABLE,
+                            description="Phòng sạch đẹp, đủ ánh sáng, giờ giấc tự do và khu vực an ninh.",
+                        )
+                        room.amenities.set(standard_amenities)
+                    result[f"{building_index}-{number}"] = room
         return result
 
     def _tenants(self, user_1, user_2):
@@ -172,9 +157,9 @@ class Command(BaseCommand):
     def _contracts(self, rooms, tenants):
         period = date.today().replace(day=1)
         specs = [
-            (f"HD-{period.year}-0001", "HD-DEMO-001", "0-101", 0, period - timedelta(days=150), period + timedelta(days=215)),
-            (f"HD-{period.year}-0002", "HD-DEMO-002", "1-A01", 1, period - timedelta(days=90), period + timedelta(days=275)),
-            (f"HD-{period.year}-0003", "HD-DEMO-003", "2-S01", 2, period - timedelta(days=210), period + timedelta(days=155)),
+            (f"HD-{period.year}-0001", "HD-DEMO-001", "0-A101", 0, period - timedelta(days=150), period + timedelta(days=215)),
+            (f"HD-{period.year}-0002", "HD-DEMO-002", "1-B101", 1, period - timedelta(days=90), period + timedelta(days=275)),
+            (f"HD-{period.year}-0003", "HD-DEMO-003", "2-C101", 2, period - timedelta(days=210), period + timedelta(days=155)),
         ]
         result = []
         for code, legacy_code, room_key, tenant_index, start, end in specs:
@@ -191,7 +176,7 @@ class Command(BaseCommand):
 
     def _meters(self, rooms, admin):
         period = date.today().replace(day=1)
-        for index, room_key in enumerate(("0-101", "1-A01", "2-S01")):
+        for index, room_key in enumerate(("0-A101", "1-B101", "2-C101")):
             for meter_type, previous, current in (
                 (MeterReading.MeterType.ELECTRICITY, 1000 + index * 240, 1085 + index * 260),
                 (MeterReading.MeterType.WATER, 120 + index * 30, 128 + index * 32),
@@ -244,9 +229,9 @@ class Command(BaseCommand):
 
     def _incidents(self, rooms, tenants, staff):
         data = [
-            ("0-101", 0, "Vòi nước bị rò", "Vòi nước khu bếp bị rò nhẹ.", Incident.Priority.MEDIUM, Incident.Status.IN_PROGRESS),
-            ("1-A01", 1, "Máy lạnh không mát", "Máy lạnh hoạt động nhưng không đủ lạnh.", Incident.Priority.HIGH, Incident.Status.OPEN),
-            ("2-S01", 2, "Đèn hành lang hỏng", "Đèn trước cửa phòng không sáng.", Incident.Priority.LOW, Incident.Status.RESOLVED),
+            ("0-A101", 0, "Vòi nước bị rò", "Vòi nước khu bếp bị rò nhẹ.", Incident.Priority.MEDIUM, Incident.Status.IN_PROGRESS),
+            ("1-B101", 1, "Máy lạnh không mát", "Máy lạnh hoạt động nhưng không đủ lạnh.", Incident.Priority.HIGH, Incident.Status.OPEN),
+            ("2-C101", 2, "Đèn hành lang hỏng", "Đèn trước cửa phòng không sáng.", Incident.Priority.LOW, Incident.Status.RESOLVED),
         ]
         for room_key, tenant_index, title, description, priority, status in data:
             Incident.objects.get_or_create(room=rooms[room_key], title=title, defaults={

@@ -25,6 +25,7 @@ urlpatterns = [
     path("su-co/", views.object_list, {"resource": "incidents"}, name="incidents"),
     path("api/v1/dashboard/summary/", views.api_dashboard_summary, name="api-dashboard-summary"),
     path("api/v1/cloudinary/signature/", views.cloudinary_upload_signature, name="cloudinary-upload-signature"),
+    path("api/v1/cloudinary/upload/", views.cloudinary_upload, name="cloudinary-upload"),
     path("api/v1/rooms/<uuid:room_id>/", views.api_room_detail, name="api-room-detail"),
     path("nguoi-thue/", views.tenant_portal, name="tenant-portal"),
     path("nguoi-thue/hop-dong/", views.tenant_contracts, name="tenant-contracts"),

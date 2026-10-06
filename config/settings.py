@@ -6,6 +6,18 @@ from apps.rentals.embedded_templates import TEMPLATES as EMBEDDED_TEMPLATES
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Local development reads .env; real environment variables always take priority.
+local_env_file = BASE_DIR / ".env"
+if local_env_file.is_file():
+    for line in local_env_file.read_text(encoding="utf-8-sig").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name, value = line.split("=", 1)
+        name = name.strip()
+        if name and value.strip():
+            os.environ.setdefault(name, value.strip().strip('"').strip("'"))
+
 
 def env(name: str, default: str = "") -> str:
     return os.getenv(name, default)
