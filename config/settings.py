@@ -86,10 +86,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 database_url = env("DATABASE_URL").strip()
 
-if env("DJANGO_TEST_SQLITE", "false").lower() == "true":
-    # Chỉ dùng cho kiểm thử code độc lập; môi trường chạy thật luôn dùng PostgreSQL.
-    DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / ".test.sqlite3"}}
-elif database_url:
+if database_url:
     parsed_database_url = urlparse(database_url)
     DATABASES = {
         "default": {
@@ -116,12 +113,8 @@ else:
         }
     }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
+# Để trống để thuận tiện thử nghiệm / demo mật khẩu đơn giản (ví dụ: 123456)
+AUTH_PASSWORD_VALIDATORS = []
 
 LANGUAGE_CODE = "vi"
 TIME_ZONE = "Asia/Ho_Chi_Minh"

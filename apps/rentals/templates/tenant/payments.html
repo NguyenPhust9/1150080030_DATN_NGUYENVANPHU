@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Lịch sử thanh toán — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Lịch sử thanh toán{% endblock %}
+{% block page_subtitle %}Danh sách các khoản thanh toán tiền phòng và dịch vụ của bạn{% endblock %}
+
+{% block content %}
+<section class="stats-grid" style="margin-bottom: 20px;">
+  <article class="stat success">
+    <span>Tổng tiền đã thanh toán</span>
+    <strong>{{ total_paid|vnd }} đ</strong>
+  </article>
+  <article class="stat info">
+    <span>Số giao dịch</span>
+    <strong>{{ objects|length }}</strong>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-heading" style="margin-bottom: 16px;">
+    <h2>Giao dịch thanh toán</h2>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Thời gian</th>
+        <th>Hóa đơn</th>
+        <th>Phòng / Tòa nhà</th>
+        <th>Số tiền</th>
+        <th>Phương thức</th>
+        <th>Mã tham chiếu</th>
+        <th>Ghi chú</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in objects %}
+        <tr>
+          <td>{{ p.paid_at|date:"d/m/Y H:i" }}</td>
+          <td>
+            <a href="{% url 'tenant-invoice-detail' p.invoice.id %}" style="font-weight: 600;">
+              {{ p.invoice.code }} (Kỳ {{ p.invoice.period|date:"m/Y" }})
+            </a>
+          </td>
+          <td>
+            <strong>{{ p.invoice.contract.room.number }}</strong> 
+            <small style="color: var(--muted);">({{ p.invoice.contract.room.building.name }})</small>
+          </td>
+          <td style="color: var(--green); font-weight: 700;">
+            +{{ p.amount|vnd }} đ
+          </td>
+          <td>
+            <span class="badge" style="background: #eef2ff; color: #3730a3;">
+              {{ p.get_method_display }}
+            </span>
+          </td>
+          <td>{{ p.reference|default:"—" }}</td>
+          <td>{{ p.notes|default:"—" }}</td>
+        </tr>
+      {% empty %}
+        <tr>
+          <td colspan="7" style="text-align: center; color: var(--muted); padding: 32px 16px;">
+            Bạn chưa có lịch sử thanh toán nào.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
+

@@ -27,11 +27,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         User = get_user_model()
-        admin = self._user(User, "admin", "Admin@123456", User.Role.ADMIN, "Quản trị", "Hệ thống", True)
-        owner = self._user(User, "chunha", "Chunha@123456", User.Role.OWNER, "Ngọc", "Trần", True)
-        staff = self._user(User, "nhanvien", "Nhanvien@123456", User.Role.STAFF, "Hương", "Lê", True)
-        tenant_user = self._user(User, "khachthue", "Khach@123456", User.Role.TENANT, "Minh", "Nguyễn Văn")
-        tenant_user_2 = self._user(User, "lananh", "Khach@123456", User.Role.TENANT, "Lan Anh", "Trần")
+        admin = self._user(User, "admin", "123456", User.Role.ADMIN, "Quản trị", "Hệ thống", True)
+        owner = self._user(User, "chunha", "123456", User.Role.OWNER, "Ngọc", "Trần", True)
+        staff = self._user(User, "nhanvien", "123456", User.Role.STAFF, "Hương", "Lê", True)
+        tenant_user = self._user(User, "khachthue", "123456", User.Role.TENANT, "Minh", "Nguyễn Văn")
+        tenant_user_2 = self._user(User, "lananh", "123456", User.Role.TENANT, "Lan Anh", "Trần")
         buildings = self._buildings(owner)
         amenities = self._amenities()
         rooms = self._rooms(buildings, amenities)
@@ -43,8 +43,7 @@ class Command(BaseCommand):
         self._incidents(rooms, tenants, staff)
         self._notifications(tenant_user, tenant_user_2)
         self.stdout.write(self.style.SUCCESS(
-            "Demo data created. Admin: admin / Admin@123456; Owner: chunha / Chunha@123456; "
-            "Staff: nhanvien / Nhanvien@123456; Tenant: khachthue / Khach@123456"
+            "Demo data created. Mật khẩu mặc định tất cả các tài khoản là 123456."
         ))
 
     def _user(self, User, username, password, role, first_name, last_name, is_staff=False):

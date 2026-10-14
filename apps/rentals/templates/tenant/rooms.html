@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Phòng của tôi — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Phòng của tôi{% endblock %}
+{% block page_subtitle %}Thông tin chi tiết các phòng bạn đang thuê và đã thuê{% endblock %}
+
+{% block content %}
+<div class="tenant-rooms-container" style="display: grid; gap: 24px;">
+  {% for contract in contracts %}
+    <section class="panel" style="padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: start; border-bottom: 1px solid var(--line); padding-bottom: 16px; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+        <div>
+          <span style="font-size: 13px; color: var(--primary); font-weight: 700; text-transform: uppercase;">
+            {{ contract.room.building.name }}
+          </span>
+          <h2 style="margin: 4px 0 6px 0; font-size: 24px;">Phòng {{ contract.room.number }}</h2>
+          <p style="margin: 0; color: var(--muted); font-size: 14px;">
+            <i data-lucide="map-pin" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+            {{ contract.room.building.address }}
+          </p>
+        </div>
+        <div style="text-align: right;">
+          <span class="badge" style="font-size: 13px;">{{ contract.get_status_display }}</span>
+          <div style="margin-top: 6px; font-size: 13px; color: var(--muted);">
+            Hợp đồng: <strong>{{ contract.code }}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-grid" style="margin-bottom: 24px;">
+        <div>
+          <span>Tầng</span>
+          <strong>Tầng {{ contract.room.floor }}</strong>
+        </div>
+        <div>
+          <span>Diện tích</span>
+          <strong>{% if contract.room.area %}{{ contract.room.area }} m²{% else %}—{% endif %}</strong>
+        </div>
+        <div>
+          <span>Giá thuê hợp đồng</span>
+          <strong style="color: var(--primary);">{{ contract.monthly_rent|vnd }} đ/tháng</strong>
+        </div>
+        <div>
+          <span>Tiền cọc</span>
+          <strong>{{ contract.deposit_amount|vnd }} đ</strong>
+        </div>
+        <div>
+          <span>Thời hạn thuê</span>
+          <strong>{{ contract.start_date|date:"d/m/Y" }} – {{ contract.end_date|date:"d/m/Y" }}</strong>
+        </div>
+        <div>
+          <span>Người đại diện</span>
+          <strong>{{ contract.representative.full_name }}</strong>
+        </div>
+      </div>
+
+      <!-- Tiện nghi phòng -->
+      {% if contract.room.amenities.all %}
+        <div style="margin-bottom: 20px;">
+          <h3 style="font-size: 15px; margin-bottom: 10px; color: var(--ink);">Tiện nghi phòng:</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            {% for a in contract.room.amenities.all %}
+              <span class="badge" style="background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-size: 12px; padding: 6px 12px;">
+                {{ a.name }}
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Thành viên cùng phòng -->
+      {% if contract.members.all %}
+        <div style="margin-bottom: 20px; border-top: 1px solid var(--line); padding-top: 16px;">
+          <h3 style="font-size: 15px; margin-bottom: 10px; color: var(--ink);">Thành viên trong phòng:</h3>
+          <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            {% for m in contract.members.all %}
+              <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 13px;">
+                <strong>{{ m.tenant.full_name }}</strong>
+                {% if m.tenant.phone %}<span style="color: var(--muted); margin-left: 6px;">({{ m.tenant.phone }})</span>{% endif %}
+                <small style="display: block; color: var(--muted); margin-top: 2px;">Vào ở: {{ m.joined_date|date:"d/m/Y" }}</small>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <!-- Thao tác nhanh -->
+      <div style="display: flex; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; flex-wrap: wrap;">
+        <a class="btn primary compact" href="{% url 'tenant-incident-create' %}">
+          <i data-lucide="triangle-alert" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+          Báo sự cố phòng này
+        </a>
+        <a class="btn compact" href="{% url 'tenant-invoices' %}">
+          <i data-lucide="receipt-text" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+          Xem hóa đơn
+        </a>
+      </div>
+    </section>
+  {% empty %}
+    <section class="panel" style="text-align: center; padding: 48px 24px; color: var(--muted);">
+      <p style="font-size: 16px; margin-bottom: 12px;">Bạn hiện chưa có phòng thuê nào được ghi nhận trong hệ thống.</p>
+      <a href="{% url 'public-rooms' %}" class="btn primary">Tìm phòng cho thuê</a>
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}
+

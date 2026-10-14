@@ -7,11 +7,13 @@ import cloudinary
 import cloudinary.uploader
 from cloudinary.utils import api_sign_request
 from django.contrib import messages
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Count, Min, OuterRef, Q, Subquery, Sum
+from django.db.models import Count, F, Min, OuterRef, Q, Subquery, Sum
+from django.db.models.functions import Abs
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_http_methods, require_POST
@@ -153,8 +155,41 @@ def public_room_detail(request, room_id):
         status=Room.Status.AVAILABLE,
         building__is_active=True,
     )
+    amenity_icons = {
+        "Máy lạnh": "snowflake",
+        "Tủ lạnh": "refrigerator",
+        "Máy giặt chung": "washing-machine",
+        "Ban công": "sun",
+        "Gác lửng": "layers-3",
+        "Bếp riêng": "cooking-pot",
+        "Thang máy": "move-vertical",
+        "Bãi xe": "circle-parking",
+        "Camera an ninh": "cctv",
+        "Wi-Fi": "wifi",
+    }
+    amenities = [
+        {"name": amenity.name, "icon": amenity_icons.get(amenity.name, "sparkles")}
+        for amenity in room.amenities.all()
+    ]
+    related_candidates = _with_cover_image(
+        Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True)
+        .exclude(pk=room.pk)
+        .select_related("building")
+    ).annotate(price_difference=Abs(F("monthly_rent") - room.monthly_rent))
+    related_rooms = list(
+        related_candidates.filter(building=room.building).order_by("price_difference", "number")[:4]
+    )
+    if len(related_rooms) < 4:
+        related_rooms.extend(
+            related_candidates.exclude(building=room.building)
+            .order_by("price_difference", "building__name", "number")[: 4 - len(related_rooms)]
+        )
+    contact = get_user_model().objects.filter(role="admin", is_active=True).order_by("date_joined").first()
     return render(request, "public/room_detail.html", {
         "room": room,
+        "contact": contact or room.building.owner,
+        "amenities": amenities,
+        "related_rooms": related_rooms,
         "room_images": room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-is_primary", "-created_at", "-id"),
         "room_videos": room.media.filter(media_type=RoomMedia.MediaType.VIDEO).order_by("-created_at", "-id"),
     })
@@ -193,6 +228,17 @@ LIST_CONFIG = {
 
 @login_required
 def object_list(request, resource):
+    if _is_tenant(request.user):
+        tenant_redirects = {
+            "rooms": "tenant-rooms",
+            "contracts": "tenant-contracts",
+            "invoices": "tenant-invoices",
+            "payments": "tenant-payments",
+            "incidents": "tenant-incidents",
+        }
+        if resource in tenant_redirects:
+            return redirect(tenant_redirects[resource])
+        _require_operator(request.user)
     _require_operator(request.user)
     model, template = LIST_CONFIG[resource]
     queryset = model.objects.all()
@@ -516,6 +562,35 @@ def tenant_invoices(request):
     tenant = _tenant_profile(request.user)
     objects = Invoice.objects.filter(contract__in=_tenant_contracts(tenant)).select_related("contract__room__building").order_by("-period")
     return render(request, "tenant/invoices.html", {"tenant": tenant, "objects": objects})
+
+
+@login_required
+def tenant_rooms(request):
+    tenant = _tenant_profile(request.user)
+    contracts = (
+        _tenant_contracts(tenant)
+        .select_related("room__building", "representative")
+        .prefetch_related("room__amenities", "room__media", "members__tenant")
+        .order_by("-start_date")
+    )
+    return render(request, "tenant/rooms.html", {"tenant": tenant, "contracts": contracts})
+
+
+@login_required
+def tenant_payments(request):
+    tenant = _tenant_profile(request.user)
+    contracts = _tenant_contracts(tenant)
+    payments = (
+        Payment.objects.filter(invoice__contract__in=contracts, is_void=False)
+        .select_related("invoice__contract__room__building")
+        .order_by("-paid_at")
+    )
+    total_paid = payments.aggregate(total=Sum("amount"))["total"] or 0
+    return render(
+        request,
+        "tenant/payments.html",
+        {"tenant": tenant, "objects": payments, "total_paid": total_paid},
+    )
 
 
 @login_required
