@@ -1,28 +1,4 @@
-{% extends "base.html" %}
-{% block title %}Trò chuyện — QL Phòng Cho Thuê{% endblock %}
-{% block page_title %}Trò chuyện{% endblock %}
-{% block page_subtitle %}Trao đổi trực tiếp giữa khách thuê và ban quản lý{% endblock %}
-{% block content %}
-<style>
-.chat-list-layout{display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);gap:18px}.conversation-card{display:flex;gap:14px;align-items:center;padding:16px;border-bottom:1px solid #e5e7eb;text-decoration:none;color:inherit}.conversation-card:hover{background:#f8fafc}.conversation-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:#dbeafe;color:#1d4ed8;font-weight:700;flex:none}.conversation-main{min-width:0;flex:1}.conversation-main h3,.conversation-main p{margin:0}.conversation-main p{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#64748b;margin-top:5px}.conversation-meta{text-align:right;font-size:12px;color:#64748b}.unread-dot{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:12px;background:#2563eb;color:#fff;margin-top:6px}@media(max-width:850px){.chat-list-layout{grid-template-columns:1fr}}
-</style>
-<div class="chat-list-layout">
-  <section class="panel" style="padding:0;overflow:hidden;">
-    {% for conversation in conversations %}
-    <a class="conversation-card" href="{% url 'chat-detail' conversation.id %}">
-      <span class="conversation-avatar">{{ conversation.tenant.full_name|first|upper }}</span>
-      <div class="conversation-main"><h3>{{ conversation.subject }}</h3><small>{{ conversation.tenant.full_name }}</small><p>{% if conversation.latest_message %}<strong>{{ conversation.latest_message.sender.get_full_name|default:conversation.latest_message.sender.username }}:</strong> {{ conversation.latest_message.content }}{% else %}Chưa có tin nhắn.{% endif %}</p></div>
-      <div class="conversation-meta">{% if conversation.last_message_at %}{{ conversation.last_message_at|date:"H:i d/m" }}{% endif %}{% if conversation.unread_count %}<br><span class="unread-dot">{{ conversation.unread_count }}</span>{% endif %}</div>
-    </a>
-    {% empty %}<div style="padding:28px;text-align:center;color:#64748b;">Chưa có cuộc trò chuyện nào.</div>{% endfor %}
-  </section>
-  <section class="panel">
-    <h2>Bắt đầu cuộc trò chuyện</h2>
-    <form method="post" action="{% url 'chat-start' %}">{% csrf_token %}
-      {% if user.role != 'tenant' %}<p><label>Khách thuê</label><select class="form-control" name="tenant_id" required><option value="">Chọn khách thuê</option>{% for tenant in available_tenants %}<option value="{{ tenant.id }}">{{ tenant.full_name }}{% if tenant.phone %} — {{ tenant.phone }}{% endif %}</option>{% endfor %}</select></p>{% endif %}
-      <p><label>Chủ đề</label><input class="form-control" name="subject" maxlength="200" placeholder="Ví dụ: Trao đổi về hợp đồng"></p>
-      <button class="btn primary" type="submit"><i data-lucide="message-circle-plus"></i> Bắt đầu</button>
-    </form>
-  </section>
-</div>
+{% extends "chat/layout.html" %}
+{% block chat_workspace %}
+<div class="chat-welcome"><div class="welcome-art"><i data-lucide="messages-square"></i><span><i data-lucide="heart-handshake"></i></span></div><span class="welcome-eyebrow">KẾT NỐI MỖI NGÀY</span><h2>Cuộc trò chuyện của bạn</h2><p>Chọn một cuộc trò chuyện bên trái hoặc bắt đầu tin nhắn mới để trao đổi với {% if user.role == 'tenant' %}ban quản lý{% else %}khách thuê{% endif %}.</p><button type="button" class="btn primary" data-new-chat><i data-lucide="square-pen"></i> Tin nhắn mới</button><div class="welcome-note"><i data-lucide="message-circle"></i> Hỏi đáp về phòng ở, hợp đồng và dịch vụ</div></div>
 {% endblock %}

@@ -4,12 +4,12 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Quản lý phòng cho thuê{% endblock %}</title>
-  <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+  <link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}"><link rel="stylesheet" href="{% static 'css/pagination.css' %}"><link rel="stylesheet" href="{% static 'css/room-map.css' %}"><link rel="stylesheet" href="{% static 'css/room-map-compact.css' %}"><link rel="stylesheet" href="{% static 'css/navigation.css' %}"><link rel="stylesheet" href="{% static 'css/management.css' %}"><link rel="stylesheet" href="{% static 'css/toast.css' %}">
 </head>
 <body>
   <aside class="sidebar">
-    <a class="brand" href="{% url 'public-home' %}" title="Về trang chủ"><span class="brand-icon"><img src="{% static 'images/anhlogo.png' %}" alt="Logo quản lý phòng cho thuê"></span><span>QL Phòng Cho Thuê<small>Quản lý dễ dàng · Vận hành hiệu quả</small></span></a>
+    <a class="brand" href="{% url 'public-home' %}" title="Về trang chủ"><span class="brand-icon"><img src="{% static 'images/logo.png' %}" alt="Logo quản lý phòng cho thuê"></span><span>QL Phòng Cho Thuê<small>Quản lý dễ dàng · Vận hành hiệu quả</small></span></a>
     <nav>
       {% if user.role == 'tenant' %}
       <a class="{% if request.resolver_match.url_name == 'tenant-portal' %}active{% endif %}" href="{% url 'tenant-portal' %}"><i data-lucide="layout-dashboard"></i>Trang của tôi</a>
@@ -19,9 +19,6 @@
       <a class="{% if request.resolver_match.url_name == 'tenant-payments' %}active{% endif %}" href="{% url 'tenant-payments' %}"><i data-lucide="wallet-cards"></i>Thanh toán</a>
       <a class="{% if request.resolver_match.url_name == 'tenant-incidents' or request.resolver_match.url_name == 'tenant-incident-create' %}active{% endif %}" href="{% url 'tenant-incidents' %}"><i data-lucide="triangle-alert"></i>Yêu cầu hỗ trợ</a>
       <a class="{% if request.resolver_match.url_name == 'tenant-notifications' %}active{% endif %}" href="{% url 'tenant-notifications' %}"><i data-lucide="bell"></i>Thông báo</a>
-      <a class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}" href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
-      <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
-      <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
       {% else %}
       <a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i data-lucide="house"></i>Tổng quan</a>
       <a class="{% if request.resolver_match.url_name == 'buildings' or request.resolver_match.url_name == 'building-create' or request.resolver_match.url_name == 'building-update' %}active{% endif %}" href="{% url 'buildings' %}"><i data-lucide="building-2"></i>Tòa nhà</a>
@@ -42,11 +39,6 @@
       {% if user|has_perm_code:'accounts.view_permission_matrix' %}
       <a class="{% if request.resolver_match.url_name == 'permission-matrix' %}active{% endif %}" href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>
       {% endif %}
-      {% if user|has_perm_code:'accounts.view_login_history' %}
-      <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
-      {% endif %}
-      <a class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}" href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
-      <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
       {% if user.is_staff %}<a href="{% url 'admin:index' %}"><i data-lucide="settings"></i>Quản trị</a>{% endif %}
       {% endif %}
     </nav>
@@ -71,12 +63,21 @@
             {% if chat_unread_count > 0 %}<b>{{ chat_unread_count }}</b>{% endif %}
           </a>
         </div>
-        <a href="{% url 'user-profile' %}" title="Xem hồ sơ cá nhân" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
-          <span class="user-avatar">{{ user.username|first|upper }}</span>
-          <span class="user-name"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
-        </a>
-        <a href="{% url 'password-change' %}" class="link-button" title="Đổi mật khẩu" style="display:inline-flex;align-items:center;padding:4px;border-radius:6px;"><i data-lucide="key-round"></i></a>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit" title="Đăng xuất"><i data-lucide="log-out"></i></button></form>
+        <details class="account-menu">
+          <summary aria-label="Mở menu tài khoản">
+            <span class="user-avatar">{{ user.username|first|upper }}</span>
+            <span class="user-name"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
+            <i data-lucide="chevron-down" class="account-chevron"></i>
+          </summary>
+          <nav class="account-dropdown" aria-label="Tài khoản">
+            <a href="{% url 'user-profile' %}" class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
+            {% if user.role == 'tenant' or user|has_perm_code:'accounts.view_login_history' %}
+            <a href="{% url 'login-history' %}" class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
+            {% endif %}
+            <a href="{% url 'password-change' %}" class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit"><i data-lucide="log-out"></i>Đăng xuất</button></form>
+          </nav>
+        </details>
       </div>
     </header>
     {% with route=request.resolver_match.url_name %}{% if route != 'dashboard' and route != 'tenant-portal' %}<nav class="breadcrumbs" aria-label="Điều hướng trang"><a href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}"><i data-lucide="house"></i>Trang chủ</a><i data-lucide="chevron-right"></i>
@@ -102,4 +103,16 @@
     {% if messages %}<div class="toast-stack" aria-live="polite">{% for message in messages %}<div class="toast {{ message.tags }}"><i data-lucide="circle-check"></i><span>{{ message }}</span><button type="button" aria-label="Đóng"><i data-lucide="x"></i></button></div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}
   </main>
   <script src="{% static 'lucide.min.js' %}"></script><script>lucide.createIcons({attrs:{"stroke-width":2}});document.querySelectorAll(".toast").forEach(toast=>{toast.querySelector("button").addEventListener("click",()=>toast.remove());setTimeout(()=>{toast.classList.add("hiding");setTimeout(()=>toast.remove(),250)},4000)});</script>
+<script>
+const accountMenu = document.querySelector('.account-menu');
+document.addEventListener('click', event => {
+  if (accountMenu && !accountMenu.contains(event.target)) accountMenu.open = false;
+});
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && accountMenu && accountMenu.open) {
+    accountMenu.open = false;
+    accountMenu.querySelector('summary').focus();
+  }
+});
+</script>
 </body></html>

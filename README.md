@@ -61,3 +61,9 @@ database phát triển vì Django sẽ tạo và xóa database này trong quá t
 - Không dùng tài khoản hoặc mật khẩu demo ở môi trường thật.
 
 Xem kế hoạch đầy đủ tại [LO_TRINH_XAY_DUNG.md](LO_TRINH_XAY_DUNG.md).
+
+## Gọi thoại và gọi video trong Trò chuyện
+
+Mở một hội thoại rồi bấm biểu tượng điện thoại hoặc camera ở đầu khung chat. Người nhận cần mở trang Trò chuyện để nhận lời mời, sau đó chọn Trả lời. Trình duyệt yêu cầu quyền microphone/camera khi gọi hoặc trả lời; tính năng dùng được trên localhost hoặc HTTPS.
+
+Cuộc gọi sử dụng WebRTC. Cấu hình mặc định dùng kết nối trực tiếp, phù hợp để thử trên localhost/mạng nội bộ. Khi triển khai cho các thiết bị khác mạng, cấu hình máy chủ STUN/TURN qua biến `WEBRTC_ICE_SERVERS` (mảng JSON gồm các đối tượng `urls`, `username`, `credential` theo cấu hình máy chủ). Cần TURN để chuyển tiếp âm thanh/video khi mạng không cho phép kết nối trực tiếp. Sau khi đổi biến môi trường Docker, chạy lại `docker compose up -d web`.

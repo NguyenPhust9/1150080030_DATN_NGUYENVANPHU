@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Trò chuyện — Nhà Trọ An Tâm{% endblock %}
+{% block page_title %}Trò chuyện{% endblock %}
+{% block page_subtitle %}Kết nối khách thuê và ban quản lý{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}?v=7">
+<div class="messenger{% if conversation %} has-conversation{% endif %}" data-inbox-url="{% url 'chat-inbox-updates' %}" data-chat-base="{% url 'chat-list' %}" data-active-id="{{ conversation.id|default:'' }}">
+  <aside class="chat-sidebar">
+    <header class="inbox-heading"><div><h2>Tin nhắn</h2><span>Cuộc trò chuyện của bạn</span></div><button class="chat-icon-button" type="button" data-new-chat title="Soạn tin nhắn mới" aria-label="Soạn tin nhắn mới"><i data-lucide="square-pen"></i></button></header>
+    <label class="inbox-search"><i data-lucide="search"></i><input id="conversation-search" type="search" placeholder="Tìm cuộc trò chuyện" aria-label="Tìm cuộc trò chuyện"></label>
+    <div class="inbox-label">Tất cả tin nhắn <span>{{ conversations|length }}</span></div>
+    <nav class="conversation-list" aria-label="Danh sách cuộc trò chuyện">
+      {% for item in conversations %}
+      <a class="conversation-card{% if item.id == conversation.id %} selected{% endif %}" href="{% url 'chat-detail' item.id %}" data-search="{{ item.tenant.full_name }} {{ item.subject }}">
+        <span class="conversation-avatar">{% if user.role == 'tenant' %}<i data-lucide="building-2"></i>{% else %}{{ item.tenant.full_name|first|upper }}{% endif %}</span>
+        <div class="conversation-main"><div class="conversation-title"><strong>{% if user.role == 'tenant' %}Ban quản lý{% else %}{{ item.tenant.full_name }}{% endif %}</strong><time>{{ item.last_message_at|date:"H:i" }}</time></div><p>{% if item.latest_message %}{{ item.latest_message.content|default:"📷 Hình ảnh"|truncatechars:65 }}{% else %}Bắt đầu gửi lời chào{% endif %}</p></div>
+        {% if item.unread_count %}<span class="unread-dot">{{ item.unread_count }}</span>{% endif %}
+      </a>
+      {% empty %}<div class="inbox-empty"><i data-lucide="messages-square"></i><strong>Chưa có cuộc trò chuyện</strong><p>Bấm nút soạn tin để bắt đầu kết nối.</p></div>{% endfor %}
+      <p id="search-empty" class="inbox-empty" hidden>Không tìm thấy cuộc trò chuyện.</p>
+    </nav>
+    <div class="inbox-footer"><i data-lucide="message-circle"></i> Trao đổi thuận tiện, kết nối dễ dàng</div>
+  </aside>
+  <section class="chat-workspace">{% block chat_workspace %}{% endblock %}</section>
+</div>
+<dialog id="new-chat-dialog" class="new-chat-dialog">
+  <header><div><h2>Cuộc trò chuyện mới</h2><p>Chọn người nhận và bắt đầu trao đổi.</p></div><button type="button" class="chat-icon-button" id="close-new-chat" aria-label="Đóng"><i data-lucide="x"></i></button></header>
+  <form method="post" action="{% url 'chat-start' %}">{% csrf_token %}
+    {% if user.role != 'tenant' %}<label for="new-chat-tenant">Khách thuê</label><select id="new-chat-tenant" name="tenant_id" required><option value="">Chọn khách thuê</option>{% for tenant in available_tenants %}<option value="{{ tenant.id }}">{{ tenant.full_name }}{% if tenant.phone %} — {{ tenant.phone }}{% endif %}</option>{% endfor %}</select>{% else %}<div class="new-chat-recipient"><i data-lucide="building-2"></i> Ban quản lý Nhà Trọ An Tâm</div>{% endif %}
+    <label for="new-chat-subject">Chủ đề <small>(không bắt buộc)</small></label><input id="new-chat-subject" name="subject" maxlength="200" placeholder="Ví dụ: Trao đổi về hợp đồng">
+    <button type="submit" class="btn primary"><i data-lucide="send"></i> Bắt đầu trò chuyện</button>
+  </form>
+</dialog>
+{% include "chat/call_dialog.html" %}
+{{ webrtc_ice_servers|json_script:"chat-ice-servers" }}
+<script src="{% static 'js/chat-inbox.js' %}?v=4"></script>
+<script src="{% static 'js/chat-call.js' %}?v=1"></script>
+<script>
+(()=>{const dialog=document.getElementById('new-chat-dialog');document.querySelectorAll('[data-new-chat]').forEach(button=>button.addEventListener('click',()=>dialog.showModal()));document.getElementById('close-new-chat').addEventListener('click',()=>dialog.close());dialog.addEventListener('click',e=>{if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)dialog.close()}});document.getElementById('conversation-search').addEventListener('input',e=>{const query=e.target.value.toLocaleLowerCase('vi').trim();let visible=0;document.querySelectorAll('.conversation-card').forEach(card=>{card.hidden=!card.dataset.search.toLocaleLowerCase('vi').includes(query);if(!card.hidden)visible++});document.getElementById('search-empty').hidden=!query||visible>0})})();
+</script>
+{% endblock %}

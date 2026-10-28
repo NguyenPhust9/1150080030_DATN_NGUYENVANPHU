@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
 
@@ -94,6 +95,7 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels.layers.InMemoryChannelLayer",
     }
 }
+WEBRTC_ICE_SERVERS = json.loads(env("WEBRTC_ICE_SERVERS", "[]"))
 
 database_url = env("DATABASE_URL").strip()
 

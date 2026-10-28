@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 
 class UUIDTimeStampedModel(models.Model):
@@ -490,7 +491,7 @@ class ChatMessage(UUIDTimeStampedModel):
         related_name="sent_chat_messages",
         verbose_name="người gửi",
     )
-    content = models.TextField("nội dung", max_length=4000)
+    content = models.TextField("nội dung", max_length=4000, blank=True)
     read_by = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         blank=True,
@@ -506,3 +507,31 @@ class ChatMessage(UUIDTimeStampedModel):
 
     def __str__(self):
         return f"{self.sender} - {self.created_at:%d/%m/%Y %H:%M}"
+
+
+class MessageReaction(UUIDTimeStampedModel):
+    EMOJIS = ("👍", "❤️", "😂", "😮", "😢", "😡")
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="reactions")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="message_reactions")
+    emoji = models.CharField(max_length=8, choices=[(emoji, emoji) for emoji in EMOJIS])
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("message", "user"), name="unique_message_user_reaction")]
+
+
+class ChatPresence(models.Model):
+    connection = models.CharField(max_length=100, primary_key=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="chat_connections")
+    last_seen = models.DateTimeField(default=timezone.now, db_index=True)
+    disconnected_at = models.DateTimeField(null=True, blank=True)
+
+
+class ChatImage(UUIDTimeStampedModel):
+    message = models.ForeignKey(ChatMessage, on_delete=models.CASCADE, related_name="images")
+    public_id = models.CharField(max_length=255)
+    format = models.CharField(max_length=10, default="jpg")
+    original_name = models.CharField(max_length=255, blank=True)
+    content_type = models.CharField(max_length=30, default="image/jpeg")
+
+    class Meta:
+        ordering = ("created_at", "id")

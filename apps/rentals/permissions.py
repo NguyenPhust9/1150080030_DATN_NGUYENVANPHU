@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
+from django.db.models import F, Q
 
 from .models import (
     Building,
@@ -274,7 +274,9 @@ def get_accessible_services(user):
 def get_accessible_conversations(user):
     if not user or not user.is_authenticated:
         return Conversation.objects.none()
-    queryset = Conversation.objects.select_related("tenant", "tenant__owner").prefetch_related("participants")
+    queryset = Conversation.objects.select_related("tenant", "tenant__owner").prefetch_related("participants").order_by(
+        F("last_message_at").desc(nulls_last=True), "-created_at", "-id"
+    )
     if is_admin(user):
         return queryset
     if is_owner(user) or is_staff_role(user):

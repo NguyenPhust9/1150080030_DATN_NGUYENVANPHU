@@ -20,6 +20,12 @@ services:
       DJANGO_SECRET_KEY: development-only-secret
       DJANGO_DEBUG: "true"
       DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+      WEBRTC_ICE_SERVERS: '${WEBRTC_ICE_SERVERS:-[]}'
+      CLOUDINARY_URL: '${CLOUDINARY_URL:-}'
+      CLOUDINARY_CLOUD_NAME: '${CLOUDINARY_CLOUD_NAME:-}'
+      CLOUDINARY_API_KEY: '${CLOUDINARY_API_KEY:-}'
+      CLOUDINARY_API_SECRET: '${CLOUDINARY_API_SECRET:-}'
+      DATABASE_URL: ""
       POSTGRES_DB: ql_phong_cho_thue
       POSTGRES_USER: ql_user
       POSTGRES_PASSWORD: ql_password_dev

@@ -1,0 +1,53 @@
+{% extends "public/base.html" %}
+{% block title %}Về chúng tôi - Nhà Trọ An Tâm{% endblock %}
+{% block content %}
+<div class="about-page-wrapper">
+  <section class="about-hero">
+    <div class="about-hero-badge"><i data-lucide="house"></i><span>Cùng bạn tìm chốn an cư</span></div>
+    <h1>Tìm phòng phù hợp, <span>an tâm mỗi ngày</span></h1>
+    <p>Nhà Trọ An Tâm giúp bạn tìm kiếm phòng cho thuê theo nhu cầu và ngân sách. Chúng tôi mong muốn mang đến trải nghiệm tìm nơi ở rõ ràng, thuận tiện và gần gũi.</p>
+  </section>
+  <section class="about-stats" aria-label="Thông tin phòng cho thuê">
+    <div class="stat-card"><div class="stat-icon"><i data-lucide="building-2"></i></div><div class="stat-data"><strong>{{ total_buildings }}</strong><span>Tòa nhà trong hệ thống</span></div></div>
+    <div class="stat-card"><div class="stat-icon"><i data-lucide="door-open"></i></div><div class="stat-data"><strong>{{ total_rooms }}</strong><span>Phòng cho thuê</span></div></div>
+    <div class="stat-card"><div class="stat-icon"><i data-lucide="check-circle-2"></i></div><div class="stat-data"><strong>{{ available_rooms }}</strong><span>Phòng đang còn trống</span></div></div>
+    <div class="stat-card"><div class="stat-icon"><i data-lucide="search"></i></div><div class="stat-data"><strong>Dễ tìm</strong><span>Chọn phòng theo nhu cầu</span></div></div>
+  </section>
+  <section class="about-split">
+    <div class="about-split-content">
+      <span class="tag">Về Nhà Trọ An Tâm</span>
+      <h2>Một căn phòng phù hợp, một khởi đầu thoải mái</h2>
+      <p>Tìm nơi ở là bước quan trọng khi bắt đầu học tập, làm việc hay xây dựng cuộc sống riêng. Chúng tôi hiểu rằng bạn cần một căn phòng vừa túi tiền, thuận tiện đi lại và phù hợp với sinh hoạt hằng ngày.</p>
+      <p>Nhà Trọ An Tâm giới thiệu thông tin phòng, giá thuê, diện tích và tiện ích để bạn dễ dàng cân nhắc. Bạn có thể xem các lựa chọn, trao đổi nhu cầu và tìm hiểu điều kiện thuê trước khi quyết định.</p>
+    </div>
+    <div class="about-split-card">
+      <div class="about-section-header"><span class="tag">Điều chúng tôi hướng đến</span><h2>An cư từ những điều thiết thực</h2></div>
+      <p class="about-author-desc">Một nơi ở phù hợp bắt đầu từ thông tin rõ ràng và sự thấu hiểu. Chúng tôi chú trọng việc giúp người thuê nắm được chi phí, tiện nghi và nội quy, để mỗi quyết định thuê phòng đều có sự chuẩn bị chu đáo.</p>
+    </div>
+  </section>
+  <section>
+    <div class="about-section-header"><span class="tag">Vì sao chọn chúng tôi</span><h2>Thuận tiện từ tìm phòng đến sinh hoạt</h2><p>Những điều bạn quan tâm khi tìm nơi ở được trình bày rõ ràng, dễ tìm hiểu.</p></div>
+    <div class="values-grid">
+      <div class="value-card"><div class="value-icon red"><i data-lucide="house"></i></div><h3>Lựa chọn phù hợp</h3><p>Tham khảo phòng theo mức giá, diện tích và vị trí để chọn không gian phù hợp với nhu cầu học tập, làm việc và sinh hoạt.</p></div>
+      <div class="value-card"><div class="value-icon blue"><i data-lucide="file-check"></i></div><h3>Chi phí rõ ràng</h3><p>Tìm hiểu giá thuê, tiền đặt cọc và phí dịch vụ. Các điều khoản cần được trao đổi, thống nhất trước khi ký hợp đồng.</p></div>
+      <div class="value-card"><div class="value-icon green"><i data-lucide="smartphone"></i></div><h3>Theo dõi thuận tiện</h3><p>Tra cứu hợp đồng, hóa đơn và thông báo qua tài khoản người thuê, dễ dàng theo dõi trong thời gian lưu trú.</p></div>
+      <div class="value-card"><div class="value-icon amber"><i data-lucide="message-square"></i></div><h3>Kết nối khi cần hỗ trợ</h3><p>Trao đổi với ban quản lý về việc thuê phòng, gửi phản ánh hoặc yêu cầu sửa chữa để được tiếp nhận và theo dõi xử lý.</p></div>
+    </div>
+  </section>
+  <section class="tech-highlights">
+    <div class="about-section-header"><span class="tag">Bắt đầu tìm nơi ở mới</span><h2>Ba bước để chọn phòng</h2><p>Dành thời gian tìm hiểu để chọn nơi ở phù hợp với bạn.</p></div>
+    <div class="tech-grid">
+      <div class="tech-item"><div class="tech-item-header"><i data-lucide="search"></i><h3>1. Tìm phòng phù hợp</h3></div><p>Xem danh sách phòng trống theo ngân sách và khu vực. Tham khảo hình ảnh, diện tích cùng tiện ích của từng phòng.</p></div>
+      <div class="tech-item"><div class="tech-item-header"><i data-lucide="messages-square"></i><h3>2. Trao đổi và xem phòng</h3></div><p>Liên hệ để hỏi thêm thông tin và hẹn xem phòng. Kiểm tra không gian thực tế, tiện nghi và điều kiện sinh hoạt trước khi lựa chọn.</p></div>
+      <div class="tech-item"><div class="tech-item-header"><i data-lucide="key-round"></i><h3>3. Thống nhất và nhận phòng</h3></div><p>Thống nhất giá thuê, tiền cọc, các khoản phí và nội quy. Đọc kỹ hợp đồng và kiểm tra tình trạng phòng khi bàn giao.</p></div>
+    </div>
+  </section>
+  <section class="about-cta">
+    <div class="about-cta-text"><h2>Chốn ở mới của bạn bắt đầu từ đây</h2><p>Xem các phòng đang còn trống và tìm lựa chọn phù hợp với bạn.</p></div>
+    <div class="about-cta-buttons">
+      <a href="{% url 'public-rooms' %}" class="btn-white"><i data-lucide="search"></i> Khám phá phòng trống</a>
+      <a href="#lien-he" class="btn-outline-white"><i data-lucide="phone"></i> Liên hệ tư vấn</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

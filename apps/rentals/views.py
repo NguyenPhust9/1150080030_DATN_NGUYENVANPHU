@@ -9,16 +9,21 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from cloudinary.utils import api_sign_request
 from django.contrib import messages
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import Count, F, Min, OuterRef, ProtectedError, Q, Subquery, Sum
 from django.db.models.functions import Abs
 from django.http import JsonResponse
+from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
+from .chat_presence import offline_presence, presence_for_users
+from .chat_media import prepare_chat_images, upload_chat_images, remove_chat_uploads, chat_image_url, ChatUploadError
 
 from .forms import (
     BuildingForm,
@@ -45,6 +50,8 @@ from .models import (
     Amenity,
     Building,
     ChatMessage,
+    ChatImage,
+    MessageReaction,
     Contract,
     Conversation,
     Incident,
@@ -268,6 +275,19 @@ def public_room_detail(request, room_id):
         "related_rooms": related_rooms,
         "room_images": room.media.filter(media_type=RoomMedia.MediaType.IMAGE).order_by("-is_primary", "-created_at", "-id"),
         "room_videos": room.media.filter(media_type=RoomMedia.MediaType.VIDEO).order_by("-created_at", "-id"),
+    })
+
+
+def public_about(request):
+    total_buildings = Building.objects.filter(is_active=True).count()
+    total_rooms = Room.objects.count()
+    available_rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).count()
+    buildings = Building.objects.filter(is_active=True).order_by("name")
+    return render(request, "public/about.html", {
+        "total_buildings": total_buildings,
+        "total_rooms": total_rooms,
+        "available_rooms": available_rooms,
+        "buildings": buildings,
     })
 
 
@@ -1494,16 +1514,50 @@ def tenant_notification_mark_read(request, notification_id):
 
 @login_required
 def chat_list(request):
+    return render(request, "chat/list.html", _chat_context(request.user))
+
+
+@login_required
+def chat_inbox_updates(request):
+    items = []
     conversations = list(get_accessible_conversations(request.user))
+    peers = {conversation.pk: _chat_peer(conversation, request.user) for conversation in conversations}
+    presence = presence_for_users([peer.pk for peer in peers.values() if peer])
+    for conversation in conversations:
+        latest = conversation.chat_messages.select_related("sender").last()
+        peer = peers[conversation.pk]
+        items.append({
+            "id": str(conversation.pk),
+            "name": "Ban quản lý" if is_tenant(request.user) else conversation.tenant.full_name,
+            "subject": conversation.subject,
+            "preview": (latest.content[:100] or "📷 Hình ảnh") if latest else "Bắt đầu gửi lời chào",
+            "time": timezone.localtime(latest.created_at).strftime("%H:%M") if latest else "",
+            "unread": conversation.chat_messages.exclude(sender=request.user).exclude(read_by=request.user).count(),
+            "presence": presence.get(str(peer.pk), offline_presence()) if peer else offline_presence(),
+        })
+    response = JsonResponse({"conversations": items})
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+def _chat_peer(conversation, user):
+    if is_tenant(user):
+        owner = conversation.tenant.owner
+        return owner if owner and owner.is_active else get_user_model().objects.filter(role="admin", is_active=True).first()
+    return conversation.tenant.user
+
+
+def _chat_context(user):
+    conversations = list(get_accessible_conversations(user))
     for conversation in conversations:
         conversation.latest_message = conversation.chat_messages.select_related("sender").last()
-        conversation.unread_count = conversation.chat_messages.exclude(sender=request.user).exclude(read_by=request.user).count()
+        conversation.unread_count = conversation.chat_messages.exclude(sender=user).exclude(read_by=user).count()
     available_tenants = (
-        get_accessible_tenants(request.user).filter(user__isnull=False, is_active=True)
-        if not is_tenant(request.user)
+        get_accessible_tenants(user).filter(user__isnull=False, is_active=True)
+        if not is_tenant(user)
         else Tenant.objects.none()
     )
-    return render(request, "chat/list.html", {"conversations": conversations, "available_tenants": available_tenants})
+    return {"conversations": conversations, "available_tenants": available_tenants, "webrtc_ice_servers": settings.WEBRTC_ICE_SERVERS}
 
 
 @login_required
@@ -1541,8 +1595,92 @@ def chat_detail(request, conversation_id):
     conversation = get_object_or_404(get_accessible_conversations(request.user), pk=conversation_id)
     conversation.participants.add(request.user)
     _mark_conversation_read(conversation, request.user)
-    messages_list = conversation.chat_messages.select_related("sender").prefetch_related("read_by")
-    return render(request, "chat/detail.html", {"conversation": conversation, "chat_messages": messages_list})
+    messages_list = conversation.chat_messages.select_related("sender").prefetch_related("read_by", "images")
+    call_peer = _chat_peer(conversation, request.user)
+    presence = presence_for_users([call_peer.pk]).get(str(call_peer.pk), offline_presence()) if call_peer else offline_presence()
+    return render(request, "chat/detail.html", {**_chat_context(request.user), "conversation": conversation, "chat_messages": messages_list, "call_peer": call_peer, "peer_presence": presence})
+
+
+@login_required
+def chat_updates(request, conversation_id):
+    conversation = get_object_or_404(get_accessible_conversations(request.user), pk=conversation_id)
+    queryset = conversation.chat_messages.select_related("sender").prefetch_related("images").order_by("created_at", "id")
+    after = request.GET.get("after")
+    if after:
+        try:
+            previous = get_object_or_404(queryset, pk=after)
+        except (ValidationError, ValueError):
+            return JsonResponse({"error": "Invalid cursor"}, status=400)
+        queryset = queryset.filter(Q(created_at__gt=previous.created_at) | Q(created_at=previous.created_at, id__gt=previous.id))
+    items = list(queryset[:100])
+    _mark_conversation_read(conversation, request.user)
+    response = JsonResponse({
+        "messages": [_chat_message_payload(item) for item in items],
+        "reactions": _chat_reactions(conversation, request.user),
+    })
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+def _chat_message_payload(message):
+    return {
+        "id": str(message.pk),
+        "content": message.content,
+        "sender_id": str(message.sender_id),
+        "sender_name": message.sender.get_full_name() or message.sender.username,
+        "created_at": timezone.localtime(message.created_at).strftime("%H:%M %d/%m/%Y"),
+        "images": [{"id": str(image.pk), "name": image.original_name,
+                    "url": reverse("chat-image", args=[message.conversation_id, message.pk, image.pk])}
+                   for image in message.images.all()],
+    }
+
+
+@login_required
+def chat_image(request, conversation_id, message_id, image_id):
+    conversation = get_object_or_404(get_accessible_conversations(request.user), pk=conversation_id)
+    image = get_object_or_404(ChatImage, pk=image_id, message_id=message_id, message__conversation=conversation)
+    try:
+        response = redirect(chat_image_url(image))
+    except ChatUploadError as error:
+        return JsonResponse({"error": str(error)}, status=503)
+    response["Cache-Control"] = "private, no-store"
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def _chat_reactions(conversation, user, message_id=None):
+    queryset = MessageReaction.objects.filter(message__conversation=conversation).select_related("user").order_by("created_at")
+    if message_id is not None:
+        queryset = queryset.filter(message_id=message_id)
+    result = {}
+    for reaction in queryset:
+        groups = result.setdefault(str(reaction.message_id), {})
+        group = groups.setdefault(reaction.emoji, {"emoji": reaction.emoji, "count": 0, "mine": False, "users": []})
+        group["count"] += 1
+        group["mine"] = group["mine"] or reaction.user_id == user.pk
+        group["users"].append(reaction.user.get_full_name() or reaction.user.username)
+    return {message_id: list(groups.values()) for message_id, groups in result.items()}
+
+
+@login_required
+@require_POST
+def chat_react(request, conversation_id, message_id):
+    conversation = get_object_or_404(get_accessible_conversations(request.user), pk=conversation_id, is_closed=False)
+    emoji = request.POST.get("emoji", "")
+    if emoji not in MessageReaction.EMOJIS:
+        return JsonResponse({"error": "Cảm xúc không hợp lệ."}, status=400)
+    with transaction.atomic():
+        message = get_object_or_404(ChatMessage.objects.select_for_update(), conversation=conversation, pk=message_id)
+        reaction = MessageReaction.objects.filter(message=message, user=request.user).first()
+        if reaction and reaction.emoji == emoji:
+            reaction.delete()
+        elif reaction:
+            reaction.emoji = emoji
+            reaction.save(update_fields=["emoji", "updated_at"])
+        else:
+            MessageReaction.objects.create(message=message, user=request.user, emoji=emoji)
+    async_to_sync(get_channel_layer().group_send)(f"chat-{conversation.pk}", {"type": "chat.reaction"})
+    return JsonResponse({"message_id": str(message.pk), "reactions": _chat_reactions(conversation, request.user, message.pk).get(str(message.pk), [])})
 
 
 @login_required
@@ -1550,10 +1688,31 @@ def chat_detail(request, conversation_id):
 def chat_send(request, conversation_id):
     conversation = get_object_or_404(get_accessible_conversations(request.user), pk=conversation_id, is_closed=False)
     content = request.POST.get("message", "").strip()
-    if not content or len(content) > 4000:
-        messages.error(request, "Tin nhắn phải có từ 1 đến 4.000 ký tự.")
+    try:
+        images = prepare_chat_images(request.FILES.getlist("images"))
+        if (not content and not images) or len(content) > 4000:
+            raise ValidationError("Nhập tin nhắn hoặc chọn ảnh để gửi; nội dung tối đa 4.000 ký tự.")
+    except ValidationError as error:
+        error_text = " ".join(error.messages)
+        if request.headers.get("Accept") == "application/json":
+            return JsonResponse({"error": error_text}, status=400)
+        messages.error(request, error_text)
         return redirect("chat-detail", conversation_id=conversation.pk)
-    chat_message = ChatMessage.objects.create(conversation=conversation, sender=request.user, content=content)
+    try:
+        uploaded_images = upload_chat_images(images, conversation.pk)
+    except ChatUploadError as error:
+        if request.headers.get("Accept") == "application/json":
+            return JsonResponse({"error": str(error)}, status=502)
+        messages.error(request, str(error))
+        return redirect("chat-detail", conversation_id=conversation.pk)
+    try:
+        with transaction.atomic():
+            chat_message = ChatMessage.objects.create(conversation=conversation, sender=request.user, content=content)
+            for metadata in uploaded_images:
+                ChatImage.objects.create(message=chat_message, **metadata)
+    except Exception:
+        remove_chat_uploads(uploaded_images)
+        raise
     chat_message.read_by.add(request.user)
     conversation.participants.add(request.user)
     conversation.last_message_at = chat_message.created_at
@@ -1562,14 +1721,10 @@ def chat_send(request, conversation_id):
         f"chat-{conversation.pk}",
         {
             "type": "chat.message",
-            "message": {
-                "id": str(chat_message.pk),
-                "content": chat_message.content,
-                "sender_id": str(request.user.pk),
-                "sender_name": request.user.get_full_name() or request.user.username,
-                "created_at": timezone.localtime(chat_message.created_at).strftime("%H:%M %d/%m/%Y"),
-            },
+            "message": _chat_message_payload(chat_message),
         },
     )
+    if request.headers.get("Accept") == "application/json":
+        return JsonResponse({"message": _chat_message_payload(chat_message)})
     return redirect("chat-detail", conversation_id=conversation.pk)
 

@@ -1,0 +1,361 @@
+/* Hero Banner & Header Styling */
+
+/* Public Header Navigation Links */
+.public-header {
+  background: #091a3d;
+  transition: background 0.3s ease;
+}
+
+.public-header .public-brand strong {
+  color: #ffffff !important;
+}
+
+.public-header nav {
+  display: flex;
+  align-items: center;
+  gap: 32px !important;
+}
+
+/* 1. Mặc định chữ màu TRẮNG */
+.public-header nav a {
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  padding: 8px 4px !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  transition: color 0.2s ease, text-shadow 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45) !important;
+}
+
+.public-header nav a svg {
+  display: none !important;
+}
+
+/* 2. Rà chuột vào (hover) thì chữ màu XANH CYAN */
+.public-header nav a:hover {
+  color: #00bcd4 !important;
+  text-shadow: 0 0 14px rgba(0, 188, 212, 0.75) !important;
+}
+
+/* 3. Khi đang ở trang nào thì chữ trang đó hiện màu XANH CYAN */
+.public-header nav a.active {
+  color: #00bcd4 !important;
+  font-weight: 700 !important;
+  text-shadow: 0 0 16px rgba(0, 188, 212, 0.85) !important;
+  background: transparent !important;
+}
+
+/* Transparent Floating Header for Home Page */
+.transparent-hero-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-bottom: none !important;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(16px, 5vw, 70px) !important;
+}
+
+.transparent-hero-header .public-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  display: grid;
+  place-items: center;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+  flex-shrink: 0;
+}
+
+.logo-mark svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.3;
+}
+
+/* Header Right Actions */
+.public-header .header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-user-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  display: grid;
+  place-items: center;
+  color: #ffffff !important;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.header-user-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: translateY(-1px);
+}
+
+.header-user-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.btn-cyan-login {
+  background: #00bcd4;
+  background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%);
+  color: #ffffff !important;
+  border-radius: 9999px;
+  padding: 9px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.4);
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-cyan-login:hover {
+  background: linear-gradient(135deg, #0096c7 0%, #0077b6 100%);
+  box-shadow: 0 6px 20px rgba(0, 180, 216, 0.55);
+  transform: translateY(-1px);
+}
+
+.btn-cyan-login svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Hero Section */
+.guest-hero.custom-hero {
+  position: relative;
+  min-height: 560px;
+  height: 580px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background-position: center 36% !important;
+  background-size: cover !important;
+  background-repeat: no-repeat !important;
+  padding: 90px 20px 40px;
+}
+
+.custom-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 30, 58, 0.72) 0%,
+    rgba(15, 30, 58, 0.5) 45%,
+    rgba(255, 255, 255, 0.6) 82%,
+    #ffffff 100%
+  );
+  pointer-events: none;
+}
+
+.hero-center-box {
+  position: relative;
+  z-index: 10;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hero-main-title {
+  font-size: clamp(34px, 4.8vw, 54px);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.15;
+  margin: 0 0 6px;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+}
+
+.hero-cyan-subtitle {
+  font-size: clamp(30px, 4.3vw, 48px);
+  font-weight: 800;
+  color: #67e8f9;
+  line-height: 1.15;
+  margin: 0 0 34px;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 16px rgba(6, 182, 212, 0.5);
+}
+
+/* Frosted Glass Pill Search Box */
+.hero-search-capsule {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9999px;
+  padding: 7px 8px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 90%;
+  max-width: 920px;
+  margin: 0 auto;
+}
+
+.capsule-item {
+  background: #ffffff;
+  border-radius: 9999px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  position: relative;
+}
+
+.capsule-location {
+  flex: 1.8;
+  min-width: 0;
+}
+
+.capsule-price {
+  flex: 1.05;
+  min-width: 0;
+}
+
+.capsule-room {
+  flex: 1.15;
+  min-width: 0;
+}
+
+.capsule-item svg {
+  width: 17px;
+  height: 17px;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.capsule-item input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #334155;
+  font-family: inherit;
+}
+
+.capsule-item input::placeholder {
+  color: #94a3b8;
+}
+
+.capsule-item select {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-size: 14px;
+  color: #334155;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  padding-right: 18px;
+}
+
+.capsule-item .chevron-icon {
+  position: absolute;
+  right: 14px;
+  width: 14px;
+  height: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.capsule-submit-btn {
+  background: #00bcd4;
+  background: linear-gradient(135deg, #00b4d8 0%, #0096c7 100%);
+  color: #ffffff;
+  border-radius: 9999px;
+  height: 48px;
+  padding: 0 28px;
+  font-weight: 700;
+  font-size: 15px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 180, 216, 0.45);
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.capsule-submit-btn:hover {
+  background: linear-gradient(135deg, #0096c7 0%, #0077b6 100%);
+  box-shadow: 0 6px 22px rgba(0, 180, 216, 0.6);
+  transform: translateY(-1px);
+}
+
+.capsule-submit-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .hero-search-capsule {
+    flex-direction: column;
+    border-radius: 20px;
+    padding: 14px;
+    width: 100%;
+  }
+  .capsule-item {
+    width: 100%;
+    flex: none;
+  }
+  .capsule-submit-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .guest-hero.custom-hero {
+    min-height: 620px;
+    height: auto;
+    padding-top: 110px;
+  }
+  .public-header nav {
+    display: none;
+  }
+}
+
+/* Keep the complete brand image visible in the header. */
+.public-brand .logo-mark { background: #fff !important; overflow: hidden; }
+.public-brand .logo-mark img { width: 100%; height: 100%; object-fit: contain; display: block; }

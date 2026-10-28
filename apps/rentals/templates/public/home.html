@@ -1,26 +1,58 @@
 {% extends "public/base.html" %}
-{% block title %}Tìm phòng trọ phù hợp{% endblock %}
+{% load static %}
+{% block title %}Tìm phòng trọ phù hợp - Nguyễn Phú{% endblock %}
 {% block content %}
-<section class="guest-hero">
-  <div class="guest-hero-inner">
-    <div class="guest-hero-copy"><h1>Tìm phòng trọ phù hợp<br>với cuộc sống của bạn</h1><p>Đa dạng lựa chọn <b>•</b> Thông tin minh bạch <b>•</b> An tâm dài lâu</p></div>
-    <div class="hero-assurance"><i data-lucide="shield-check"></i><span>Không chỉ là phòng trọ<small>Mà là nơi để vững bước</small></span></div>
-    <form class="guest-search" action="{% url 'public-rooms' %}">
-      <label><i data-lucide="map-pin"></i><input name="q" placeholder="Khu vực, quận huyện, địa chỉ..."></label>
-      <label><i data-lucide="building-2"></i><select name="building"><option value="">Chọn tòa nhà</option>{% for building in buildings %}<option value="{{ building.name }}">{{ building.name }}</option>{% endfor %}</select></label>
-      <label class="price-range"><i data-lucide="circle-dollar-sign"></i><input name="min_price" type="number" placeholder="Giá từ"><b>-</b><input name="max_price" type="number" placeholder="Giá đến"></label>
-      <label><i data-lucide="bed-double"></i><select><option>Loại phòng</option><option>Phòng trọ</option><option>Căn hộ mini</option></select></label>
-      <button class="btn primary"><i data-lucide="search"></i> Tìm phòng</button>
+<section class="guest-hero custom-hero" style="background-image: url('{% static 'images/anhnen.jpg' %}');">
+  <div class="hero-center-box">
+    <h1 class="hero-main-title">Tìm phòng trọ phù hợp</h1>
+    <h2 class="hero-cyan-subtitle">với cuộc sống của bạn</h2>
+
+    <form class="hero-search-capsule" action="{% url 'public-rooms' %}" method="get">
+      <div class="capsule-item capsule-location">
+        <i data-lucide="map-pin"></i>
+        <input name="q" placeholder="Khu vực, quận huyện, địa chỉ...">
+      </div>
+
+      <div class="capsule-item capsule-price">
+        <i data-lucide="tag"></i>
+        <select name="max_price">
+          <option value="">Tất cả mức giá</option>
+          <option value="2000000" selected>Dưới 2tr</option>
+          <option value="3000000">Dưới 3tr</option>
+          <option value="5000000">Dưới 5tr</option>
+          <option value="10000000">Dưới 10tr</option>
+        </select>
+        <i data-lucide="chevron-down" class="chevron-icon"></i>
+      </div>
+
+      <div class="capsule-item capsule-room">
+        <i data-lucide="bed-double"></i>
+        <select name="type">
+          <option value="">Loại phòng</option>
+          <option value="1" selected>1 Phòng ngủ</option>
+          <option value="2">2 Phòng ngủ</option>
+          <option value="tro">Phòng trọ</option>
+          <option value="mini">Căn hộ mini</option>
+        </select>
+        <i data-lucide="chevron-down" class="chevron-icon"></i>
+      </div>
+
+      <button type="submit" class="capsule-submit-btn">
+        <i data-lucide="search"></i>
+        <span>Tìm kiếm</span>
+      </button>
     </form>
   </div>
 </section>
+
 <section class="benefit-strip">
   <div><i data-lucide="house"></i><span><strong>Nhiều tòa nhà</strong><small>và vị trí thuận tiện</small></span></div>
   <div><i data-lucide="shield-check"></i><span><strong>Thông tin rõ ràng</strong><small>hình ảnh thực tế</small></span></div>
   <div><i data-lucide="heart"></i><span><strong>Dễ dàng so sánh</strong><small>và lưu phòng yêu thích</small></span></div>
   <div><i data-lucide="headphones"></i><span><strong>Hỗ trợ nhanh chóng</strong><small>tận tình, chuyên nghiệp</small></span></div>
 </section>
-<section id="gioi-thieu" class="property-browser">
+
+<section class="property-browser">
   <aside class="filter-panel">
     <h2>Bộ lọc tìm kiếm</h2>
     <form action="{% url 'public-rooms' %}">

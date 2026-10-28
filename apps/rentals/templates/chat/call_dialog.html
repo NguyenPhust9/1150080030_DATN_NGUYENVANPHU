@@ -1,0 +1,19 @@
+<dialog id="chat-call-dialog" class="call-dialog" aria-labelledby="call-name">
+  <div class="call-stage">
+    <video id="call-remote" autoplay playsinline></video>
+    <video id="call-local" autoplay playsinline muted></video>
+    <div class="call-person"><span class="call-avatar" id="call-avatar">A</span><h2 id="call-name"></h2><p id="call-status" role="status"></p></div>
+    <span id="call-duration" class="call-duration" hidden>00:00</span>
+    <button type="button" id="call-play-audio" class="btn" hidden>Bấm để nghe âm thanh</button>
+  </div>
+  <div id="call-incoming-controls" class="call-controls" hidden>
+    <button type="button" id="call-reject" class="call-control danger"><i data-lucide="phone-off"></i><span>Từ chối</span></button>
+    <button type="button" id="call-answer" class="call-control accept"><i data-lucide="phone"></i><span>Trả lời</span></button>
+  </div>
+  <div id="call-active-controls" class="call-controls">
+    <button type="button" id="call-mic" class="call-control" aria-pressed="false"><i data-lucide="mic"></i><span>Tắt mic</span></button>
+    <button type="button" id="call-camera" class="call-control" aria-pressed="false"><i data-lucide="video"></i><span>Tắt camera</span></button>
+    <button type="button" id="call-hangup" class="call-control danger"><i data-lucide="phone-off"></i><span>Kết thúc</span></button>
+  </div>
+  <button type="button" id="call-close" class="call-close" aria-label="Đóng" hidden><i data-lucide="x"></i></button>
+</dialog>

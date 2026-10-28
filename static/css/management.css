@@ -21,3 +21,16 @@ body{background:radial-gradient(circle at 65% 0,#eaf3ff 0,transparent 34%),var(-
 .card-actions a{background:#fff}
 
 .breadcrumbs{display:flex;align-items:center;gap:5px;margin:-11px 0 20px;color:#73839b;font-size:12px}.breadcrumbs a{display:flex;align-items:center;gap:5px;color:#8796aa;text-decoration:none}.breadcrumbs a:hover{color:var(--admin-blue)}.breadcrumbs>svg{width:13px;height:13px;color:#a9b3c1}.breadcrumbs a svg{width:13px;height:13px}.breadcrumbs span{color:#466081;font-weight:600}
+.account-menu{position:relative;font-weight:500}
+.account-menu summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;padding:6px 8px;border-radius:10px}
+.account-menu summary::-webkit-details-marker{display:none}
+.account-menu summary:hover,.account-menu[open] summary{background:#eaf2ff}
+.account-menu summary:focus-visible{outline:2px solid var(--admin-blue);outline-offset:3px}
+.account-chevron{width:16px;height:16px;color:#718098;transition:transform .15s}
+.account-menu[open] .account-chevron{transform:rotate(180deg)}
+.account-dropdown{position:absolute;right:0;top:calc(100% + 8px);z-index:1000;min-width:230px;padding:7px;background:#fff;border:1px solid #e2e7ef;border-radius:12px;box-shadow:0 12px 36px #17203326}
+.account-dropdown a,.account-dropdown button{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;border:0;border-radius:7px;background:none;color:var(--ink);font:inherit;text-align:left;text-decoration:none;cursor:pointer}
+.account-dropdown a:hover,.account-dropdown a.active,.account-dropdown button:hover{background:#edf4ff;color:var(--admin-blue)}
+.account-dropdown svg{width:18px;height:18px;flex-shrink:0}
+.account-dropdown form{border-top:1px solid #e2e7ef;margin-top:5px;padding-top:5px}
+.account-dropdown form button{color:#c83242}

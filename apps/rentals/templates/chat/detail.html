@@ -1,19 +1,33 @@
-{% extends "base.html" %}
-{% block title %}{{ conversation.subject }} — Trò chuyện{% endblock %}
-{% block page_title %}{{ conversation.subject }}{% endblock %}
-{% block page_subtitle %}Khách thuê: {{ conversation.tenant.full_name }}{% endblock %}
-{% block content %}
-<style>
-.chat-shell{height:calc(100vh - 210px);min-height:520px;display:flex;flex-direction:column;padding:0;overflow:hidden}.chat-head{padding:14px 18px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between}.chat-messages{flex:1;overflow:auto;padding:20px;background:#f8fafc;display:flex;flex-direction:column;gap:12px}.chat-message{max-width:72%;align-self:flex-start}.chat-message.mine{align-self:flex-end}.chat-bubble{padding:10px 14px;border-radius:16px 16px 16px 4px;background:#fff;border:1px solid #e5e7eb;white-space:pre-wrap;overflow-wrap:anywhere}.mine .chat-bubble{background:#2563eb;color:#fff;border-color:#2563eb;border-radius:16px 16px 4px 16px}.chat-info{font-size:11px;color:#64748b;margin:4px 5px}.mine .chat-info{text-align:right}.chat-compose{display:flex;gap:10px;padding:14px;border-top:1px solid #e5e7eb;background:#fff}.chat-compose textarea{flex:1;resize:none;min-height:44px;max-height:120px}.connection-state{font-size:12px;color:#64748b}@media(max-width:650px){.chat-message{max-width:88%}.chat-shell{height:calc(100vh - 180px)}}
-</style>
-<section class="panel chat-shell">
-  <header class="chat-head"><a class="btn" href="{% url 'chat-list' %}">← Danh sách</a><span id="connection-state" class="connection-state">Đang kết nối…</span></header>
-  <div id="chat-messages" class="chat-messages">
-    {% for message in chat_messages %}<article class="chat-message{% if message.sender_id == user.id %} mine{% endif %}" data-message-id="{{ message.id }}"><div class="chat-bubble">{{ message.content }}</div><div class="chat-info">{{ message.sender.get_full_name|default:message.sender.username }} · {{ message.created_at|date:"H:i d/m/Y" }}{% if message.sender_id == user.id %} · {% if message.read_by.count > 1 %}Đã xem{% else %}Đã gửi{% endif %}{% endif %}</div></article>{% empty %}<div id="empty-chat" style="margin:auto;color:#64748b;">Hãy gửi tin nhắn đầu tiên.</div>{% endfor %}
+{% extends "chat/layout.html" %}
+{% load static %}
+{% block chat_workspace %}
+<header class="chat-head">
+  <a href="{% url 'chat-list' %}" class="chat-icon-button mobile-back" aria-label="Danh sách trò chuyện"><i data-lucide="arrow-left"></i></a>
+  <span class="conversation-avatar{% if peer_presence.online %} is-online{% endif %}">{% if user.role == 'tenant' %}<i data-lucide="building-2"></i>{% else %}{{ conversation.tenant.full_name|first|upper }}{% endif %}</span>
+  <div class="chat-recipient"><h2>{% if user.role == 'tenant' %}Ban quản lý{% else %}{{ conversation.tenant.full_name }}{% endif %}</h2><span id="peer-presence" class="peer-presence{% if peer_presence.online %} online{% endif %}">{{ peer_presence.label }}</span></div>
+  <span id="connection-state" class="connection-state network-status" aria-label="Kết nối của bạn">{% if conversation.is_closed %}Đã đóng cuộc trò chuyện{% else %}Đang kết nối…{% endif %}</span>
+  {% if not conversation.is_closed and call_peer and call_peer.is_active %}
+  <div class="chat-call-actions" data-peer-id="{{ call_peer.id }}" data-peer-name="{{ call_peer.get_full_name|default:call_peer.username }}" data-conversation-id="{{ conversation.id }}">
+    <button type="button" class="chat-icon-button" data-start-call="audio" aria-label="Gọi thoại" title="Gọi thoại"><i data-lucide="phone"></i></button>
+    <button type="button" class="chat-icon-button" data-start-call="video" aria-label="Gọi video" title="Gọi video"><i data-lucide="video"></i></button>
   </div>
-  {% if not conversation.is_closed %}<form id="chat-form" class="chat-compose" method="post" action="{% url 'chat-send' conversation.id %}">{% csrf_token %}<textarea class="form-control" id="chat-input" name="message" maxlength="4000" required placeholder="Nhập tin nhắn…"></textarea><button class="btn primary" type="submit"><i data-lucide="send"></i> Gửi</button></form>{% endif %}
-</section>
-<script>
-(()=>{const box=document.getElementById('chat-messages'),form=document.getElementById('chat-form'),input=document.getElementById('chat-input'),state=document.getElementById('connection-state'),me='{{ user.id }}',conversation='{{ conversation.id }}';box.scrollTop=box.scrollHeight;if(!form)return;let socket;function append(data){if(document.querySelector(`[data-message-id="${data.id}"]`))return;document.getElementById('empty-chat')?.remove();const item=document.createElement('article');item.className='chat-message'+(data.sender_id===me?' mine':'');item.dataset.messageId=data.id;const bubble=document.createElement('div');bubble.className='chat-bubble';bubble.textContent=data.content;const info=document.createElement('div');info.className='chat-info';info.textContent=`${data.sender_name} · ${data.created_at}${data.sender_id===me?' · Đã gửi':''}`;item.append(bubble,info);box.appendChild(item);box.scrollTop=box.scrollHeight}function connect(){const protocol=location.protocol==='https:'?'wss':'ws';socket=new WebSocket(`${protocol}://${location.host}/ws/chat/${conversation}/`);socket.onopen=()=>{state.textContent='Đang trực tuyến';state.style.color='#087b59'};socket.onmessage=e=>{const data=JSON.parse(e.data);if(data.type==='message')append(data)};socket.onclose=()=>{state.textContent='Mất kết nối — đang thử lại';state.style.color='#b45309';setTimeout(connect,2000)}}connect();form.addEventListener('submit',e=>{if(socket?.readyState!==WebSocket.OPEN)return;e.preventDefault();const value=input.value.trim();if(!value)return;socket.send(JSON.stringify({message:value}));input.value='';input.focus()});input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}})})();
-</script>
+  {% endif %}
+</header>
+<div id="chat-messages" class="chat-messages" data-closed="{{ conversation.is_closed|yesno:'true,false' }}" data-chat-base="{% url 'chat-detail' conversation.id %}" data-updates-url="{% url 'chat-updates' conversation.id %}" data-user-id="{{ user.id }}" data-conversation-id="{{ conversation.id }}" role="log" aria-label="Nội dung tin nhắn" aria-live="polite">
+  {% for message in chat_messages %}<article class="chat-message{% if message.sender_id == user.id %} mine{% endif %}" data-message-id="{{ message.id }}"><div class="chat-bubble">{% if message.images.all %}<div class="chat-image-grid">{% for image in message.images.all %}<a class="chat-image-link" href="{% url 'chat-image' conversation.id message.id image.id %}" title="Xem ảnh lớn"><img src="{% url 'chat-image' conversation.id message.id image.id %}" alt="{{ image.original_name|default:'Hình ảnh' }}" loading="lazy"></a>{% endfor %}</div>{% endif %}{% if message.content %}<div class="chat-text">{{ message.content }}</div>{% endif %}</div><div class="chat-info">{{ message.sender.get_full_name|default:message.sender.username }} · {{ message.created_at|date:"H:i d/m/Y" }}{% if message.sender_id == user.id %} · {% if message.read_by.count > 1 %}Đã xem{% else %}Đã gửi{% endif %}{% endif %}</div></article>{% empty %}<div id="empty-chat" class="empty-thread"><span class="conversation-avatar"><i data-lucide="message-circle"></i></span><h3>Bắt đầu bằng một lời chào</h3><p>Gửi tin nhắn đầu tiên để bắt đầu cuộc trò chuyện.</p></div>{% endfor %}
+</div>
+{% if not conversation.is_closed %}
+<div class="chat-compose-area"><div id="chat-attachment-preview" class="attachment-preview" hidden aria-label="Ảnh chuẩn bị gửi"></div><form id="chat-form" enctype="multipart/form-data" class="chat-compose" method="post" action="{% url 'chat-send' conversation.id %}">{% csrf_token %}<button type="button" id="chat-image-toggle" class="chat-icon-button" title="Gửi ảnh" aria-label="Chọn ảnh để gửi"><i data-lucide="image-plus"></i></button><input type="file" id="chat-image-input" name="images" accept="image/jpeg,image/png,image/webp" multiple hidden><button type="button" id="emoji-toggle" class="chat-icon-button" aria-label="Chọn biểu tượng cảm xúc" title="Chọn emoji" aria-expanded="false"><i data-lucide="smile"></i></button><div class="compose-field"><textarea id="chat-input" name="message" maxlength="4000" rows="1" aria-label="Tin nhắn" placeholder="Nhập tin nhắn…"></textarea><span>Enter để gửi · Shift + Enter để xuống dòng</span></div><button class="send-message" type="submit" title="Gửi tin nhắn" aria-label="Gửi tin nhắn"><i data-lucide="send"></i></button></form></div>
+{% else %}<div class="closed-thread"><i data-lucide="lock-keyhole"></i> Cuộc trò chuyện đã đóng. Bạn vẫn có thể xem lại tin nhắn.</div>{% endif %}
+<p id="chat-error" role="alert" hidden style="margin:0;padding:8px 20px;color:#c83242;background:#fff1f2"></p>
+<dialog id="chat-image-viewer" class="chat-image-viewer" aria-label="Xem ảnh">
+  <div class="image-viewer-toolbar">
+    <span id="image-viewer-name"></span>
+    <div><button type="button" id="image-zoom-out" aria-label="Thu nhỏ"><i data-lucide="zoom-out"></i></button><button type="button" id="image-zoom-reset" aria-label="Kích thước ban đầu">100%</button><button type="button" id="image-zoom-in" aria-label="Phóng to"><i data-lucide="zoom-in"></i></button><button type="button" id="image-viewer-close" aria-label="Đóng"><i data-lucide="x"></i></button></div>
+  </div>
+  <div id="image-viewer-stage" class="image-viewer-stage"><img id="image-viewer-image" alt="Ảnh trong cuộc trò chuyện"></div>
+</dialog>
+<script src="{% static 'js/chat.js' %}?v=7"></script>
+<script src="{% static 'js/chat-emoji.js' %}?v=2"></script>
+<script src="{% static 'js/chat-image-viewer.js' %}?v=1"></script>
 {% endblock %}
