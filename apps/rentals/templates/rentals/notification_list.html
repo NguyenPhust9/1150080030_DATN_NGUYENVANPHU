@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block page_title %}Thông báo{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm tiêu đề, nội dung, người nhận...">
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select>
+    <select name="read">
+      <option value="">Tất cả trạng thái</option>
+      <option value="unread" {% if read_filter == 'unread' %}selected{% endif %}>Chưa đọc</option>
+      <option value="read" {% if read_filter == 'read' %}selected{% endif %}>Đã đọc</option>
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or selected_building or read_filter %}<a class="btn" href="{% url 'notifications' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a class="btn primary" href="{% url 'notification-create' %}">+ Gửi thông báo</a>
+    <form method="post" action="{% url 'notification-expiring-contracts' %}" onsubmit="return confirm('Gửi thông báo nhắc nhở cho các hợp đồng sắp hết hạn trong 30 ngày tới?');" style="display:inline;">
+      {% csrf_token %}
+      <button class="btn" type="submit">Nhắc HĐ sắp hết hạn</button>
+    </form>
+  </div>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách thông báo</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Tiêu đề & Nội dung</th>
+          <th>Người nhận</th>
+          <th>Tòa nhà</th>
+          <th>Thời gian gửi</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td style="white-space:normal;max-width:420px;">
+            <strong>{{ x.title }}</strong>
+            <div class="muted" style="font-size:13px;margin-top:3px;">{{ x.content }}</div>
+          </td>
+          <td>{{ x.recipient.get_full_name|default:x.recipient.username }}</td>
+          <td>{{ x.building|default:"—" }}</td>
+          <td>{{ x.created_at|date:"d/m/Y H:i" }}</td>
+          <td>
+            {% if x.is_read %}
+            <span class="badge">Đã đọc</span>
+            {% else %}
+            <span class="badge" style="background:#fff2d8;color:#b27400;">Chưa đọc</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not x.is_read and x.recipient_id == user.id %}
+            <form method="post" action="{% url 'notification-mark-read' x.id %}" style="display:inline;">
+              {% csrf_token %}
+              <button class="btn compact" type="submit">Đánh dấu đã đọc</button>
+            </form>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">Chưa có thông báo nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang thông báo">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&read={{ read_filter }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&read={{ read_filter }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&read={{ read_filter }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

@@ -15,7 +15,7 @@ services:
 
   web:
     build: .
-    command: sh -c "python manage.py migrate && gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && daphne -b 0.0.0.0 -p 8000 config.asgi:application"
     environment:
       DJANGO_SECRET_KEY: development-only-secret
       DJANGO_DEBUG: "true"

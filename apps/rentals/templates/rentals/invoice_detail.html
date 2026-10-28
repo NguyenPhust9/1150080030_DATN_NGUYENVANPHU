@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block page_title %}Hóa đơn {{ invoice.code }}{% endblock %}
+{% block content %}
+<div class="page-actions" style="flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a class="btn" href="{% url 'invoices' %}">← Danh sách hóa đơn</a>
+    {% if invoice.status == 'draft' %}
+    <a class="btn" href="{% url 'invoice-update' invoice.id %}">Sửa hóa đơn nháp</a>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% if invoice.status == 'draft' %}
+    <form method="post" action="{% url 'invoice-issue' invoice.id %}" onsubmit="return confirm('Xác nhận phát hành hóa đơn {{ invoice.code }} và gửi thông báo cho khách thuê?');">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">Phát hành hóa đơn</button>
+    </form>
+    {% endif %}
+    {% if invoice.status != 'draft' and invoice.status != 'cancelled' and invoice.status != 'paid' %}
+    <a class="btn primary" href="{% url 'payment-create' %}?invoice={{ invoice.id }}">Ghi nhận thanh toán</a>
+    {% endif %}
+  </div>
+</div>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Thông tin hóa đơn</h2>
+      <span class="badge">{{ invoice.get_status_display }}</span>
+    </div>
+    <div class="detail-grid">
+      <div><span>Mã hóa đơn</span><strong>{{ invoice.code }}</strong></div>
+      <div><span>Hợp đồng</span><strong><a href="{% url 'contract-detail' invoice.contract.id %}" style="color:var(--primary);text-decoration:none;">{{ invoice.contract.code }}</a></strong></div>
+      <div><span>Phòng / Tòa nhà</span><strong>{{ invoice.contract.room }}</strong></div>
+      <div><span>Khách đại diện</span><strong><a href="{% url 'tenant-detail' invoice.contract.representative.id %}" style="color:var(--primary);text-decoration:none;">{{ invoice.contract.representative.full_name }}</a></strong></div>
+      <div><span>Kỳ hóa đơn</span><strong>{{ invoice.period|date:"m/Y" }}</strong></div>
+      <div><span>Ngày phát hành</span><strong>{{ invoice.issued_date|date:"d/m/Y" }}</strong></div>
+      <div><span>Hạn thanh toán</span><strong>{{ invoice.due_date|date:"d/m/Y" }}</strong></div>
+      <div><span>Tiền trước giảm trừ</span><strong>{{ invoice.subtotal|vnd }} đ</strong></div>
+      <div><span>Giảm trừ</span><strong>{{ invoice.discount|vnd }} đ</strong></div>
+      <div><span>Tổng cộng</span><strong style="color:var(--primary);">{{ invoice.total_amount|vnd }} đ</strong></div>
+      <div><span>Đã thanh toán</span><strong style="color:var(--green);">{{ invoice.paid_amount|vnd }} đ</strong></div>
+      <div><span>Số còn nợ</span><strong style="color:var(--red);">{{ invoice.balance|vnd }} đ</strong></div>
+    </div>
+    {% if invoice.notes %}
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0;">
+    <div>
+      <span class="muted">Ghi chú / Lý do:</span>
+      <p style="margin:6px 0 0;white-space:pre-line;">{{ invoice.notes }}</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    {% if invoice.status == 'draft' %}
+    <h2>Chỉnh sửa nhanh hóa đơn nháp</h2>
+    <form method="post" action="{% url 'invoice-update' invoice.id %}">
+      {% csrf_token %}
+      {{ draft_form.as_p }}
+      <div class="actions">
+        <button class="btn primary" type="submit">Cập nhật bản nháp</button>
+      </div>
+    </form>
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0;">
+    {% endif %}
+    {% if invoice.status != 'cancelled' and invoice.paid_amount == 0 %}
+    <h2>Hủy hóa đơn</h2>
+    <p class="muted" style="margin-top:0;">Chỉ hủy được hóa đơn chưa phát sinh giao dịch thanh toán hợp lệ. Vui lòng nhập rõ lý do hủy.</p>
+    <form method="post" action="{% url 'invoice-cancel' invoice.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn hủy hóa đơn {{ invoice.code }}?');">
+      {% csrf_token %}
+      {{ cancel_form.as_p }}
+      <div class="actions">
+        <button class="btn" type="submit" style="color:var(--red);border-color:var(--red);">Xác nhận hủy hóa đơn</button>
+      </div>
+    </form>
+    {% else %}
+    <h2>Trạng thái hóa đơn</h2>
+    <p class="muted">Hóa đơn hiện đang ở trạng thái <strong>{{ invoice.get_status_display }}</strong>.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel" style="margin-bottom:20px;">
+  <div class="panel-heading">
+    <h2>Chi tiết các khoản thu ({{ invoice.items.count }})</h2>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Nội dung</th>
+          <th>Dịch vụ</th>
+          <th>Số lượng</th>
+          <th>Đơn giá chốt</th>
+          <th>Thành tiền</th>
+          {% if invoice.status == 'draft' %}<th>Thao tác</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in invoice.items.all %}
+        <tr>
+          <td>{{ item.description }}</td>
+          <td>{% if item.service %}{{ item.service.name }}{% else %}—{% endif %}</td>
+          <td>{{ item.quantity }}</td>
+          <td>{{ item.unit_price|vnd }} đ</td>
+          <td><strong>{{ item.amount|vnd }} đ</strong></td>
+          {% if invoice.status == 'draft' %}
+          <td>
+            <form method="post" action="{% url 'invoice-item-remove' invoice.id item.id %}" onsubmit="return confirm('Xóa khoản thu {{ item.description }}?');" style="display:inline;">
+              {% csrf_token %}
+              <button class="btn compact" type="submit" style="color:var(--red);">Xóa</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">Chưa có dòng chi tiết nào.</td></tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><th colspan="4">Tiền trước điều chỉnh (Subtotal)</th><th colspan="2">{{ invoice.subtotal|vnd }} đ</th></tr>
+        <tr><th colspan="4">Giảm trừ (Discount)</th><th colspan="2">- {{ invoice.discount|vnd }} đ</th></tr>
+        <tr><th colspan="4">Tổng cộng phải thu</th><th colspan="2">{{ invoice.total_amount|vnd }} đ</th></tr>
+      </tfoot>
+    </table>
+  </div>
+
+  {% if invoice.status == 'draft' %}
+  <hr style="border:0;border-top:1px solid var(--line);margin:18px 0;">
+  <h2>Thêm khoản thu / phụ thu vào hóa đơn nháp</h2>
+  <form method="post" action="{% url 'invoice-item-add' invoice.id %}">
+    {% csrf_token %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;align-items:end;">
+      <div><label>Dịch vụ</label>{{ item_form.service }}</div>
+      <div><label>Nội dung khoản thu</label>{{ item_form.description }}</div>
+      <div><label>Số lượng</label>{{ item_form.quantity }}</div>
+      <div><label>Đơn giá</label>{{ item_form.unit_price }}</div>
+      <div><button class="btn primary" type="submit">Thêm khoản thu</button></div>
+    </div>
+  </form>
+  {% endif %}
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Lịch sử giao dịch thanh toán ({{ invoice.payments.count }})</h2>
+    {% if invoice.status != 'draft' and invoice.status != 'cancelled' and invoice.status != 'paid' %}
+    <a class="btn primary compact" href="{% url 'payment-create' %}?invoice={{ invoice.id }}">+ Ghi nhận thanh toán</a>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Thời gian</th>
+          <th>Số tiền</th>
+          <th>Phương thức</th>
+          <th>Mã tham chiếu</th>
+          <th>Người thu</th>
+          <th>Ghi chú</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in invoice.payments.all %}
+        <tr>
+          <td>{{ p.paid_at|date:"d/m/Y H:i" }}</td>
+          <td><strong>{{ p.amount|vnd }} đ</strong></td>
+          <td>{{ p.get_method_display }}</td>
+          <td>{{ p.reference|default:"—" }}</td>
+          <td>{{ p.received_by.username }}</td>
+          <td>{{ p.notes|default:"—" }}</td>
+          <td>
+            {% if p.is_void %}
+            <span class="badge" style="background:#ffebed;color:#ca3944;">Đã hủy</span>
+            {% else %}
+            <span class="badge">Hợp lệ</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if not p.is_void %}
+            <form method="post" action="{% url 'payment-void' p.id %}" onsubmit="return confirm('Xác nhận hủy giao dịch thanh toán {{ p.amount|vnd }} đ? Hệ thống sẽ tính lại công nợ hóa đơn.');" style="display:inline;">
+              {% csrf_token %}
+              <input type="hidden" name="reason" value="Hủy giao dịch sai sót">
+              <button class="btn compact" type="submit" style="color:var(--red);">Hủy giao dịch</button>
+            </form>
+            {% else %}
+            <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Chưa có giao dịch thanh toán nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -45,9 +45,13 @@ python manage.py runserver
 ```bash
 python manage.py check
 python manage.py makemigrations --check --dry-run
-$env:DJANGO_TEST_SQLITE="true"; python manage.py test  # PowerShell
-ruff check .
+python manage.py test --noinput
+python -m ruff check .
 ```
+
+Kiểm thử cũng sử dụng PostgreSQL. Cấu hình `POSTGRES_TEST_DB` trong `.env`
+với tên database riêng (mặc định `test_<POSTGRES_DB>`); không đặt trùng tên
+database phát triển vì Django sẽ tạo và xóa database này trong quá trình test.
 
 ## Lưu ý production
 

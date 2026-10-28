@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block page_title %}Chi tiết sự cố: {{ incident.title }}{% endblock %}
+{% block content %}
+<div class="page-actions">
+  <a class="btn" href="{% url 'incidents' %}">← Danh sách sự cố</a>
+</div>
+
+<section class="two-columns">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Thông tin báo cáo sự cố</h2>
+      <span class="badge">{{ incident.get_status_display }}</span>
+    </div>
+    <div class="detail-grid">
+      <div><span>Tiêu đề</span><strong>{{ incident.title }}</strong></div>
+      <div><span>Phòng / Tòa nhà</span><strong>{{ incident.room }}</strong></div>
+      <div><span>Người báo cáo</span><strong><a href="{% url 'tenant-detail' incident.reported_by.id %}" style="color:var(--primary);text-decoration:none;">{{ incident.reported_by.full_name }}</a> ({{ incident.reported_by.phone }})</strong></div>
+      <div><span>Mức độ ưu tiên</span><strong>{{ incident.get_priority_display }}</strong></div>
+      <div><span>Người phụ trách</span><strong>{% if incident.assigned_to %}{{ incident.assigned_to.get_full_name|default:incident.assigned_to.username }}{% else %}Chưa phân công{% endif %}</strong></div>
+      <div><span>Thời gian báo</span><strong>{{ incident.created_at|date:"d/m/Y H:i" }}</strong></div>
+      <div><span>Thời gian hoàn thành</span><strong>{% if incident.resolved_at %}{{ incident.resolved_at|date:"d/m/Y H:i" }}{% else %}Chưa hoàn thành{% endif %}</strong></div>
+    </div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0;">
+    <div>
+      <span class="muted">Mô tả chi tiết từ khách thuê:</span>
+      <p style="margin:6px 0 0;white-space:pre-line;">{{ incident.description }}</p>
+    </div>
+    {% if incident.resolution_notes %}
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0;">
+    <div>
+      <span class="muted">Ghi chú quá trình xử lý:</span>
+      <p style="margin:6px 0 0;white-space:pre-line;">{{ incident.resolution_notes }}</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Cập nhật xử lý & Phân công</h2>
+    <p class="muted" style="margin-top:0;">Khi chuyển trạng thái sự cố, hệ thống sẽ tự động gửi thông báo cho khách thuê và ghi nhận thời gian hoàn thành.</p>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <div class="actions">
+        <button class="btn primary" type="submit">Lưu cập nhật xử lý</button>
+      </div>
+    </form>
+  </article>
+</section>
+{% endblock %}

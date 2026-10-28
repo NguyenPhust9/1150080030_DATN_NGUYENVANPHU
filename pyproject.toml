@@ -9,6 +9,8 @@ dependencies = [
     "psycopg[binary]==3.3.5",
     "whitenoise==6.11.0",
     "cloudinary==1.46.2",
+    "channels==4.3.1",
+    "daphne==4.2.1",
 ]
 
 [tool.pytest.ini_options]

@@ -3,8 +3,11 @@ from django.contrib import admin
 from .models import (
     Amenity,
     Building,
+    ChatMessage,
     Contract,
     ContractMember,
+    ContractService,
+    Conversation,
     Incident,
     Invoice,
     InvoiceItem,
@@ -20,6 +23,11 @@ from .models import (
 
 class ContractMemberInline(admin.TabularInline):
     model = ContractMember
+    extra = 1
+
+
+class ContractServiceInline(admin.TabularInline):
+    model = ContractService
     extra = 1
 
 
@@ -56,7 +64,7 @@ class ContractAdmin(admin.ModelAdmin):
     list_display = ("code", "room", "representative", "start_date", "end_date", "status")
     list_filter = ("status", "room__building")
     search_fields = ("code", "representative__full_name", "room__number")
-    inlines = (ContractMemberInline,)
+    inlines = (ContractMemberInline, ContractServiceInline)
 
 
 @admin.register(MeterReading)
@@ -91,6 +99,8 @@ admin.site.register(Amenity)
 admin.site.register(Service)
 admin.site.register(Notification)
 admin.site.register(RoomMedia)
+admin.site.register(Conversation)
+admin.site.register(ChatMessage)
 
 admin.site.site_header = "Quản lý phòng cho thuê"
 admin.site.site_title = "QL Phòng Cho Thuê"

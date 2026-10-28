@@ -14,3 +14,4 @@ staticfiles/
 .idea/
 .vscode/
 node_modules/
+datasets/

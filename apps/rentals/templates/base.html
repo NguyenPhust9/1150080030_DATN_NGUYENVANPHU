@@ -20,18 +20,31 @@
       <a class="{% if request.resolver_match.url_name == 'tenant-incidents' or request.resolver_match.url_name == 'tenant-incident-create' %}active{% endif %}" href="{% url 'tenant-incidents' %}"><i data-lucide="triangle-alert"></i>Yêu cầu hỗ trợ</a>
       <a class="{% if request.resolver_match.url_name == 'tenant-notifications' %}active{% endif %}" href="{% url 'tenant-notifications' %}"><i data-lucide="bell"></i>Thông báo</a>
       <a class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}" href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
+      <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
       <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
       {% else %}
       <a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i data-lucide="house"></i>Tổng quan</a>
       <a class="{% if request.resolver_match.url_name == 'buildings' or request.resolver_match.url_name == 'building-create' or request.resolver_match.url_name == 'building-update' %}active{% endif %}" href="{% url 'buildings' %}"><i data-lucide="building-2"></i>Tòa nhà</a>
-      <a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' %}active{% endif %}" href="{% url 'rooms' %}"><i data-lucide="bed-double"></i>Phòng</a>
+      <a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' or request.resolver_match.url_name == 'room-update' %}active{% endif %}" href="{% url 'rooms' %}"><i data-lucide="bed-double"></i>Phòng</a>
       <a class="{% if request.resolver_match.url_name == 'room-map' %}active{% endif %}" href="{% url 'room-map' %}"><i data-lucide="map"></i>Sơ đồ phòng</a>
-      <a class="{% if request.resolver_match.url_name == 'tenants' or request.resolver_match.url_name == 'tenant-create' %}active{% endif %}" href="{% url 'tenants' %}"><i data-lucide="users"></i>Khách thuê</a>
-      <a class="{% if request.resolver_match.url_name == 'contracts' or request.resolver_match.url_name == 'contract-create' %}active{% endif %}" href="{% url 'contracts' %}"><i data-lucide="files"></i>Hợp đồng</a>
-      <a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' %}active{% endif %}" href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a>
-      <a class="{% if request.resolver_match.url_name == 'invoices' %}active{% endif %}" href="{% url 'invoices' %}"><i data-lucide="receipt-text"></i>Hóa đơn</a>
-      <a class="{% if request.resolver_match.url_name == 'payments' %}active{% endif %}" href="{% url 'payments' %}"><i data-lucide="wallet-cards"></i>Thanh toán</a>
-      <a class="{% if request.resolver_match.url_name == 'incidents' %}active{% endif %}" href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a>
+      <a class="{% if request.resolver_match.url_name == 'tenants' or request.resolver_match.url_name == 'tenant-create' or request.resolver_match.url_name == 'tenant-detail' or request.resolver_match.url_name == 'tenant-update' %}active{% endif %}" href="{% url 'tenants' %}"><i data-lucide="users"></i>Khách thuê</a>
+      <a class="{% if request.resolver_match.url_name == 'contracts' or request.resolver_match.url_name == 'contract-create' or request.resolver_match.url_name == 'contract-detail' or request.resolver_match.url_name == 'contract-update' %}active{% endif %}" href="{% url 'contracts' %}"><i data-lucide="files"></i>Hợp đồng</a>
+      <a class="{% if request.resolver_match.url_name == 'services' or request.resolver_match.url_name == 'service-create' or request.resolver_match.url_name == 'service-update' %}active{% endif %}" href="{% url 'services' %}"><i data-lucide="sparkles"></i>Dịch vụ</a>
+      <a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' or request.resolver_match.url_name == 'meter-update' %}active{% endif %}" href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a>
+      <a class="{% if request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice-create' or request.resolver_match.url_name == 'invoice-bulk-create' or request.resolver_match.url_name == 'invoice-detail' or request.resolver_match.url_name == 'invoice-update' %}active{% endif %}" href="{% url 'invoices' %}"><i data-lucide="receipt-text"></i>Hóa đơn</a>
+      <a class="{% if request.resolver_match.url_name == 'payments' or request.resolver_match.url_name == 'payment-create' %}active{% endif %}" href="{% url 'payments' %}"><i data-lucide="wallet-cards"></i>Thanh toán</a>
+      <a class="{% if request.resolver_match.app_name == 'fire_detection' %}active{% endif %}" href="{% url 'fire_detection:monitor' %}"><i data-lucide="flame"></i>Giám sát cháy</a>
+      <a class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident-detail' %}active{% endif %}" href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a>
+      <a class="{% if request.resolver_match.url_name == 'notifications' or request.resolver_match.url_name == 'notification-create' %}active{% endif %}" href="{% url 'notifications' %}"><i data-lucide="bell"></i>Thông báo</a>
+      {% if user|has_perm_code:'accounts.view_user' %}
+      <a class="{% if request.resolver_match.url_name == 'accounts' or request.resolver_match.url_name == 'account-create' or request.resolver_match.url_name == 'account-detail' or request.resolver_match.url_name == 'account-update' or request.resolver_match.url_name == 'account-reset-password' %}active{% endif %}" href="{% url 'accounts' %}"><i data-lucide="user-cog"></i>Quản lý tài khoản</a>
+      {% endif %}
+      {% if user|has_perm_code:'accounts.view_permission_matrix' %}
+      <a class="{% if request.resolver_match.url_name == 'permission-matrix' %}active{% endif %}" href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>
+      {% endif %}
+      {% if user|has_perm_code:'accounts.view_login_history' %}
+      <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
+      {% endif %}
       <a class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}" href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
       <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
       {% if user.is_staff %}<a href="{% url 'admin:index' %}"><i data-lucide="settings"></i>Quản trị</a>{% endif %}
@@ -46,7 +59,18 @@
         <p>{% block page_subtitle %}{% endblock %}</p>
       </div>
       <div class="userbox">
-        <span class="notification-bell"><i data-lucide="bell"></i><b></b></span>
+        <div class="topbar-alerts">
+          {% unread_notifications_count as bell_unread_count %}
+          <a class="notification-bell" href="{% if user.role == 'tenant' %}{% url 'tenant-notifications' %}{% else %}{% url 'notifications' %}{% endif %}" title="Thông báo ({{ bell_unread_count }} chưa đọc)" aria-label="Thông báo, {{ bell_unread_count }} chưa đọc">
+            <i data-lucide="bell"></i>
+            {% if bell_unread_count > 0 %}<b>{{ bell_unread_count }}</b>{% endif %}
+          </a>
+          {% unread_chat_count as chat_unread_count %}
+          <a class="notification-bell {% if request.resolver_match.url_name == 'chat-list' or request.resolver_match.url_name == 'chat-detail' %}active{% endif %}" href="{% url 'chat-list' %}" title="Trò chuyện ({{ chat_unread_count }} chưa đọc)" aria-label="Trò chuyện, {{ chat_unread_count }} tin nhắn chưa đọc">
+            <i data-lucide="messages-square"></i>
+            {% if chat_unread_count > 0 %}<b>{{ chat_unread_count }}</b>{% endif %}
+          </a>
+        </div>
         <a href="{% url 'user-profile' %}" title="Xem hồ sơ cá nhân" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
           <span class="user-avatar">{{ user.username|first|upper }}</span>
           <span class="user-name"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
@@ -57,17 +81,23 @@
     </header>
     {% with route=request.resolver_match.url_name %}{% if route != 'dashboard' and route != 'tenant-portal' %}<nav class="breadcrumbs" aria-label="Điều hướng trang"><a href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}"><i data-lucide="house"></i>Trang chủ</a><i data-lucide="chevron-right"></i>
       {% if route == 'buildings' or route == 'building-create' or route == 'building-update' %}{% if route != 'buildings' %}<a href="{% url 'buildings' %}">Tòa nhà</a><i data-lucide="chevron-right"></i><span>{% if route == 'building-create' %}Thêm tòa nhà{% else %}Chỉnh sửa tòa nhà{% endif %}</span>{% else %}<span>Tòa nhà</span>{% endif %}
-      {% elif route == 'rooms' or route == 'room-create' or route == 'tenant-rooms' %}{% if route == 'room-create' %}<a href="{% url 'rooms' %}">Phòng</a><i data-lucide="chevron-right"></i><span>Thêm phòng</span>{% else %}<span>Phòng</span>{% endif %}
+      {% elif route == 'rooms' or route == 'room-create' or route == 'room-update' or route == 'tenant-rooms' %}{% if route == 'room-create' %}<a href="{% url 'rooms' %}">Phòng</a><i data-lucide="chevron-right"></i><span>Thêm phòng</span>{% elif route == 'room-update' %}<a href="{% url 'rooms' %}">Phòng</a><i data-lucide="chevron-right"></i><span>Chỉnh sửa phòng</span>{% else %}<span>Phòng</span>{% endif %}
       {% elif route == 'room-map' %}<span>Sơ đồ phòng</span>
-      {% elif route == 'tenants' or route == 'tenant-create' %}{% if route == 'tenant-create' %}<a href="{% url 'tenants' %}">Khách thuê</a><i data-lucide="chevron-right"></i><span>Thêm khách thuê</span>{% else %}<span>Khách thuê</span>{% endif %}
-      {% elif route == 'contracts' or route == 'contract-create' or route == 'tenant-contracts' %}{% if route == 'contract-create' %}<a href="{% url 'contracts' %}">Hợp đồng</a><i data-lucide="chevron-right"></i><span>Thêm hợp đồng</span>{% else %}<span>Hợp đồng</span>{% endif %}
-      {% elif route == 'meters' or route == 'meter-create' %}{% if route == 'meter-create' %}<a href="{% url 'meters' %}">Điện nước</a><i data-lucide="chevron-right"></i><span>Thêm chỉ số</span>{% else %}<span>Điện nước</span>{% endif %}
-      {% elif route == 'invoices' or route == 'tenant-invoices' or route == 'tenant-invoice-detail' %}<span>Hóa đơn</span>
-      {% elif route == 'payments' or route == 'tenant-payments' %}<span>Thanh toán</span>
-      {% elif route == 'incidents' or route == 'tenant-incidents' or route == 'tenant-incident-create' %}<span>Sự cố</span>
+      {% elif route == 'tenants' or route == 'tenant-create' or route == 'tenant-detail' or route == 'tenant-update' %}{% if route == 'tenant-create' %}<a href="{% url 'tenants' %}">Khách thuê</a><i data-lucide="chevron-right"></i><span>Thêm khách thuê</span>{% elif route == 'tenant-detail' %}<a href="{% url 'tenants' %}">Khách thuê</a><i data-lucide="chevron-right"></i><span>Chi tiết khách thuê</span>{% elif route == 'tenant-update' %}<a href="{% url 'tenants' %}">Khách thuê</a><i data-lucide="chevron-right"></i><span>Chỉnh sửa khách thuê</span>{% else %}<span>Khách thuê</span>{% endif %}
+      {% elif route == 'contracts' or route == 'contract-create' or route == 'contract-detail' or route == 'contract-update' or route == 'tenant-contracts' %}{% if route == 'contract-create' %}<a href="{% url 'contracts' %}">Hợp đồng</a><i data-lucide="chevron-right"></i><span>Thêm hợp đồng</span>{% elif route == 'contract-detail' %}<a href="{% url 'contracts' %}">Hợp đồng</a><i data-lucide="chevron-right"></i><span>Chi tiết hợp đồng</span>{% elif route == 'contract-update' %}<a href="{% url 'contracts' %}">Hợp đồng</a><i data-lucide="chevron-right"></i><span>Chỉnh sửa hợp đồng</span>{% else %}<span>Hợp đồng</span>{% endif %}
+      {% elif route == 'services' or route == 'service-create' or route == 'service-update' %}{% if route != 'services' %}<a href="{% url 'services' %}">Dịch vụ</a><i data-lucide="chevron-right"></i><span>{% if route == 'service-create' %}Thêm dịch vụ{% else %}Chỉnh sửa dịch vụ{% endif %}</span>{% else %}<span>Dịch vụ</span>{% endif %}
+      {% elif route == 'meters' or route == 'meter-create' or route == 'meter-update' %}{% if route != 'meters' %}<a href="{% url 'meters' %}">Điện nước</a><i data-lucide="chevron-right"></i><span>{% if route == 'meter-create' %}Thêm chỉ số{% else %}Cập nhật chỉ số{% endif %}</span>{% else %}<span>Điện nước</span>{% endif %}
+      {% elif route == 'invoices' or route == 'invoice-create' or route == 'invoice-bulk-create' or route == 'invoice-detail' or route == 'invoice-update' or route == 'tenant-invoices' or route == 'tenant-invoice-detail' %}{% if route == 'invoice-create' or route == 'invoice-bulk-create' or route == 'invoice-detail' or route == 'invoice-update' %}<a href="{% url 'invoices' %}">Hóa đơn</a><i data-lucide="chevron-right"></i><span>{% if route == 'invoice-detail' %}Chi tiết hóa đơn{% elif route == 'invoice-update' %}Chỉnh sửa hóa đơn{% else %}Tạo hóa đơn{% endif %}</span>{% else %}<span>Hóa đơn</span>{% endif %}
+      {% elif route == 'payments' or route == 'payment-create' or route == 'tenant-payments' %}{% if route == 'payment-create' %}<a href="{% url 'payments' %}">Thanh toán</a><i data-lucide="chevron-right"></i><span>Ghi nhận thanh toán</span>{% else %}<span>Thanh toán</span>{% endif %}
+      {% elif request.resolver_match.app_name == 'fire_detection' %}<span>Giám sát cháy AI</span>
+      {% elif route == 'incidents' or route == 'incident-detail' or route == 'tenant-incidents' or route == 'tenant-incident-create' %}{% if route == 'incident-detail' %}<a href="{% url 'incidents' %}">Sự cố</a><i data-lucide="chevron-right"></i><span>Chi tiết sự cố</span>{% else %}<span>Sự cố</span>{% endif %}
+      {% elif route == 'notifications' or route == 'notification-create' or route == 'tenant-notifications' %}{% if route == 'notification-create' %}<a href="{% url 'notifications' %}">Thông báo</a><i data-lucide="chevron-right"></i><span>Gửi thông báo</span>{% else %}<span>Thông báo</span>{% endif %}
+      {% elif route == 'accounts' or route == 'account-create' or route == 'account-detail' or route == 'account-update' or route == 'account-reset-password' %}{% if route == 'accounts' %}<span>Quản lý tài khoản</span>{% else %}<a href="{% url 'accounts' %}">Quản lý tài khoản</a><i data-lucide="chevron-right"></i><span>{% if route == 'account-create' %}Thêm tài khoản{% elif route == 'account-detail' %}Chi tiết tài khoản{% elif route == 'account-update' %}Chỉnh sửa tài khoản{% elif route == 'account-reset-password' %}Đặt lại mật khẩu{% endif %}</span>{% endif %}
+      {% elif route == 'login-history' %}<span>Lịch sử đăng nhập</span>
+      {% elif route == 'permission-matrix' %}<span>Ma trận quyền</span>
+      {% elif route == 'chat-list' or route == 'chat-detail' %}<span>Trò chuyện</span>
       {% elif route == 'user-profile' %}<span>Hồ sơ cá nhân</span>
-      {% elif route == 'password-change' %}<span>Đổi mật khẩu</span>
-      {% elif route == 'tenant-notifications' %}<span>Thông báo</span>{% endif %}
+      {% elif route == 'password-change' %}<span>Đổi mật khẩu</span>{% endif %}
     </nav>{% endif %}{% endwith %}
     {% if messages %}<div class="toast-stack" aria-live="polite">{% for message in messages %}<div class="toast {{ message.tags }}"><i data-lucide="circle-check"></i><span>{{ message }}</span><button type="button" aria-label="Đóng"><i data-lucide="x"></i></button></div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}
   </main>

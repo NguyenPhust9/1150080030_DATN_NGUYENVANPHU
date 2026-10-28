@@ -1,1 +1,62 @@
-{% extends "base.html" %}{% block page_title %}Chỉ số điện nước{% endblock %}{% block content %}{% with create_url='meter-create' %}{% include 'rentals/_list_header.html' %}{% endwith %}<section class="panel"><div class="list-summary"><span>Danh sách chỉ số điện nước</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Phòng</th><th>Loại</th><th>Kỳ</th><th>Chỉ số đầu</th><th>Chỉ số cuối</th><th>Tiêu thụ</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.room }}</td><td>{{ x.get_meter_type_display }}</td><td>{{ x.period|date:"m/Y" }}</td><td>{{ x.previous_value }}</td><td>{{ x.current_value }}</td><td>{{ x.consumption }}</td></tr>{% empty %}<tr><td colspan="7">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Chỉ số điện nước{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm phòng hoặc tòa nhà...">
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select>
+    <select name="meter_type">
+      <option value="">Tất cả đồng hồ</option>
+      {% for code, label in meter_type_choices %}<option value="{{ code }}" {% if meter_type == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or selected_building or meter_type %}<a class="btn" href="{% url 'meters' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <a class="btn primary" href="{% url 'meter-create' %}">Ghi chỉ số mới</a>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách chỉ số điện nước</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Phòng</th>
+          <th>Loại đồng hồ</th>
+          <th>Kỳ</th>
+          <th>Chỉ số đầu</th>
+          <th>Chỉ số cuối</th>
+          <th>Tiêu thụ</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td>{{ x.room }}</td>
+          <td><span class="badge">{{ x.get_meter_type_display }}</span></td>
+          <td>{{ x.period|date:"m/Y" }}</td>
+          <td>{{ x.previous_value }}</td>
+          <td>{{ x.current_value }}</td>
+          <td><strong>{{ x.consumption }}</strong></td>
+          <td><a class="btn compact" href="{% url 'meter-update' x.id %}">Sửa</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Chưa có dữ liệu chỉ số điện nước.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang chỉ số">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&meter_type={{ meter_type }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&meter_type={{ meter_type }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&meter_type={{ meter_type }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

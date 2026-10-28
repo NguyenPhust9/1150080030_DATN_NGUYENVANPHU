@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Ma trận phân quyền — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Ma trận quyền truy cập{% endblock %}
+{% block page_subtitle %}Bảng đối chiếu quyền hạn và phạm vi dữ liệu giữa các vai trò trong hệ thống (đồng bộ trực tiếp từ cấu hình phân quyền backend){% endblock %}
+
+{% block content %}
+<div class="page-actions" style="justify-content:space-between;flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:8px;align-items:center;">
+    {% if user|has_perm_code:'accounts.view_user' %}
+    <a class="btn" href="{% url 'accounts' %}">← Quản lý tài khoản</a>
+    {% endif %}
+    <a class="btn" href="{% url 'login-history' %}">Lịch sử đăng nhập</a>
+  </div>
+  <span class="badge" style="background:#e0f2fe;color:#0369a1;">Chế độ chỉ đọc (Read-only) · Vai trò hiện tại của bạn: {{ user.get_role_display }}</span>
+</div>
+
+{% for row in matrix_rows %}
+<section class="panel" style="margin-bottom:18px;">
+  <div class="panel-heading" style="flex-wrap:wrap;gap:8px;">
+    <div>
+      <h2 style="margin:0;">{{ forloop.counter }}. {{ row.name }}</h2>
+      <small class="muted">{{ row.description }}</small>
+    </div>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:200px;">Vai trò</th>
+          <th style="width:90px;text-align:center;">Xem</th>
+          <th style="width:90px;text-align:center;">Tạo</th>
+          <th style="width:90px;text-align:center;">Sửa</th>
+          <th style="width:110px;text-align:center;">Khóa / Hủy</th>
+          <th>Phạm vi dữ liệu áp dụng</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cell in row.role_cells %}
+        <tr>
+          <td><strong>{{ cell.role_label }}</strong></td>
+          <td style="text-align:center;">
+            {% if cell.view %}<span class="badge" style="background:#e5f7f0;color:#087b59;">Có</span>{% else %}<span class="muted">Không</span>{% endif %}
+          </td>
+          <td style="text-align:center;">
+            {% if cell.create %}<span class="badge" style="background:#e5f7f0;color:#087b59;">Có</span>{% else %}<span class="muted">Không</span>{% endif %}
+          </td>
+          <td style="text-align:center;">
+            {% if cell.change %}<span class="badge" style="background:#e5f7f0;color:#087b59;">Có</span>{% else %}<span class="muted">Không</span>{% endif %}
+          </td>
+          <td style="text-align:center;">
+            {% if cell.lock_or_cancel %}<span class="badge" style="background:#e5f7f0;color:#087b59;">Có</span>{% else %}<span class="muted">Không</span>{% endif %}
+          </td>
+          <td>{{ cell.scope }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+{% endblock %}
+

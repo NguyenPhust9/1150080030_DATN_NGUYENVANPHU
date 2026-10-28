@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Quản lý tài khoản — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Quản lý tài khoản{% endblock %}
+{% block page_subtitle %}Quản lý tài khoản người dùng, phân công phạm vi, trạng thái hoạt động và bảo mật{% endblock %}
+
+{% block content %}
+<div class="page-actions room-toolbar" style="flex-wrap:wrap;gap:12px;">
+  <form method="get" class="room-filters" style="flex-wrap:wrap;">
+    <input name="q" value="{{ q }}" placeholder="Tìm username, họ tên, email, SĐT...">
+    <select name="role">
+      <option value="">Tất cả vai trò</option>
+      {% for val, label in role_choices %}
+      <option value="{{ val }}" {% if role == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Tất cả trạng thái</option>
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Đang hoạt động</option>
+      <option value="locked" {% if status == 'locked' %}selected{% endif %}>Đã khóa</option>
+    </select>
+    {% if owners %}
+    <select name="owner">
+      <option value="">Tất cả chủ nhà</option>
+      {% for o in owners %}
+      <option value="{{ o.id }}" {% if selected_owner == o.id|stringformat:"s" %}selected{% endif %}>{{ o.get_full_name|default:o.username }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    {% if buildings %}
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for b in buildings %}
+      <option value="{{ b.id }}" {% if selected_building == b.id|stringformat:"s" %}selected{% endif %}>{{ b.name }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select name="sort">
+      <option value="newest" {% if sort == 'newest' %}selected{% endif %}>Mới tạo nhất</option>
+      <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Cũ nhất</option>
+      <option value="name" {% if sort == 'name' %}selected{% endif %}>Theo tên (A-Z)</option>
+      <option value="last_login" {% if sort == 'last_login' %}selected{% endif %}>Đăng nhập gần nhất</option>
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or role or status or selected_owner or selected_building or sort != 'newest' %}
+    <a class="btn" href="{% url 'accounts' %}">Xóa lọc</a>
+    {% endif %}
+  </form>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <a class="btn" href="{% url 'login-history' %}">Lịch sử đăng nhập</a>
+    <a class="btn" href="{% url 'permission-matrix' %}">Ma trận quyền</a>
+    {% if can_create_account %}
+    <a class="btn primary" href="{% url 'account-create' %}">+ Thêm tài khoản</a>
+    {% endif %}
+  </div>
+</div>
+
+<section class="panel">
+  <div class="list-summary" style="flex-wrap:wrap;gap:12px;">
+    <span>Danh sách tài khoản (Kết quả lọc: <strong>{{ paginator.count }}</strong>)</span>
+    <span style="display:flex;gap:14px;">
+      <span>Tổng phạm vi: <strong>{{ total_accounts }}</strong></span>
+      <span>Hoạt động: <strong style="color:#087b59;">{{ active_accounts }}</strong></span>
+      <span>Đã khóa: <strong style="color:#ca3944;">{{ locked_accounts }}</strong></span>
+    </span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Username</th>
+          <th>Họ và tên</th>
+          <th>Email</th>
+          <th>Số điện thoại</th>
+          <th>Vai trò</th>
+          <th>Chủ nhà quản lý</th>
+          <th>Tòa nhà phân công / sở hữu</th>
+          <th>Hồ sơ khách thuê</th>
+          <th>Trạng thái</th>
+          <th>Đăng nhập gần nhất</th>
+          <th>Ngày tạo</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td>
+            <a href="{% url 'account-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.username }}</a>
+            {% if x.is_superuser %}<small class="badge" style="margin-left:4px;background:#fef3c7;color:#92400e;">Superuser</small>{% endif %}
+            {% if x.must_change_password %}<small class="badge" style="margin-left:4px;background:#fff7ed;color:#c2410c;">Chờ đổi MK</small>{% endif %}
+          </td>
+          <td>{{ x.get_full_name|default:"—" }}</td>
+          <td>{{ x.email|default:"—" }}</td>
+          <td>{{ x.phone|default:"—" }}</td>
+          <td>
+            {% if x.role == 'admin' %}
+              <span class="badge" style="background:#ede9fe;color:#5b21b6;">{{ x.get_role_display }}</span>
+            {% elif x.role == 'owner' %}
+              <span class="badge" style="background:#e0f2fe;color:#0369a1;">{{ x.get_role_display }}</span>
+            {% elif x.role == 'staff' %}
+              <span class="badge" style="background:#fef9c3;color:#854d0e;">{{ x.get_role_display }}</span>
+            {% else %}
+              <span class="badge" style="background:#f1f5f9;color:#334155;">{{ x.get_role_display }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if x.managed_owner %}
+              {{ x.managed_owner.get_full_name|default:x.managed_owner.username }}
+            {% elif x.role == 'owner' %}
+              <span class="muted">Chính chủ</span>
+            {% elif x.tenant_profile and x.tenant_profile.owner %}
+              {{ x.tenant_profile.owner.get_full_name|default:x.tenant_profile.owner.username }}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if x.role == 'staff' %}
+              {% with b_list=x.assigned_buildings.all %}
+                {% if b_list %}
+                  {% for b in b_list %}<span class="badge" style="margin:1px;">{{ b.name }}</span>{% endfor %}
+                {% else %}
+                  <span class="muted">Theo chủ nhà</span>
+                {% endif %}
+              {% endwith %}
+            {% elif x.role == 'owner' %}
+              {% with b_list=x.buildings.all %}
+                {% if b_list %}
+                  {% for b in b_list %}<span class="badge" style="margin:1px;">{{ b.name }}</span>{% endfor %}
+                {% else %}
+                  <span class="muted">Chưa có tòa nhà</span>
+                {% endif %}
+              {% endwith %}
+            {% else %}
+              —
+            {% endif %}
+          </td>
+          <td>
+            {% if x.tenant_profile %}
+              <a href="{% url 'tenant-detail' x.tenant_profile.id %}" style="color:var(--primary);text-decoration:none;font-weight:500;">{{ x.tenant_profile.full_name }}</a>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="status-pill {% if x.is_active %}active{% else %}inactive{% endif %}">
+              <b></b>{{ x.is_active|yesno:"Đang hoạt động,Đã khóa" }}
+            </span>
+          </td>
+          <td>{% if x.last_login %}{{ x.last_login|date:"d/m/Y H:i" }}{% else %}<span class="muted">Chưa đăng nhập</span>{% endif %}</td>
+          <td>{{ x.date_joined|date:"d/m/Y" }}</td>
+          <td>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">
+              <a class="btn compact" href="{% url 'account-detail' x.id %}">Xem</a>
+              {% if x.can_edit %}
+              <a class="btn compact" href="{% url 'account-update' x.id %}">Sửa</a>
+              {% endif %}
+              {% if x.can_reset_pw %}
+              <a class="btn compact" href="{% url 'account-reset-password' x.id %}">Đặt lại MK</a>
+              {% endif %}
+              {% if x.can_lock %}
+              <form method="post" action="{% url 'account-toggle-lock' x.id %}" style="display:inline;" onsubmit="return confirm('Bạn có chắc chắn muốn {% if x.is_active %}KHÓA{% else %}MỞ KHÓA{% endif %} tài khoản {{ x.username }}?');">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <input type="hidden" name="reason" value="{% if x.is_active %}Khóa từ danh sách tài khoản{% else %}Mở khóa từ danh sách tài khoản{% endif %}">
+                <button class="btn compact" type="submit" style="{% if x.is_active %}color:var(--red);border-color:var(--red);{% else %}color:var(--green);border-color:var(--green);{% endif %}">
+                  {% if x.is_active %}Khóa{% else %}Mở{% endif %}
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="13" style="text-align:center;padding:28px;">Không tìm thấy tài khoản nào phù hợp với bộ lọc hiện tại.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang tài khoản">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">← Trước</a>
+  {% else %}
+    <span class="disabled">← Trước</span>
+  {% endif %}
+  {% for page_number in paginator.page_range %}
+    {% if page_number == page_obj.number %}
+      <span class="current">{{ page_number }}</span>
+    {% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}
+      <a href="?page={{ page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">{{ page_number }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">Sau →</a>
+  {% else %}
+    <span class="disabled">Sau →</span>
+  {% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+

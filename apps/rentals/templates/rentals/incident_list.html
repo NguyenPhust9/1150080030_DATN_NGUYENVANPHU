@@ -1,1 +1,67 @@
-{% extends "base.html" %}{% block page_title %}Sự cố{% endblock %}{% block content %}{% include 'rentals/_list_header.html' %}<section class="panel"><div class="list-summary"><span>Danh sách sự cố</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Tiêu đề</th><th>Phòng</th><th>Người báo</th><th>Ưu tiên</th><th>Trạng thái</th><th>Ngày báo</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.title }}</td><td>{{ x.room }}</td><td>{{ x.reported_by }}</td><td>{{ x.get_priority_display }}</td><td><span class="badge">{{ x.get_status_display }}</span></td><td>{{ x.created_at|date:"d/m/Y H:i" }}</td></tr>{% empty %}<tr><td colspan="7">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Sự cố{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm tiêu đề, phòng, người báo...">
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select>
+    <select name="priority">
+      <option value="">Mọi mức ưu tiên</option>
+      {% for code, label in priority_choices %}<option value="{{ code }}" {% if priority == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Tất cả trạng thái</option>
+      {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or selected_building or priority or status %}<a class="btn" href="{% url 'incidents' %}">Xóa lọc</a>{% endif %}
+  </form>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách sự cố</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Tiêu đề</th>
+          <th>Phòng</th>
+          <th>Người báo</th>
+          <th>Ưu tiên</th>
+          <th>Người xử lý</th>
+          <th>Trạng thái</th>
+          <th>Ngày báo</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td><a href="{% url 'incident-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.title }}</a></td>
+          <td>{{ x.room }}</td>
+          <td><a href="{% url 'tenant-detail' x.reported_by.id %}" style="color:inherit;text-decoration:none;">{{ x.reported_by }}</a></td>
+          <td><span class="badge">{{ x.get_priority_display }}</span></td>
+          <td>{% if x.assigned_to %}{{ x.assigned_to.get_full_name|default:x.assigned_to.username }}{% else %}<span class="muted">Chưa phân công</span>{% endif %}</td>
+          <td><span class="badge">{{ x.get_status_display }}</span></td>
+          <td>{{ x.created_at|date:"d/m/Y H:i" }}</td>
+          <td><a class="btn compact" href="{% url 'incident-detail' x.id %}">Xử lý / Chi tiết</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">Chưa có sự cố nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang sự cố">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&priority={{ priority }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&priority={{ priority }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&priority={{ priority }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

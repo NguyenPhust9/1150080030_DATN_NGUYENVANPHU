@@ -1,1 +1,42 @@
-{% extends "base.html" %}{% block page_title %}Thông báo{% endblock %}{% block content %}<section class="notification-list">{% for x in objects %}<article class="panel notification"><div><h2>{{ x.title }}</h2><p>{{ x.content }}</p></div><time>{{ x.created_at|date:"d/m/Y H:i" }}</time></article>{% empty %}<article class="panel">Bạn chưa có thông báo.</article>{% endfor %}</section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Thông báo{% endblock %}
+{% block content %}
+<div class="page-actions" style="align-items:center;">
+  <div>Bạn có <strong>{{ unread_count|default:0 }}</strong> thông báo chưa đọc.</div>
+  {% if unread_count %}
+  <form method="post" action="{% url 'tenant-notifications' %}">
+    {% csrf_token %}
+    <input type="hidden" name="mark_all" value="1">
+    <button class="btn" type="submit">Đánh dấu tất cả đã đọc</button>
+  </form>
+  {% endif %}
+</div>
+<section class="notification-list">
+  {% for x in objects %}
+  <article class="panel notification" style="{% if not x.is_read %}border-left:4px solid var(--primary);{% endif %}">
+    <div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px;">
+        <h2 style="margin:0;">{{ x.title }}</h2>
+        {% if x.is_read %}
+        <span class="badge">Đã đọc</span>
+        {% else %}
+        <span class="badge" style="background:#fff2d8;color:#b27400;">Mới</span>
+        {% endif %}
+      </div>
+      <p>{{ x.content }}</p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <time>{{ x.created_at|date:"d/m/Y H:i" }}</time>
+      {% if not x.is_read %}
+      <form method="post" action="{% url 'tenant-notification-mark-read' x.id %}">
+        {% csrf_token %}
+        <button class="btn compact primary" type="submit">Đánh dấu đã đọc</button>
+      </form>
+      {% endif %}
+    </div>
+  </article>
+  {% empty %}
+  <article class="panel">Bạn chưa có thông báo.</article>
+  {% endfor %}
+</section>
+{% endblock %}

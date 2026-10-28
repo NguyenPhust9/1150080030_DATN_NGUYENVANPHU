@@ -20,6 +20,12 @@ class Building(UUIDTimeStampedModel):
     name = models.CharField("tên tòa nhà", max_length=150)
     address = models.TextField("địa chỉ")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="buildings", verbose_name="chủ sở hữu")
+    staff = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="assigned_buildings",
+        verbose_name="nhân viên phụ trách",
+    )
     description = models.TextField("mô tả", blank=True)
     is_active = models.BooleanField("đang hoạt động", default=True)
 
@@ -105,7 +111,15 @@ class Service(UUIDTimeStampedModel):
         ROOM = "room", "Phòng"
         FIXED = "fixed", "Cố định"
 
-    name = models.CharField("tên dịch vụ", max_length=100, unique=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="services",
+        verbose_name="chủ nhà quản lý",
+    )
+    name = models.CharField("tên dịch vụ", max_length=100)
     unit = models.CharField("đơn vị", max_length=20, choices=Unit.choices)
     unit_price = models.DecimalField("đơn giá", max_digits=14, decimal_places=2)
     is_metered = models.BooleanField("tính theo chỉ số", default=False)
@@ -118,7 +132,7 @@ class Service(UUIDTimeStampedModel):
         verbose_name_plural = "dịch vụ"
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.get_unit_display()})"
 
 
 class Tenant(UUIDTimeStampedModel):
@@ -128,6 +142,14 @@ class Tenant(UUIDTimeStampedModel):
         OTHER = "other", "Khác"
 
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, related_name="tenant_profile", null=True, blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="managed_tenants",
+        verbose_name="chủ nhà quản lý",
+    )
     full_name = models.CharField("họ và tên", max_length=150)
     phone = models.CharField("số điện thoại", max_length=20, db_index=True)
     email = models.EmailField("email", blank=True)
@@ -211,6 +233,37 @@ class ContractMember(UUIDTimeStampedModel):
 
     def __str__(self):
         return f"{self.tenant} - {self.contract}"
+
+
+class ContractService(UUIDTimeStampedModel):
+    contract = models.ForeignKey(
+        Contract,
+        on_delete=models.CASCADE,
+        related_name="contract_services",
+        verbose_name="hợp đồng",
+    )
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.PROTECT,
+        related_name="contract_services",
+        verbose_name="dịch vụ",
+    )
+    unit_price = models.DecimalField("đơn giá áp dụng", max_digits=14, decimal_places=2)
+    quantity = models.DecimalField("số lượng mặc định", max_digits=14, decimal_places=2, default=1)
+    is_active = models.BooleanField("đang áp dụng", default=True)
+
+    class Meta:
+        ordering = ("service__name",)
+        constraints = [
+            models.UniqueConstraint(fields=("contract", "service"), name="unique_service_per_contract"),
+            models.CheckConstraint(condition=Q(unit_price__gte=0), name="contract_service_price_non_negative"),
+            models.CheckConstraint(condition=Q(quantity__gt=0), name="contract_service_quantity_positive"),
+        ]
+        verbose_name = "dịch vụ hợp đồng"
+        verbose_name_plural = "dịch vụ hợp đồng"
+
+    def __str__(self):
+        return f"{self.contract.code} - {self.service.name}"
 
 
 class MeterReading(UUIDTimeStampedModel):
@@ -355,6 +408,7 @@ class Incident(UUIDTimeStampedModel):
     priority = models.CharField("mức ưu tiên", max_length=20, choices=Priority.choices, default=Priority.MEDIUM)
     status = models.CharField("trạng thái", max_length=20, choices=Status.choices, default=Status.OPEN, db_index=True)
     assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="assigned_incidents")
+    resolution_notes = models.TextField("ghi chú xử lý", blank=True)
     resolved_at = models.DateTimeField("thời gian xử lý xong", null=True, blank=True)
 
     class Meta:
@@ -370,6 +424,22 @@ class Notification(UUIDTimeStampedModel):
     title = models.CharField("tiêu đề", max_length=200)
     content = models.TextField("nội dung")
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notifications", verbose_name="người nhận")
+    building = models.ForeignKey(
+        Building,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+        verbose_name="tòa nhà",
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sent_notifications",
+        verbose_name="người gửi",
+    )
     is_read = models.BooleanField("đã đọc", default=False, db_index=True)
     read_at = models.DateTimeField("thời gian đọc", null=True, blank=True)
 
@@ -380,3 +450,59 @@ class Notification(UUIDTimeStampedModel):
 
     def __str__(self):
         return self.title
+
+
+class Conversation(UUIDTimeStampedModel):
+    tenant = models.ForeignKey(
+        Tenant,
+        on_delete=models.PROTECT,
+        related_name="conversations",
+        verbose_name="khách thuê",
+    )
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        related_name="rental_conversations",
+        verbose_name="người tham gia",
+    )
+    subject = models.CharField("chủ đề", max_length=200, default="Trao đổi với ban quản lý")
+    last_message_at = models.DateTimeField("tin nhắn gần nhất", null=True, blank=True, db_index=True)
+    is_closed = models.BooleanField("đã đóng", default=False)
+
+    class Meta:
+        ordering = ("-last_message_at", "-created_at")
+        verbose_name = "cuộc trò chuyện"
+        verbose_name_plural = "cuộc trò chuyện"
+
+    def __str__(self):
+        return f"{self.tenant.full_name} - {self.subject}"
+
+
+class ChatMessage(UUIDTimeStampedModel):
+    conversation = models.ForeignKey(
+        Conversation,
+        on_delete=models.CASCADE,
+        related_name="chat_messages",
+        verbose_name="cuộc trò chuyện",
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="sent_chat_messages",
+        verbose_name="người gửi",
+    )
+    content = models.TextField("nội dung", max_length=4000)
+    read_by = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
+        blank=True,
+        related_name="read_chat_messages",
+        verbose_name="đã đọc bởi",
+    )
+
+    class Meta:
+        ordering = ("created_at",)
+        indexes = [models.Index(fields=("conversation", "created_at"), name="chat_conv_created_idx")]
+        verbose_name = "tin nhắn"
+        verbose_name_plural = "tin nhắn"
+
+    def __str__(self):
+        return f"{self.sender} - {self.created_at:%d/%m/%Y %H:%M}"

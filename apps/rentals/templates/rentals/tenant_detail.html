@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block page_title %}Chi tiết khách thuê: {{ tenant.full_name }}{% endblock %}
+{% block content %}
+<div class="page-actions" style="flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a class="btn" href="{% url 'tenants' %}">← Danh sách khách thuê</a>
+    <a class="btn primary" href="{% url 'tenant-update' tenant.id %}">Chỉnh sửa thông tin</a>
+  </div>
+  <form method="post" action="{% url 'tenant-toggle-active' tenant.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn {% if tenant.is_active %}ngừng kích hoạt{% else %}kích hoạt lại{% endif %} khách thuê này?');">
+    {% csrf_token %}
+    <button class="btn" type="submit" style="{% if tenant.is_active %}color:var(--red);border-color:var(--red);{% else %}color:var(--green);border-color:var(--green);{% endif %}">
+      {% if tenant.is_active %}Ngừng kích hoạt{% else %}Kích hoạt lại{% endif %}
+    </button>
+  </form>
+</div>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Thông tin cá nhân</h2>
+      <span class="status-pill {% if tenant.is_active %}active{% else %}inactive{% endif %}">
+        <b></b>{{ tenant.is_active|yesno:"Đang hoạt động,Ngừng kích hoạt" }}
+      </span>
+    </div>
+    <div class="detail-grid">
+      <div><span>Họ và tên</span><strong>{{ tenant.full_name }}</strong></div>
+      <div><span>Số điện thoại</span><strong>{{ tenant.phone }}</strong></div>
+      <div><span>Email</span><strong>{{ tenant.email|default:"—" }}</strong></div>
+      <div><span>Ngày sinh</span><strong>{% if tenant.date_of_birth %}{{ tenant.date_of_birth|date:"d/m/Y" }}{% else %}—{% endif %}</strong></div>
+      <div><span>Giới tính</span><strong>{{ tenant.get_gender_display|default:"—" }}</strong></div>
+      <div><span>CCCD/Hộ chiếu</span><strong>{{ tenant.identity_number }}</strong></div>
+      <div><span>Ngày cấp</span><strong>{% if tenant.identity_issued_date %}{{ tenant.identity_issued_date|date:"d/m/Y" }}{% else %}—{% endif %}</strong></div>
+      <div><span>Liên hệ khẩn cấp</span><strong>{{ tenant.emergency_contact|default:"—" }}</strong></div>
+      <div><span>Địa chỉ thường trú</span><strong>{{ tenant.permanent_address|default:"—" }}</strong></div>
+      <div><span>Phòng hiện tại</span><strong>{% if current_rooms %}{% for r in current_rooms %}{{ r }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}Chưa có phòng đang thuê{% endif %}</strong></div>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Liên kết tài khoản khách thuê</h2>
+      {% if tenant.user %}<span class="badge">{{ tenant.user.username }}</span>{% else %}<span class="muted">Chưa liên kết</span>{% endif %}
+    </div>
+    <p class="muted" style="margin-top:0;">Liên kết hồ sơ khách thuê với tài khoản đăng nhập cổng người thuê (vai trò Khách thuê).</p>
+    <form method="post" action="{% url 'tenant-link-user' tenant.id %}">
+      {% csrf_token %}
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div style="flex:1;min-width:220px;">{{ link_form.user }}</div>
+        <button class="btn primary" type="submit">Lưu liên kết</button>
+      </div>
+    </form>
+    {% if current_rooms %}
+    <hr style="border:0;border-top:1px solid var(--line);margin:18px 0;">
+    <h2>Phòng đang ở hiện tại</h2>
+    <table>
+      <thead><tr><th>Phòng</th><th>Tòa nhà</th><th>Tầng</th><th>Giá thuê</th></tr></thead>
+      <tbody>
+        {% for room in current_rooms %}
+        <tr>
+          <td><strong>{{ room.number }}</strong></td>
+          <td>{{ room.building.name }}</td>
+          <td>{{ room.floor }}</td>
+          <td>{{ room.monthly_rent|vnd }} đ</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </article>
+</section>
+
+<section class="panel" style="margin-bottom:20px;">
+  <div class="panel-heading">
+    <h2>Hợp đồng hiện tại và lịch sử hợp đồng ({{ contracts|length }})</h2>
+    <a class="btn primary compact" href="{% url 'contract-create' %}">+ Tạo hợp đồng</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã HĐ</th>
+          <th>Phòng</th>
+          <th>Vai trò</th>
+          <th>Thời hạn</th>
+          <th>Giá thuê</th>
+          <th>Tiền cọc</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in contracts %}
+        <tr>
+          <td><a href="{% url 'contract-detail' c.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ c.code }}</a></td>
+          <td>{{ c.room }}</td>
+          <td>{% if c.representative_id == tenant.id %}Đại diện{% else %}Người ở cùng{% endif %}</td>
+          <td>{{ c.start_date|date:"d/m/Y" }} – {{ c.end_date|date:"d/m/Y" }}</td>
+          <td>{{ c.monthly_rent|vnd }} đ</td>
+          <td>{{ c.deposit_amount|vnd }} đ</td>
+          <td><span class="badge">{{ c.get_status_display }}</span></td>
+          <td><a class="btn compact" href="{% url 'contract-detail' c.id %}">Chi tiết</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Chưa có hợp đồng nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="two-columns">
+  <article class="panel">
+    <div class="panel-heading"><h2>Hóa đơn ({{ invoices|length }})</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Mã HĐơn</th><th>Kỳ</th><th>Tổng cộng</th><th>Đã trả</th><th>Còn nợ</th><th>Trạng thái</th></tr>
+        </thead>
+        <tbody>
+          {% for inv in invoices %}
+          <tr>
+            <td>{{ inv.code }}</td>
+            <td>{{ inv.period|date:"m/Y" }}</td>
+            <td>{{ inv.total_amount|vnd }} đ</td>
+            <td>{{ inv.paid_amount|vnd }} đ</td>
+            <td>{{ inv.balance|vnd }} đ</td>
+            <td><span class="badge">{{ inv.get_status_display }}</span></td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">Chưa có hóa đơn nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading"><h2>Lịch sử thanh toán ({{ payments|length }})</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Thời gian</th><th>Hóa đơn</th><th>Số tiền</th><th>Phương thức</th><th>Trạng thái</th></tr>
+        </thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td>{{ p.paid_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ p.invoice.code }}</td>
+            <td>{{ p.amount|vnd }} đ</td>
+            <td>{{ p.get_method_display }}</td>
+            <td>{% if p.is_void %}<span class="badge" style="background:#ffebed;color:#ca3944;">Đã hủy</span>{% else %}<span class="badge">Hợp lệ</span>{% endif %}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5">Chưa có giao dịch thanh toán.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}

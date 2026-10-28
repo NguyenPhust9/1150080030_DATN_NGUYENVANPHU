@@ -74,5 +74,47 @@
     </form>
   </section>
 </div>
+
+<section class="panel" style="margin-top: 24px;">
+  <div class="panel-heading">
+    <h2>Lịch sử đăng nhập gần đây của bạn</h2>
+    <a class="btn compact" href="{% url 'login-history' %}">Xem toàn bộ lịch sử</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Thời điểm</th>
+          <th>Sự kiện</th>
+          <th>Địa chỉ IP</th>
+          <th>Thiết bị / Trình duyệt</th>
+          <th>Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in recent_login_history %}
+        <tr>
+          <td>{{ h.occurred_at|date:"d/m/Y H:i:s" }}</td>
+          <td>
+            {% if h.event_type == 'login_success' %}
+              <span class="badge" style="background:#e5f7f0;color:#087b59;">{{ h.get_event_type_display }}</span>
+            {% elif h.event_type == 'login_failed' %}
+              <span class="badge" style="background:#ffebed;color:#ca3944;">{{ h.get_event_type_display }}</span>
+            {% else %}
+              <span class="badge">{{ h.get_event_type_display }}</span>
+            {% endif %}
+          </td>
+          <td>{{ h.ip_address|default:"—" }}</td>
+          <td style="max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ h.user_agent }}">{{ h.user_agent|default:"—" }}</td>
+          <td>{{ h.failure_reason|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">Chưa có lịch sử đăng nhập nào được ghi nhận.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
 {% endblock %}
+
 

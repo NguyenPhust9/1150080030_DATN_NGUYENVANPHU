@@ -1,1 +1,68 @@
-{% extends "base.html" %}{% block page_title %}Khách thuê{% endblock %}{% block content %}{% with create_url='tenant-create' %}{% include 'rentals/_list_header.html' %}{% endwith %}<section class="panel"><div class="list-summary"><span>Danh sách khách thuê</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Họ tên</th><th>Điện thoại</th><th>Email</th><th>CCCD/Hộ chiếu</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.full_name }}</td><td>{{ x.phone }}</td><td>{{ x.email|default:"—" }}</td><td>{{ x.identity_number }}</td><td>{{ x.is_active|yesno:"Hoạt động,Ngừng" }}</td></tr>{% empty %}<tr><td colspan="6">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Khách thuê{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm họ tên, điện thoại, CCCD...">
+    <select name="status">
+      <option value="">Tất cả trạng thái</option>
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Đang hoạt động</option>
+      <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Ngừng kích hoạt</option>
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or status %}<a class="btn" href="{% url 'tenants' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <a class="btn primary" href="{% url 'tenant-create' %}">Thêm khách thuê</a>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách khách thuê</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Họ tên</th>
+          <th>Điện thoại</th>
+          <th>Email</th>
+          <th>CCCD/Hộ chiếu</th>
+          <th>Tài khoản</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td><a href="{% url 'tenant-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.full_name }}</a></td>
+          <td>{{ x.phone }}</td>
+          <td>{{ x.email|default:"—" }}</td>
+          <td>{{ x.identity_number }}</td>
+          <td>{% if x.user %}<span class="badge">{{ x.user.username }}</span>{% else %}<span class="muted">Chưa liên kết</span>{% endif %}</td>
+          <td>
+            <span class="status-pill {% if x.is_active %}active{% else %}inactive{% endif %}">
+              <b></b>{{ x.is_active|yesno:"Hoạt động,Ngừng" }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a class="btn compact" href="{% url 'tenant-detail' x.id %}">Chi tiết</a>
+              <a class="btn compact" href="{% url 'tenant-update' x.id %}">Sửa</a>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Chưa có dữ liệu khách thuê phù hợp.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang khách thuê">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

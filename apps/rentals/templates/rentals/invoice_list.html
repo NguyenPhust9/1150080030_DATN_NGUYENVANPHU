@@ -1,1 +1,79 @@
-{% extends "base.html" %}{% block page_title %}Hóa đơn{% endblock %}{% block content %}{% include 'rentals/_list_header.html' %}<section class="panel"><div class="list-summary"><span>Danh sách hóa đơn</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Mã</th><th>Hợp đồng</th><th>Kỳ</th><th>Tổng tiền</th><th>Đã trả</th><th>Còn nợ</th><th>Trạng thái</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.code }}</td><td>{{ x.contract }}</td><td>{{ x.period|date:"m/Y" }}</td><td>{{ x.total_amount|vnd }} đ</td><td>{{ x.paid_amount|vnd }} đ</td><td>{{ x.balance|vnd }} đ</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="8">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Hóa đơn{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm mã HĐơn, mã hợp đồng, khách thuê...">
+    <select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Tất cả trạng thái</option>
+      {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or selected_building or status %}<a class="btn" href="{% url 'invoices' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a class="btn primary" href="{% url 'invoice-create' %}">+ Tạo hóa đơn</a>
+    <a class="btn" href="{% url 'invoice-bulk-create' %}">Lập hóa đơn hàng loạt</a>
+  </div>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách hóa đơn</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Mã hóa đơn</th>
+          <th>Hợp đồng / Phòng</th>
+          <th>Kỳ</th>
+          <th>Tổng tiền</th>
+          <th>Đã trả</th>
+          <th>Còn nợ</th>
+          <th>Hạn trả</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td><a href="{% url 'invoice-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.code }}</a></td>
+          <td>
+            <a href="{% url 'contract-detail' x.contract.id %}" style="color:inherit;text-decoration:none;">{{ x.contract.code }}</a>
+            <small class="muted" style="display:block;">{{ x.contract.room }} · {{ x.contract.representative.full_name }}</small>
+          </td>
+          <td>{{ x.period|date:"m/Y" }}</td>
+          <td>{{ x.total_amount|vnd }} đ</td>
+          <td>{{ x.paid_amount|vnd }} đ</td>
+          <td><strong>{{ x.balance|vnd }} đ</strong></td>
+          <td>{{ x.due_date|date:"d/m/Y" }}</td>
+          <td><span class="badge">{{ x.get_status_display }}</span></td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a class="btn compact" href="{% url 'invoice-detail' x.id %}">Chi tiết</a>
+              {% if x.status != 'draft' and x.status != 'cancelled' and x.status != 'paid' %}
+              <a class="btn primary compact" href="{% url 'payment-create' %}?invoice={{ x.id }}">Thu tiền</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10">Chưa có dữ liệu hóa đơn.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang hóa đơn">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,1 +1,83 @@
-{% extends "base.html" %}{% block page_title %}Thanh toán{% endblock %}{% block content %}{% include 'rentals/_list_header.html' %}<section class="panel"><div class="list-summary"><span>Danh sách thanh toán</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div><table><thead><tr><th class="row-number">STT</th><th>Hóa đơn</th><th>Số tiền</th><th>Thời gian</th><th>Phương thức</th><th>Tham chiếu</th></tr></thead><tbody>{% for x in objects %}<tr><td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td><td>{{ x.invoice }}</td><td>{{ x.amount|vnd }} đ</td><td>{{ x.paid_at|date:"d/m/Y H:i" }}</td><td>{{ x.get_method_display }}</td><td>{{ x.reference|default:"—" }}</td></tr>{% empty %}<tr><td colspan="6">Chưa có dữ liệu.</td></tr>{% endfor %}</tbody></table></section>{% endblock %}
+{% extends "base.html" %}
+{% block page_title %}Thanh toán{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm mã hóa đơn, mã tham chiếu...">
+    <select name="method">
+      <option value="">Tất cả phương thức</option>
+      {% for code, label in method_choices %}<option value="{{ code }}" {% if method == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="void">
+      <option value="">Tất cả giao dịch</option>
+      <option value="valid" {% if void_filter == 'valid' %}selected{% endif %}>Hợp lệ</option>
+      <option value="void" {% if void_filter == 'void' %}selected{% endif %}>Đã hủy</option>
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or method or void_filter %}<a class="btn" href="{% url 'payments' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <a class="btn primary" href="{% url 'payment-create' %}">+ Ghi nhận thanh toán</a>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh sách thanh toán</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Hóa đơn</th>
+          <th>Phòng / Tòa nhà</th>
+          <th>Số tiền</th>
+          <th>Thời gian</th>
+          <th>Phương thức</th>
+          <th>Tham chiếu</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td><a href="{% url 'invoice-detail' x.invoice.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.invoice.code }}</a></td>
+          <td>{{ x.invoice.contract.room }}</td>
+          <td><strong>{{ x.amount|vnd }} đ</strong></td>
+          <td>{{ x.paid_at|date:"d/m/Y H:i" }}</td>
+          <td>{{ x.get_method_display }}</td>
+          <td>{{ x.reference|default:"—" }}</td>
+          <td>
+            {% if x.is_void %}
+            <span class="badge" style="background:#ffebed;color:#ca3944;">Đã hủy</span>
+            {% else %}
+            <span class="badge">Hợp lệ</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a class="btn compact" href="{% url 'invoice-detail' x.invoice.id %}">Xem HĐơn</a>
+              {% if not x.is_void %}
+              <form method="post" action="{% url 'payment-void' x.id %}" onsubmit="return confirm('Xác nhận hủy giao dịch thanh toán {{ x.amount|vnd }} đ?');" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="payments">
+                <input type="hidden" name="reason" value="Hủy giao dịch sai sót">
+                <button class="btn compact" type="submit" style="color:var(--red);">Hủy</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">Chưa có giao dịch thanh toán.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang thanh toán">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&method={{ method }}&void={{ void_filter }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&method={{ method }}&void={{ void_filter }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&method={{ method }}&void={{ void_filter }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

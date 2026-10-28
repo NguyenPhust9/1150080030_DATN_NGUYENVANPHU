@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block page_title %}Danh mục dịch vụ{% endblock %}
+{% block content %}
+<div class="page-actions room-toolbar">
+  <form method="get" class="room-filters">
+    <input name="q" value="{{ q }}" placeholder="Tìm tên dịch vụ...">
+    <select name="unit">
+      <option value="">Tất cả đơn vị tính</option>
+      {% for code, label in unit_choices %}<option value="{{ code }}" {% if unit == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Tất cả trạng thái</option>
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Đang áp dụng</option>
+      <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Ngừng áp dụng</option>
+    </select>
+    <button class="btn" type="submit">Lọc dữ liệu</button>
+    {% if q or unit or status %}<a class="btn" href="{% url 'services' %}">Xóa lọc</a>{% endif %}
+  </form>
+  <a class="btn primary" href="{% url 'service-create' %}">Thêm dịch vụ</a>
+</div>
+<section class="panel">
+  <div class="list-summary"><span>Danh mục dịch vụ</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Tên dịch vụ</th>
+          <th>Đơn vị tính</th>
+          <th>Đơn giá mặc định</th>
+          <th>Tính theo đồng hồ</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td><strong>{{ x.name }}</strong></td>
+          <td><span class="badge">{{ x.get_unit_display }}</span></td>
+          <td>{{ x.unit_price|vnd }} đ</td>
+          <td>{{ x.is_metered|yesno:"Có (Theo chỉ số),Không" }}</td>
+          <td>
+            <span class="status-pill {% if x.is_active %}active{% else %}inactive{% endif %}">
+              <b></b>{{ x.is_active|yesno:"Đang áp dụng,Ngừng" }}
+            </span>
+          </td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <a class="btn compact" href="{% url 'service-update' x.id %}">Sửa</a>
+              <form method="post" action="{% url 'service-delete' x.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn xóa/ngừng dịch vụ {{ x.name }}?');" style="display:inline;">
+                {% csrf_token %}
+                <button class="btn compact" type="submit" style="color:var(--red);">Xóa</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">Chưa có dịch vụ nào.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang dịch vụ">
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&unit={{ unit }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&unit={{ unit }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&unit={{ unit }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+</nav>
+{% endif %}
+{% endblock %}

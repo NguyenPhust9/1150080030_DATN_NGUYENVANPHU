@@ -1,0 +1,8 @@
+path: datasets/D-Fire
+train: yolo_splits/train.txt
+val: yolo_splits/val.txt
+test: yolo_splits/test.txt
+
+names:
+  0: smoke
+  1: fire

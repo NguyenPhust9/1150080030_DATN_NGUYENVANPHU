@@ -2,6 +2,8 @@ import os
 from pathlib import Path
 from urllib.parse import parse_qsl, unquote, urlparse
 
+from django.core.exceptions import ImproperlyConfigured
+
 from apps.rentals.embedded_templates import TEMPLATES as EMBEDDED_TEMPLATES
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -39,15 +41,18 @@ if VERCEL_URL and VERCEL_URL not in ALLOWED_HOSTS:
 CSRF_TRUSTED_ORIGINS = [f"https://{VERCEL_URL}"] if VERCEL_URL else []
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "cloudinary",
     "apps.accounts",
     "apps.rentals",
+    "apps.fire_detection",
 ]
 
 MIDDLEWARE = [
@@ -58,6 +63,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "apps.accounts.middleware.AccountSecurityMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -83,6 +89,11 @@ TEMPLATES = [
 ]
 WSGI_APPLICATION = "config.wsgi.application"
 ASGI_APPLICATION = "config.asgi.application"
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 database_url = env("DATABASE_URL").strip()
 
@@ -112,6 +123,14 @@ else:
             "CONN_MAX_AGE": 60,
         }
     }
+
+development_database_name = str(DATABASES["default"]["NAME"])
+test_database_name = env("POSTGRES_TEST_DB", f"test_{development_database_name}").strip()
+if not test_database_name:
+    raise ImproperlyConfigured("POSTGRES_TEST_DB không được để trống.")
+if test_database_name == development_database_name:
+    raise ImproperlyConfigured("POSTGRES_TEST_DB phải khác database phát triển.")
+DATABASES["default"]["TEST"] = {"NAME": test_database_name}
 
 # Để trống để thuận tiện thử nghiệm / demo mật khẩu đơn giản (ví dụ: 123456)
 AUTH_PASSWORD_VALIDATORS = []

@@ -1,3 +1,35 @@
 {% extends "base.html" %}
 {% block page_title %}{{ title }}{% endblock %}
-{% block content %}<section class="panel form-panel"><h1>{{ title }}</h1><form method="post">{% csrf_token %}{{ form.as_p }}<div class="actions"><button class="btn primary" type="submit">Lưu dữ liệu</button><button class="btn" type="button" onclick="history.back()">Quay lại</button></div></form></section>{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>{{ title }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="actions">
+      <button class="btn primary" type="submit">Lưu dữ liệu</button>
+      <button class="btn" type="button" onclick="history.back()">Quay lại</button>
+    </div>
+  </form>
+</section>
+<script>
+(function(){
+  const roomEl = document.getElementById("id_room");
+  const typeEl = document.getElementById("id_meter_type");
+  const periodEl = document.getElementById("id_period");
+  const prevEl = document.getElementById("id_previous_value");
+  if (roomEl && typeEl && periodEl && prevEl) {
+    const syncPrev = () => {
+      if (!roomEl.value || !typeEl.value || !periodEl.value) return;
+      fetch(`/api/v1/meters/previous/?room=${encodeURIComponent(roomEl.value)}&meter_type=${encodeURIComponent(typeEl.value)}&period=${encodeURIComponent(periodEl.value)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data && data.previous_value !== undefined) prevEl.value = data.previous_value; })
+        .catch(() => {});
+    };
+    roomEl.addEventListener("change", syncPrev);
+    typeEl.addEventListener("change", syncPrev);
+    periodEl.addEventListener("change", syncPrev);
+  }
+})();
+</script>
+{% endblock %}

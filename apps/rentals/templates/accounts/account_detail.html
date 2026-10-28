@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Chi tiết tài khoản: {{ target_user.username }} — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Chi tiết tài khoản: {{ target_user.username }}{% endblock %}
+{% block page_subtitle %}Thông tin định danh, phạm vi phân quyền, trạng thái bảo mật và nhật ký hoạt động{% endblock %}
+
+{% block content %}
+<div class="page-actions" style="flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <a class="btn" href="{% url 'accounts' %}">← Danh sách tài khoản</a>
+    {% if can_edit %}
+    <a class="btn primary" href="{% url 'account-update' target_user.id %}">Chỉnh sửa tài khoản</a>
+    {% endif %}
+    {% if can_reset_pw %}
+    <a class="btn" href="{% url 'account-reset-password' target_user.id %}">Đặt lại mật khẩu</a>
+    {% endif %}
+  </div>
+</div>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Thông tin tài khoản</h2>
+      <span class="status-pill {% if target_user.is_active %}active{% else %}inactive{% endif %}">
+        <b></b>{{ target_user.is_active|yesno:"Đang hoạt động,Đã khóa" }}
+      </span>
+    </div>
+    <div class="detail-grid">
+      <div><span>Username</span><strong>{{ target_user.username }}</strong></div>
+      <div><span>Họ và tên</span><strong>{{ target_user.get_full_name|default:"—" }}</strong></div>
+      <div><span>Vai trò</span><strong><span class="badge">{{ target_user.get_role_display }}</span>{% if target_user.is_superuser %} <span class="badge" style="background:#fef3c7;color:#92400e;">Superuser</span>{% endif %}</strong></div>
+      <div><span>Email</span><strong>{{ target_user.email|default:"—" }}</strong></div>
+      <div><span>Số điện thoại</span><strong>{{ target_user.phone|default:"—" }}</strong></div>
+      <div><span>Ngày tạo tài khoản</span><strong>{{ target_user.date_joined|date:"d/m/Y H:i" }}</strong></div>
+      <div><span>Đăng nhập gần nhất</span><strong>{% if target_user.last_login %}{{ target_user.last_login|date:"d/m/Y H:i" }}{% else %}Chưa đăng nhập{% endif %}</strong></div>
+      <div><span>Đổi mật khẩu gần nhất</span><strong>{% if target_user.password_changed_at %}{{ target_user.password_changed_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</strong></div>
+      <div><span>Buộc đổi mật khẩu</span><strong>{% if target_user.must_change_password %}<span style="color:#c2410c;">Có (Ở lần đăng nhập kế tiếp)</span>{% else %}Không{% endif %}</strong></div>
+      {% if not target_user.is_active or target_user.locked_at or target_user.lock_reason %}
+      <div><span>Thời điểm khóa</span><strong>{% if target_user.locked_at %}{{ target_user.locked_at|date:"d/m/Y H:i" }}{% else %}—{% endif %}</strong></div>
+      <div><span>Người thực hiện khóa</span><strong>{% if target_user.locked_by %}{{ target_user.locked_by.username }}{% else %}—{% endif %}</strong></div>
+      <div><span>Lý do khóa / mở</span><strong>{{ target_user.lock_reason|default:"—" }}</strong></div>
+      {% endif %}
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Phạm vi quản lý & Liên kết</h2>
+    </div>
+    <div class="detail-grid" style="margin-bottom:18px;">
+      <div>
+        <span>Chủ nhà quản lý</span>
+        <strong>
+          {% if target_user.managed_owner %}
+            {{ target_user.managed_owner.get_full_name|default:target_user.managed_owner.username }} ({{ target_user.managed_owner.username }})
+          {% elif target_user.role == 'owner' %}
+            Chính chủ (Sở hữu tòa nhà)
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+      </div>
+      <div>
+        <span>Tòa nhà được phân công</span>
+        <strong>
+          {% with assigned=target_user.assigned_buildings.all %}
+            {% if assigned %}
+              {% for b in assigned %}{{ b.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% else %}
+              —
+            {% endif %}
+          {% endwith %}
+        </strong>
+      </div>
+      {% if target_user.role == 'owner' %}
+      <div>
+        <span>Tòa nhà thuộc sở hữu</span>
+        <strong>
+          {% with owned=target_user.buildings.all %}
+            {% if owned %}
+              {% for b in owned %}{{ b.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
+            {% else %}
+              Chưa có tòa nhà nào
+            {% endif %}
+          {% endwith %}
+        </strong>
+      </div>
+      {% endif %}
+      <div>
+        <span>Hồ sơ khách thuê liên kết</span>
+        <strong>
+          {% if target_user.tenant_profile %}
+            <a href="{% url 'tenant-detail' target_user.tenant_profile.id %}" style="color:var(--primary);text-decoration:none;">
+              {{ target_user.tenant_profile.full_name }} ({{ target_user.tenant_profile.phone }})
+            </a>
+          {% else %}
+            Chưa liên kết
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0;">
+    <h2 style="font-size:16px;margin-bottom:10px;">{% if target_user.is_active %}Khóa tài khoản{% else %}Mở khóa tài khoản{% endif %}</h2>
+    {% if can_lock %}
+    <form method="post" action="{% url 'account-toggle-lock' target_user.id %}" onsubmit="return confirm('Xác nhận {% if target_user.is_active %}KHÓA{% else %}MỞ KHÓA{% endif %} tài khoản {{ target_user.username }}?');">
+      {% csrf_token %}
+      <p style="margin-bottom:12px;">
+        <label for="{{ lock_form.reason.id_for_label }}">{{ lock_form.reason.label }}</label>
+        {{ lock_form.reason }}
+      </p>
+      <button class="btn" type="submit" style="{% if target_user.is_active %}color:var(--red);border-color:var(--red);{% else %}color:var(--green);border-color:var(--green);{% endif %}">
+        {% if target_user.is_active %}Khóa tài khoản này{% else %}Mở khóa tài khoản này{% endif %}
+      </button>
+    </form>
+    {% else %}
+    <p class="muted" style="margin:0;">{{ lock_denied_reason|default:"Bạn không thể khóa hoặc mở khóa tài khoản này." }}</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="two-columns">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Lịch sử đăng nhập ({{ login_histories|length }})</h2>
+      <a class="btn compact" href="{% url 'login-history' %}?user={{ target_user.id }}">Xem tất cả</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Thời điểm</th>
+            <th>Sự kiện</th>
+            <th>IP</th>
+            <th>Lý do / Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in login_histories %}
+          <tr>
+            <td>{{ h.occurred_at|date:"d/m/Y H:i:s" }}</td>
+            <td>
+              {% if h.event_type == 'login_success' %}
+                <span class="badge" style="background:#e5f7f0;color:#087b59;">{{ h.get_event_type_display }}</span>
+              {% elif h.event_type == 'login_failed' %}
+                <span class="badge" style="background:#ffebed;color:#ca3944;">{{ h.get_event_type_display }}</span>
+              {% else %}
+                <span class="badge">{{ h.get_event_type_display }}</span>
+              {% endif %}
+            </td>
+            <td>{{ h.ip_address|default:"—" }}</td>
+            <td>{{ h.failure_reason|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Chưa có lịch sử đăng nhập cho tài khoản này.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Nhật ký tác động tài khoản ({{ audit_logs|length }})</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Thời điểm</th>
+            <th>Người thực hiện</th>
+            <th>Hành động</th>
+            <th>Lý do / Chi tiết</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in audit_logs %}
+          <tr>
+            <td>{{ log.occurred_at|date:"d/m/Y H:i" }}</td>
+            <td>{% if log.actor %}{{ log.actor.username }}{% else %}Hệ thống{% endif %}</td>
+            <td><span class="badge">{{ log.get_action_display }}</span></td>
+            <td>{{ log.reason|default:"—" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4">Chưa có nhật ký tác động nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+{% endblock %}
+

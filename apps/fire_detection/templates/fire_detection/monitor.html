@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Giám sát cháy AI{% endblock %}
+{% block page_title %}Giám sát cháy AI{% endblock %}
+{% block page_subtitle %}Phát hiện lửa và khói trực tiếp từ webcam máy tính{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/fire-monitor.css' %}">
+<section class="fire-monitor" data-status-url="{% url 'fire_detection:status' %}" data-start-url="{% url 'fire_detection:start' %}" data-stop-url="{% url 'fire_detection:stop' %}" data-stream-url="{% url 'fire_detection:stream' %}">
+  <div class="fire-toolbar">
+    <div class="fire-heading"><span class="status-dot"></span><div><strong id="camera-state">Đã dừng</strong><small>Webcam {{ camera_index }} · {{ model_name }}</small></div></div>
+    <div class="fire-actions"><button id="start-camera" class="button primary" type="button"><i data-lucide="video"></i>Bắt đầu giám sát</button><button id="stop-camera" class="button secondary" type="button"><i data-lucide="square"></i>Dừng</button></div>
+  </div>
+  <div id="fire-banner" class="fire-banner" role="alert"><i data-lucide="flame"></i><div><strong>Phát hiện nguy cơ cháy!</strong><span>Kiểm tra khu vực camera ngay lập tức.</span></div></div>
+  <div class="fire-grid">
+    <div class="camera-card">
+      <div class="camera-screen"><img id="camera-stream" alt="Hình ảnh trực tiếp từ webcam"><div id="camera-placeholder"><i data-lucide="camera-off"></i><strong>Camera chưa hoạt động</strong><span>Nhấn “Bắt đầu giám sát” để mở webcam.</span></div></div>
+      <div class="camera-footer"><span id="safety-label"><i data-lucide="shield-check"></i>An toàn</span><span id="fps-label">0 FPS</span></div>
+    </div>
+    <aside class="alert-panel">
+      <div class="metric"><span>Trạng thái AI</span><strong id="ai-state">Sẵn sàng</strong></div>
+      <div class="metric"><span>Phát hiện hiện tại</span><strong id="detection-count">0</strong></div>
+      <div class="alert-history"><h3>Lịch sử cảnh báo</h3><div id="event-list"><p class="empty-state">Chưa có cảnh báo.</p></div></div>
+      <p class="fire-note"><i data-lucide="info"></i>AI hỗ trợ cảnh báo sớm, không thay thế đầu báo khói hoặc thiết bị PCCC chuyên dụng.</p>
+    </aside>
+  </div>
+</section>
+<script src="{% static 'js/fire-monitor.js' %}"></script>
+{% endblock %}

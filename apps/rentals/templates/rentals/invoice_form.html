@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>{{ title }}</h1>
+  <p class="muted" style="margin-top:0;">Hệ thống tự động tính tiền phòng, tiền điện (kWh), tiền nước (m³), dịch vụ theo người/phòng/cố định, phụ thu và giảm trừ. Đơn giá dịch vụ được chốt cố định tại thời điểm tạo hóa đơn.</p>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <div class="actions">
+      <button class="btn primary" type="submit">Xác nhận lập hóa đơn</button>
+      <a class="btn" href="{% url 'invoices' %}">Quay lại</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+{% block page_title %}Hợp đồng {{ contract.code }}{% endblock %}
+{% block content %}
+<div class="page-actions" style="flex-wrap:wrap;gap:10px;">
+  <div style="display:flex;gap:8px;align-items:center;">
+    <a class="btn" href="{% url 'contracts' %}">← Danh sách hợp đồng</a>
+    {% if contract.status == 'draft' %}
+    <a class="btn primary" href="{% url 'contract-update' contract.id %}">Chỉnh sửa hợp đồng nháp</a>
+    {% endif %}
+    {% if contract.status == 'active' %}
+    <a class="btn primary" href="{% url 'invoice-create' %}?contract={{ contract.id }}">+ Lập hóa đơn kỳ mới</a>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    {% if contract.status == 'draft' %}
+    <form method="post" action="{% url 'contract-activate' contract.id %}" onsubmit="return confirm('Xác nhận kích hoạt hợp đồng {{ contract.code }}? Phòng sẽ chuyển sang trạng thái Đang thuê.');">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">Kích hoạt hợp đồng</button>
+    </form>
+    {% endif %}
+    {% if contract.status == 'active' %}
+    <form method="post" action="{% url 'contract-terminate' contract.id %}" onsubmit="return confirm('Xác nhận chấm dứt/thanh lý hợp đồng {{ contract.code }}?');">
+      {% csrf_token %}
+      <button class="btn" type="submit" style="color:var(--orange);border-color:var(--orange);">Chấm dứt / Thanh lý</button>
+    </form>
+    {% endif %}
+    {% if contract.status == 'draft' or contract.status == 'active' %}
+    <form method="post" action="{% url 'contract-cancel' contract.id %}" onsubmit="return confirm('Bạn có chắc chắn muốn hủy hợp đồng {{ contract.code }}?');">
+      {% csrf_token %}
+      <button class="btn" type="submit" style="color:var(--red);border-color:var(--red);">Hủy hợp đồng</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Thông tin hợp đồng</h2>
+      <span class="badge">{{ contract.get_status_display }}</span>
+    </div>
+    <div class="detail-grid">
+      <div><span>Mã hợp đồng</span><strong>{{ contract.code }}</strong></div>
+      <div><span>Phòng</span><strong>{{ contract.room.number }} ({{ contract.room.building.name }})</strong></div>
+      <div><span>Khách đại diện</span><strong><a href="{% url 'tenant-detail' contract.representative.id %}" style="color:var(--primary);text-decoration:none;">{{ contract.representative.full_name }}</a></strong></div>
+      <div><span>Số điện thoại</span><strong>{{ contract.representative.phone }}</strong></div>
+      <div><span>Ngày bắt đầu</span><strong>{{ contract.start_date|date:"d/m/Y" }}</strong></div>
+      <div><span>Ngày kết thúc</span><strong>{{ contract.end_date|date:"d/m/Y" }}</strong></div>
+      <div><span>Giá thuê hằng tháng</span><strong>{{ contract.monthly_rent|vnd }} đ</strong></div>
+      <div><span>Tiền đặt cọc</span><strong>{{ contract.deposit_amount|vnd }} đ</strong></div>
+      <div><span>Ngày lập HĐơn / Hạn trả</span><strong>Ngày {{ contract.billing_day }} / Ngày {{ contract.due_day }}</strong></div>
+      <div><span>Trạng thái phòng</span><strong>{{ contract.room.get_status_display }}</strong></div>
+    </div>
+    {% if contract.notes %}
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0;">
+    <div>
+      <span class="muted">Ghi chú hợp đồng:</span>
+      <p style="margin:6px 0 0;white-space:pre-line;">{{ contract.notes }}</p>
+    </div>
+    {% endif %}
+  </article>
+
+  <article class="panel">
+    <h2>Gia hạn hợp đồng</h2>
+    {% if contract.status == 'active' or contract.status == 'expired' %}
+    <p class="muted" style="margin-top:0;">Gia hạn thời gian thuê cho hợp đồng <strong>{{ contract.code }}</strong> (hiện kết thúc ngày {{ contract.end_date|date:"d/m/Y" }}).</p>
+    <form method="post" action="{% url 'contract-renew' contract.id %}" onsubmit="return confirm('Xác nhận gia hạn hợp đồng {{ contract.code }}?');">
+      {% csrf_token %}
+      {{ renew_form.as_p }}
+      <div class="actions">
+        <button class="btn primary" type="submit">Xác nhận gia hạn</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="muted">Chỉ hợp đồng đang hiệu lực hoặc hết hạn mới có thể gia hạn.</p>
+    {% endif %}
+  </article>
+</section>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Người ở cùng ({{ members|length }})</h2>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Họ tên</th>
+            <th>Điện thoại</th>
+            <th>CCCD</th>
+            <th>Ngày vào ở</th>
+            <th>Ngày rời đi</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          <tr>
+            <td><a href="{% url 'tenant-detail' m.tenant.id %}" style="color:var(--primary);text-decoration:none;font-weight:600;">{{ m.tenant.full_name }}</a></td>
+            <td>{{ m.tenant.phone }}</td>
+            <td>{{ m.tenant.identity_number }}</td>
+            <td>{{ m.joined_date|date:"d/m/Y" }}</td>
+            <td>{% if m.left_date %}{{ m.left_date|date:"d/m/Y" }}{% else %}Đang ở{% endif %}</td>
+            <td>
+              <form method="post" action="{% url 'contract-member-remove' contract.id m.id %}" onsubmit="return confirm('Xóa {{ m.tenant.full_name }} khỏi danh sách người ở cùng?');" style="display:inline;">
+                {% csrf_token %}
+                <button class="btn compact" type="submit" style="color:var(--red);">Xóa</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">Chưa có người ở cùng nào được đăng ký.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <h2>Thêm người ở cùng</h2>
+    <form method="post" action="{% url 'contract-member-add' contract.id %}">
+      {% csrf_token %}
+      {{ member_form.as_p }}
+      <div class="actions">
+        <button class="btn primary" type="submit">Thêm vào hợp đồng</button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<section class="two-columns" style="margin-bottom:20px;">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Dịch vụ áp dụng trong hợp đồng ({{ contract_services|length }})</h2>
+      <a class="btn compact" href="{% url 'services' %}">Danh mục dịch vụ</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Dịch vụ</th>
+            <th>Đơn vị tính</th>
+            <th>Đơn giá áp dụng</th>
+            <th>Số lượng</th>
+            <th>Trạng thái</th>
+            <th>Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cs in contract_services %}
+          <tr>
+            <td><strong>{{ cs.service.name }}</strong></td>
+            <td>{{ cs.service.get_unit_display }}</td>
+            <td>{{ cs.unit_price|vnd }} đ</td>
+            <td>{{ cs.quantity }}</td>
+            <td>{{ cs.is_active|yesno:"Đang áp dụng,Tạm ngưng" }}</td>
+            <td>
+              <form method="post" action="{% url 'contract-service-remove' contract.id cs.id %}" onsubmit="return confirm('Gỡ dịch vụ {{ cs.service.name }} khỏi hợp đồng?');" style="display:inline;">
+                {% csrf_token %}
+                <button class="btn compact" type="submit" style="color:var(--red);">Gỡ</button>
+              </form>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6">Chưa gắn dịch vụ riêng. Điện/nước sẽ tự lấy theo bảng giá chung nếu có chỉ số.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <h2>Gắn / Cập nhật dịch vụ hợp đồng</h2>
+    <form method="post" action="{% url 'contract-service-add' contract.id %}">
+      {% csrf_token %}
+      {{ service_form.as_p }}
+      <div class="actions">
+        <button class="btn primary" type="submit">Lưu dịch vụ hợp đồng</button>
+      </div>
+    </form>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Danh sách hóa đơn của hợp đồng ({{ invoices|length }})</h2>
+    {% if contract.status == 'active' %}
+    <a class="btn primary compact" href="{% url 'invoice-create' %}?contract={{ contract.id }}">+ Tạo hóa đơn</a>
+    {% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã hóa đơn</th>
+          <th>Kỳ</th>
+          <th>Tổng tiền</th>
+          <th>Đã thanh toán</th>
+          <th>Còn nợ</th>
+          <th>Hạn thanh toán</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for inv in invoices %}
+        <tr>
+          <td><a href="{% url 'invoice-detail' inv.id %}" style="color:var(--primary);font-weight:600;text-decoration:none;">{{ inv.code }}</a></td>
+          <td>{{ inv.period|date:"m/Y" }}</td>
+          <td>{{ inv.total_amount|vnd }} đ</td>
+          <td>{{ inv.paid_amount|vnd }} đ</td>
+          <td>{{ inv.balance|vnd }} đ</td>
+          <td>{{ inv.due_date|date:"d/m/Y" }}</td>
+          <td><span class="badge">{{ inv.get_status_display }}</span></td>
+          <td><a class="btn compact" href="{% url 'invoice-detail' inv.id %}">Chi tiết</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">Chưa có hóa đơn nào cho hợp đồng này.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

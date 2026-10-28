@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Lịch sử đăng nhập — QL Phòng Cho Thuê{% endblock %}
+{% block page_title %}Lịch sử đăng nhập{% endblock %}
+{% block page_subtitle %}Theo dõi nhật ký đăng nhập thành công, đăng nhập thất bại và đăng xuất{% endblock %}
+
+{% block content %}
+<div class="page-actions room-toolbar" style="flex-wrap:wrap;gap:12px;">
+  <form method="get" class="room-filters" style="flex-wrap:wrap;">
+    <input name="q" value="{{ q }}" placeholder="Tìm username, IP, lý do...">
+    <select name="event_type">
+      <option value="">Tất cả sự kiện</option>
+      {% for val, label in event_type_choices %}
+      <option value="{{ val }}" {% if event_type == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    {% if accessible_users %}
+    <select name="user">
+      <option value="">Tất cả tài khoản</option>
+      {% for u in accessible_users %}
+      <option value="{{ u.id }}" {% if selected_user == u.id|stringformat:"s" %}selected{% endif %}>{{ u.username }} ({{ u.get_role_display }})</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <input type="date" name="date_from" value="{{ date_from }}" title="Từ ngày">
+    <input type="date" name="date_to" value="{{ date_to }}" title="Đến ngày">
+    <button class="btn" type="submit">Lọc lịch sử</button>
+    {% if q or event_type or selected_user or date_from or date_to %}
+    <a class="btn" href="{% url 'login-history' %}">Xóa lọc</a>
+    {% endif %}
+  </form>
+  {% if user|has_perm_code:'accounts.view_user' %}
+  <a class="btn" href="{% url 'accounts' %}">← Quản lý tài khoản</a>
+  {% endif %}
+</div>
+
+<section class="panel">
+  <div class="list-summary">
+    <span>Nhật ký phiên xác thực</span>
+    <span>Tổng số bản ghi: <strong>{{ paginator.count }}</strong></span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="row-number">STT</th>
+          <th>Thời điểm</th>
+          <th>Username thử đăng nhập</th>
+          <th>Tài khoản hệ thống</th>
+          <th>Loại sự kiện</th>
+          <th>Địa chỉ IP</th>
+          <th>Trình duyệt / Thiết bị</th>
+          <th>Session</th>
+          <th>Lý do thất bại</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for h in objects %}
+        <tr>
+          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td>{{ h.occurred_at|date:"d/m/Y H:i:s" }}</td>
+          <td><strong>{{ h.username_attempted }}</strong></td>
+          <td>
+            {% if h.user %}
+              {% if user|has_perm_code:'accounts.view_user' %}
+                <a href="{% url 'account-detail' h.user.id %}" style="color:var(--primary);text-decoration:none;font-weight:600;">{{ h.user.username }}</a>
+              {% else %}
+                {{ h.user.username }}
+              {% endif %}
+              <small class="muted">({{ h.user.get_role_display }})</small>
+            {% else %}
+              <span class="muted">Không xác định</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if h.event_type == 'login_success' %}
+              <span class="badge" style="background:#e5f7f0;color:#087b59;">{{ h.get_event_type_display }}</span>
+            {% elif h.event_type == 'login_failed' %}
+              <span class="badge" style="background:#ffebed;color:#ca3944;">{{ h.get_event_type_display }}</span>
+            {% else %}
+              <span class="badge">{{ h.get_event_type_display }}</span>
+            {% endif %}
+          </td>
+          <td>{{ h.ip_address|default:"—" }}</td>
+          <td style="max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{{ h.user_agent }}">{{ h.user_agent|default:"—" }}</td>
+          <td><code>{{ h.session_key|slice:":10"|default:"—" }}</code></td>
+          <td>{{ h.failure_reason|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9" style="text-align:center;padding:28px;">Chưa có bản ghi lịch sử đăng nhập nào phù hợp.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+{% if page_obj.has_other_pages %}
+<nav class="pagination" aria-label="Phân trang lịch sử đăng nhập">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">← Trước</a>
+  {% else %}
+    <span class="disabled">← Trước</span>
+  {% endif %}
+  {% for page_number in paginator.page_range %}
+    {% if page_number == page_obj.number %}
+      <span class="current">{{ page_number }}</span>
+    {% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}
+      <a href="?page={{ page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">{{ page_number }}</a>
+    {% endif %}
+  {% endfor %}
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if filter_query %}&{{ filter_query }}{% endif %}">Sau →</a>
+  {% else %}
+    <span class="disabled">Sau →</span>
+  {% endif %}
+</nav>
+{% endif %}
+{% endblock %}
+

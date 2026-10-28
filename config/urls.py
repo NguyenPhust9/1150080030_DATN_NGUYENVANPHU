@@ -12,6 +12,8 @@ urlpatterns = [
     path("dang-xuat/", auth_views.LogoutView.as_view(), name="logout"),
     path("doi-mat-khau/", account_views.CustomPasswordChangeView.as_view(), name="password-change"),
     path("ho-so/", account_views.profile_view, name="user-profile"),
+    path("", include("apps.accounts.urls")),
+    path("giam-sat-chay/", include("apps.fire_detection.urls")),
     path("", include("apps.rentals.urls")),
 ]
 
