@@ -5,7 +5,7 @@ body{background:radial-gradient(circle at 65% 0,#fef3c7 0,transparent 34%),var(-
 .sidebar::-webkit-scrollbar-track{background:transparent}
 .sidebar::-webkit-scrollbar-thumb{background:#fed7aa;border-radius:99px}
 .sidebar::-webkit-scrollbar-thumb:hover{background:#f97316}
-.sidebar .brand{display:flex !important;align-items:center;gap:10px;margin-bottom:24px;text-decoration:none}
+.brand{display:none !important}
 .brand-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#ffffff;border:2px solid #fed7aa;box-shadow:0 6px 16px rgba(234,88,12,0.18);overflow:hidden;flex-shrink:0}
 .brand-icon img{width:100%;height:100%;object-fit:cover;display:block}
 .brand>span:last-child{display:grid;color:#431407;font-weight:800}

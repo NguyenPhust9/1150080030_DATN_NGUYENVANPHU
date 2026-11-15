@@ -300,16 +300,8 @@ def public_room_detail(request, room_id):
 
 
 def public_about(request):
-    total_buildings = Building.objects.filter(is_active=True).count()
-    total_rooms = Room.objects.count()
-    available_rooms = Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).count()
-    buildings = Building.objects.filter(is_active=True).order_by("name")
-    return render(request, "public/about.html", {
-        "total_buildings": total_buildings,
-        "total_rooms": total_rooms,
-        "available_rooms": available_rooms,
-        "buildings": buildings,
-    })
+    # Keep old shared links working with the local design's introduction section.
+    return redirect(reverse("public-home") + "#gioi-thieu")
 
 
 @login_required
