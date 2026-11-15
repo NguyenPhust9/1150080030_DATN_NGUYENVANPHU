@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from datetime import date
 from urllib.parse import unquote, urlparse
 
 import cloudinary
@@ -16,7 +17,7 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, F, Min, OuterRef, ProtectedError, Q, Subquery, Sum
-from django.db.models.functions import Abs
+from django.db.models.functions import Abs, TruncMonth
 from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -175,22 +176,36 @@ def _delete_room_media(room, media_ids):
 
 
 def public_home(request):
-    rooms = _with_cover_image(Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True).select_related("building").prefetch_related("amenities"))
-    buildings = Building.objects.filter(is_active=True, rooms__status=Room.Status.AVAILABLE).distinct().order_by("name")
+    rooms = list(_with_cover_image(
+        Room.objects.filter(status=Room.Status.AVAILABLE, building__is_active=True)
+        .select_related("building").prefetch_related("amenities")
+    ))
+    rooms_by_building = {}
+    buildings_by_id = {}
+    for room in rooms:
+        rooms_by_building.setdefault(room.building_id, []).append(room)
+        buildings_by_id[room.building_id] = room.building
+    buildings = sorted(buildings_by_id.values(), key=lambda building: building.name)
+    floors_by_building = {building.id: set() for building in buildings}
+    if floors_by_building:
+        for building_id, floor in Room.objects.filter(
+            building_id__in=floors_by_building
+        ).values_list("building_id", "floor"):
+            floors_by_building[building_id].add(floor)
     building_groups = []
     for building in buildings:
         building_groups.append({
             "building": building,
-            "rooms": list(rooms.filter(building=building)[:4]),
-            "available_count": rooms.filter(building=building).count(),
-            "floor_count": Room.objects.filter(building=building).values("floor").distinct().count(),
+            "rooms": rooms_by_building[building.id][:4],
+            "available_count": len(rooms_by_building[building.id]),
+            "floor_count": len(floors_by_building[building.id]),
         })
     context = {
         "featured_rooms": rooms[:6],
         "building_groups": building_groups,
         "buildings": buildings,
-        "available_count": rooms.count(),
-        "building_count": buildings.count(),
+        "available_count": len(rooms),
+        "building_count": len(buildings),
     }
     return render(request, "public/home.html", context)
 
@@ -220,11 +235,17 @@ def public_rooms(request):
     except (TypeError, ValueError):
         min_price = max_price = ""
     if sort == "price_asc":
-        rooms = rooms.order_by("monthly_rent")
+        rooms = rooms.order_by("monthly_rent", "pk")
     elif sort == "price_desc":
-        rooms = rooms.order_by("-monthly_rent")
+        rooms = rooms.order_by("-monthly_rent", "pk")
+    else:
+        rooms = rooms.order_by("building__name", "floor", "number", "pk")
+    page_obj = Paginator(rooms.distinct(), 12).get_page(request.GET.get("page"))
+    page_params = request.GET.copy()
+    page_params.pop("page", None)
     return render(request, "public/room_list.html", {
-        "rooms": rooms.distinct(), "q": q, "district": district,
+        "rooms": page_obj.object_list, "page_obj": page_obj,
+        "page_query": page_params.urlencode(), "q": q, "district": district,
         "min_price": min_price, "max_price": max_price, "sort": sort,
         "selected_buildings": selected_buildings, "selected_amenities": selected_amenities,
         "buildings": Building.objects.filter(is_active=True).order_by("name"),
@@ -300,15 +321,63 @@ def dashboard(request):
     contracts = get_accessible_contracts(request.user)
     invoices = get_accessible_invoices(request.user).exclude(status=Invoice.Status.CANCELLED)
     incidents = get_accessible_incidents(request.user)
+    room_counts = rooms.aggregate(
+        total=Count("pk"),
+        available=Count("pk", filter=Q(status=Room.Status.AVAILABLE)),
+        occupied=Count("pk", filter=Q(status=Room.Status.OCCUPIED)),
+    )
+    # Keep a fixed six-month window so the chart remains useful even where a
+    # month has no invoices or payments yet.
+    today = timezone.localdate()
+    month_start = date(today.year, today.month, 1)
+    months = []
+    for offset in range(5, -1, -1):
+        year = month_start.year
+        month = month_start.month - offset
+        while month <= 0:
+            month += 12
+            year -= 1
+        months.append(date(year, month, 1))
+
+    invoice_totals = {
+        item["month"]: item["total"] or 0
+        for item in invoices.filter(period__gte=months[0])
+        .annotate(month=TruncMonth("period"))
+        .values("month")
+        .annotate(total=Sum("total_amount"))
+    }
+    payments = get_accessible_payments(request.user)
+    payment_totals = {
+        item["month"].date(): item["total"] or 0
+        for item in payments.filter(paid_at__date__gte=months[0])
+        .annotate(month=TruncMonth("paid_at"))
+        .values("month")
+        .annotate(total=Sum("amount"))
+    }
+    monthly_data = [
+        {
+            "label": f"Tháng {month.month}/{month.year}",
+            "invoice_total": invoice_totals.get(month, 0),
+            "payment_total": payment_totals.get(month, 0),
+        }
+        for month in months
+    ]
+    monthly_chart_max = max(
+        [1, *[max(item["invoice_total"], item["payment_total"]) for item in monthly_data]]
+    )
+    for item in monthly_data:
+        item["invoice_percent"] = round(float(item["invoice_total"] / monthly_chart_max * 100), 1)
+        item["payment_percent"] = round(float(item["payment_total"] / monthly_chart_max * 100), 1)
     context = {
-        "room_count": rooms.count(),
-        "available_count": rooms.filter(status=Room.Status.AVAILABLE).count(),
-        "occupied_count": rooms.filter(status=Room.Status.OCCUPIED).count(),
+        "room_count": room_counts["total"],
+        "available_count": room_counts["available"],
+        "occupied_count": room_counts["occupied"],
         "active_contract_count": contracts.filter(status=Contract.Status.ACTIVE).count(),
         "unpaid_total": invoices.aggregate(total=Sum("total_amount") - Sum("paid_amount"))["total"] or 0,
         "open_incident_count": incidents.filter(status__in=(Incident.Status.OPEN, Incident.Status.IN_PROGRESS)).count(),
         "recent_invoices": invoices.select_related("contract__room__building")[:8],
         "expiring_contracts": contracts.filter(status=Contract.Status.ACTIVE).select_related("room", "representative").order_by("end_date")[:8],
+        "monthly_data": monthly_data,
     }
     return render(request, "rentals/dashboard.html", context)
 
@@ -362,12 +431,17 @@ def object_list(request, resource):
             queryset = queryset.filter(is_active=False)
         queryset = queryset.order_by("name" if sort == "name" else "-created_at")
         all_buildings = get_accessible_buildings(request.user)
+        building_counts = all_buildings.aggregate(
+            total=Count("pk"),
+            active=Count("pk", filter=Q(is_active=True)),
+            inactive=Count("pk", filter=Q(is_active=False)),
+        )
         context.update({
             "status": status,
             "sort": sort,
-            "building_total": all_buildings.count(),
-            "building_active": all_buildings.filter(is_active=True).count(),
-            "building_inactive": all_buildings.filter(is_active=False).count(),
+            "building_total": building_counts["total"],
+            "building_active": building_counts["active"],
+            "building_inactive": building_counts["inactive"],
         })
     if resource == "rooms":
         building_id = request.GET.get("building", "").strip()
@@ -536,23 +610,28 @@ def room_map(request):
         .filter(is_active=True)
         .annotate(first_room_number=Min("rooms__number"))
         .order_by("first_room_number", "name")
+        .prefetch_related("indoor_maps")
     )
+    accessible_buildings = list(accessible_buildings)
     buildings = accessible_buildings
     if building_id:
-        buildings = buildings.filter(pk=building_id)
+        buildings = [building for building in buildings if str(building.pk) == building_id]
 
-    summary_rooms = get_accessible_rooms(request.user).filter(building__in=buildings)
-    displayed_rooms = summary_rooms.select_related("building").prefetch_related("amenities")
+    summary_rooms = list(
+        get_accessible_rooms(request.user).filter(building__in=buildings)
+        .select_related("building").prefetch_related("amenities")
+    )
+    displayed_rooms = summary_rooms
     valid_statuses = {choice for choice, _ in Room.Status.choices}
     if status in valid_statuses:
-        displayed_rooms = displayed_rooms.filter(status=status)
+        displayed_rooms = [room for room in displayed_rooms if room.status == status]
     else:
         status = ""
 
     building_cards = []
     for building in buildings:
-        all_building_rooms = list(summary_rooms.filter(building=building))
-        visible_building_rooms = list(displayed_rooms.filter(building=building))
+        all_building_rooms = [room for room in summary_rooms if room.building_id == building.pk]
+        visible_building_rooms = [room for room in displayed_rooms if room.building_id == building.pk]
         for room in visible_building_rooms:
             room.has_air_conditioner = any(amenity.name == "Máy lạnh" for amenity in room.amenities.all())
         floors = []
@@ -561,16 +640,16 @@ def room_map(request):
             if floor_rooms:
                 floors.append({"number": floor_number, "rooms": floor_rooms})
         counts = {key: sum(room.status == key for room in all_building_rooms) for key in valid_statuses}
-        building_cards.append({"building": building, "floors": floors, "total": len(all_building_rooms), "counts": counts})
+        building_cards.append({"building": building, "floors": floors, "total": len(all_building_rooms), "counts": counts, "indoor_maps": sorted(building.indoor_maps.all(), key=lambda indoor: indoor.floor)})
 
-    total = summary_rooms.count()
+    total = len(summary_rooms)
     stats = {
         "total": total,
-        "available": summary_rooms.filter(status=Room.Status.AVAILABLE).count(),
-        "occupied": summary_rooms.filter(status=Room.Status.OCCUPIED).count(),
-        "reserved": summary_rooms.filter(status=Room.Status.RESERVED).count(),
-        "maintenance": summary_rooms.filter(status=Room.Status.MAINTENANCE).count(),
-        "air_conditioned": summary_rooms.filter(amenities__name="Máy lạnh").distinct().count(),
+        "available": sum(room.status == Room.Status.AVAILABLE for room in summary_rooms),
+        "occupied": sum(room.status == Room.Status.OCCUPIED for room in summary_rooms),
+        "reserved": sum(room.status == Room.Status.RESERVED for room in summary_rooms),
+        "maintenance": sum(room.status == Room.Status.MAINTENANCE for room in summary_rooms),
+        "air_conditioned": sum(any(amenity.name == "Máy lạnh" for amenity in room.amenities.all()) for room in summary_rooms),
     }
     stats["without_air_conditioner"] = stats["total"] - stats["air_conditioned"]
     return render(request, "rentals/room_map.html", {

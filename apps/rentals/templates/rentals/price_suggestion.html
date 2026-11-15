@@ -1,0 +1,365 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Gợi ý giá thuê thông minh · Phòng {{ room.number }}{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/price-suggestion.css' %}">
+{% endblock %}
+
+{% block page_title %}Gợi ý giá thuê thông minh{% endblock %}
+{% block page_subtitle %}Hệ thống AI đề xuất giá phòng theo diện tích, tiện nghi & thị trường nội bộ{% endblock %}
+
+{% block content %}
+<div class="price-page">
+
+  <!-- 1. HERO SHOWCASE: THÔNG TIN PHÒNG & DANH MỤC TIỆN NGHI -->
+  <section class="warm-panel price-hero">
+    <div class="price-hero-header">
+      <div class="price-hero-left">
+        <div class="price-ai-badge-icon" title="AI Smart Pricing">
+          <i data-lucide="sparkles"></i>
+        </div>
+        <div class="price-hero-titles">
+          <h1>
+            Phòng {{ room.number }}
+            <span class="price-hero-tag"><i data-lucide="sparkles"></i> AI Định Giá v2.0</span>
+          </h1>
+          <p>{{ room.building.name }} &bull; {{ room.building.address }}</p>
+        </div>
+      </div>
+      <div class="price-hero-actions">
+        <a class="btn-warm-outline" href="{% url 'rooms' %}" title="Về danh sách phòng">
+          <i data-lucide="arrow-left"></i> Danh sách phòng
+        </a>
+        <a class="btn-warm-outline" href="{% url 'room-update' room.id %}" title="Chỉnh sửa thông số phòng">
+          <i data-lucide="pencil"></i> Chỉnh sửa phòng
+        </a>
+      </div>
+    </div>
+
+    <!-- Room Specification Chips -->
+    <div class="room-spec-bar">
+      <span class="spec-chip" title="Diện tích phòng">
+        <i data-lucide="maximize-2"></i> {{ room.area|default:"—" }} m²
+      </span>
+      <span class="spec-chip" title="Vị trí tầng">
+        <i data-lucide="layers"></i> Tầng {{ room.floor }}
+      </span>
+      <span class="spec-chip" title="Sức chứa">
+        <i data-lucide="users"></i> Tối đa {{ room.max_occupants }} người
+      </span>
+      <span class="spec-chip status-avail" title="Trạng thái">
+        <i data-lucide="check-circle-2"></i> {{ room.get_status_display }}
+      </span>
+      {% for amenity in room.amenities.all %}
+      <span class="amenity-chip"><i data-lucide="check"></i> {{ amenity.name }}</span>
+      {% empty %}
+      <span class="amenity-chip" style="opacity:0.75;background:#f5f5f4;border-color:#e7e5e4;color:#78716c;">Chưa gán tiện nghi</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- 2. BỘ ĐÔI ĐỐI SÁNH GIÁ TRỰC QUAN -->
+  <section class="price-showcase-grid">
+
+    <!-- Card 1: Giá niêm yết hiện tại -->
+    <div class="price-card price-card-current">
+      <div>
+        <div class="price-card-header">
+          <div class="card-title-group">
+            <span class="card-icon-pill current"><i data-lucide="home"></i></span>
+            <h2>Giá niêm yết hiện tại</h2>
+          </div>
+          <span class="card-status-badge badge-active">Đang áp dụng</span>
+        </div>
+        <div class="price-amount-box">
+          <span class="price-number">{{ room.monthly_rent|vnd }} đ</span>
+          <span class="price-unit">/ tháng</span>
+        </div>
+      </div>
+      <div>
+        <p class="price-meta-note">
+          <strong>Tiền cọc quy định:</strong> {{ room.deposit_amount|vnd }} đ<br>
+          <span style="color:#a8a29e;font-size:12px;">Mức giá đang hiển thị công khai trên hệ thống & ứng dụng khách thuê.</span>
+        </p>
+      </div>
+    </div>
+
+    <!-- Trung tâm: Bộ chuyển tiếp & So sánh chênh lệch -->
+    <div class="price-comparator-wrap">
+      <div class="price-diff-card">
+        {% if latest_suggestion %}
+          {% if price_diff_direction == 'up' %}
+            <span class="diff-badge up">
+              <i data-lucide="trending-up"></i> +{{ price_diff_abs|vnd }} đ
+            </span>
+            <span style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:4px;">(+{{ price_diff_percent_abs }}%)</span>
+            <p class="diff-text-summary">AI khuyến nghị tăng nhẹ để tối ưu doanh thu</p>
+          {% elif price_diff_direction == 'down' %}
+            <span class="diff-badge down">
+              <i data-lucide="trending-down"></i> -{{ price_diff_abs|vnd }} đ
+            </span>
+            <span style="font-size:12px;font-weight:700;color:#c2410c;margin-bottom:4px;">(-{{ price_diff_percent_abs }}%)</span>
+            <p class="diff-text-summary">AI gợi ý điều chỉnh để tăng tỷ lệ lấp đầy</p>
+          {% else %}
+            <span class="diff-badge equal">
+              <i data-lucide="equal"></i> 0 đ
+            </span>
+            <span style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px;">(0%)</span>
+            <p class="diff-text-summary">Giá hiện tại đã rất cân bằng</p>
+          {% endif %}
+        {% else %}
+          <div style="width:36px;height:36px;border-radius:50%;background:#ffedd5;display:grid;place-items:center;color:#ea580c;margin-bottom:6px;">
+            <i data-lucide="sparkles"></i>
+          </div>
+          <p class="diff-text-summary">Sẵn sàng phân tích định giá</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Card 2: Giá AI gợi ý tối ưu -->
+    <div class="price-card price-card-recommended">
+      <div>
+        <div class="price-card-header">
+          <div class="card-title-group">
+            <span class="card-icon-pill ai"><i data-lucide="sparkles"></i></span>
+            <h2>Gợi ý thông minh từ AI</h2>
+          </div>
+          <span class="card-status-badge" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;">
+            Random Forest
+          </span>
+        </div>
+        <div class="price-amount-box">
+          {% if latest_suggestion %}
+            <span class="price-number">{{ latest_suggestion.suggested_price|vnd }} đ</span>
+            <span class="price-unit">/ tháng &bull; Đề xuất lúc {{ latest_suggestion.created_at|date:"H:i - d/m/Y" }}</span>
+          {% else %}
+            <span class="price-number" style="font-size:22px;color:#a8a29e;font-weight:700;">Chưa tạo gợi ý</span>
+            <span class="price-unit">Nhấn "Chạy phân tích AI" để nhận mức giá tối ưu</span>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        {% if latest_suggestion %}
+          {% if latest_suggestion.applied_at %}
+            <div class="applied-badge-block">
+              <i data-lucide="check-check"></i> Đã áp dụng mức giá này
+            </div>
+          {% elif latest_suggestion.current_price == room.monthly_rent %}
+            <form method="post" action="{% url 'price-suggestion-apply' room.id latest_suggestion.id %}" onsubmit="return confirm('Bạn có chắc muốn cập nhật giá niêm yết của phòng {{ room.number }} thành {{ latest_suggestion.suggested_price|vnd }} đ?');">
+              {% csrf_token %}
+              <button class="btn-warm-apply" type="submit">
+                <i data-lucide="badge-check"></i> Áp dụng giá này ngay
+              </button>
+            </form>
+          {% else %}
+            <div class="applied-badge-block" style="background:#fffbeb;color:#92400e;border-color:#fde68a;">
+              <i data-lucide="alert-circle"></i> Giá phòng đã thay đổi từ lần gợi ý này
+            </div>
+          {% endif %}
+        {% else %}
+          <form method="post">
+            {% csrf_token %}
+            <button class="btn-warm-apply" type="submit">
+              <i data-lucide="sparkles"></i> Phân tích giá ngay
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+  </section>
+
+  <!-- 3. BANNER HÀNH ĐỘNG: CHẠY PHÂN TÍCH AI MỚI -->
+  <section class="price-action-banner">
+    <div class="price-action-left">
+      <h3><i data-lucide="zap"></i> Cập nhật gợi ý giá thuê mới</h3>
+      <p>
+        Mô hình Machine Learning sẽ tự động đối chiếu các phòng cùng chủ sở hữu dựa trên diện tích, tầng lầu, sức chứa và tiện nghi để tối ưu hóa giá thuê mới nhất.
+      </p>
+      {% if peer_count < 8 %}
+      <p style="margin-top:8px;color:#c2410c;font-weight:600;display:flex;align-items:center;gap:6px;">
+        <i data-lucide="info"></i> Cần ít nhất 8 phòng khác có diện tích và giá thuê (Hiện có {{ peer_count }}/8 phòng).
+      </p>
+      {% endif %}
+    </div>
+    <div>
+      <form method="post">
+        {% csrf_token %}
+        <button class="btn-warm-generate" type="submit">
+          <i data-lucide="sparkles"></i> Chạy phân tích AI ngay
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 4. THƯỚC ĐO CHẤT LƯỢNG & ĐỘ TIN CẬY MÔ HÌNH -->
+  <section class="price-metrics-grid">
+    <div class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-card-label"><i data-lucide="gauge"></i> Độ giải thích (R²)</span>
+        {% if latest_suggestion.validation_r2 != None %}
+          <span class="card-status-badge badge-active">Tin cậy</span>
+        {% else %}
+          <span class="card-status-badge" style="background:#fef3c7;color:#92400e;">Đang tích lũy</span>
+        {% endif %}
+      </div>
+      <div class="metric-card-val">
+        {% if latest_suggestion.validation_r2 != None %}
+          {{ latest_suggestion.validation_r2|floatformat:3 }}
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <p class="metric-card-desc">
+        Khả năng giải thích sự khác biệt giá giữa các phòng từ đặc trưng thực tế (Cần &ge; 20 phòng mẫu để kiểm tra chéo).
+      </p>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-card-label"><i data-lucide="activity"></i> Sai số bình quân (MAE)</span>
+      </div>
+      <div class="metric-card-val">
+        {% if latest_suggestion.validation_mae != None %}
+          &plusmn;{{ latest_suggestion.validation_mae|vnd }} đ
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <p class="metric-card-desc">
+        Độ lệch tuyệt đối trung bình giữa giá dự báo và giá thực tế khi kiểm nghiệm mô hình.
+      </p>
+    </div>
+
+    <div class="metric-card">
+      <div class="metric-card-top">
+        <span class="metric-card-label"><i data-lucide="database"></i> Dữ liệu tham chiếu</span>
+      </div>
+      <div class="metric-card-val">
+        {% if latest_suggestion %}
+          {{ latest_suggestion.sample_count }} phòng
+        {% else %}
+          {{ peer_count }} phòng
+        {% endif %}
+      </div>
+      <p class="metric-card-desc">
+        Số lượng phòng thực tế của cùng chủ nhà có diện tích và giá hợp lệ được đưa vào huấn luyện.
+      </p>
+    </div>
+  </section>
+
+  <!-- 5. HƯỚNG DẪN CƠ CHẾ HOẠT ĐỘNG THÂN THIỆN -->
+  <section class="warm-panel">
+    <h3 style="font-size:16px;font-weight:800;color:#431407;margin:0 0 10px;display:flex;align-items:center;gap:8px;">
+      <i data-lucide="info" style="color:#ea580c;width:18px;height:18px;"></i> Cơ chế AI gợi ý giá thuê hoạt động như thế nào?
+    </h3>
+    <div class="price-steps-wrap">
+      <div class="step-card">
+        <div class="step-num-pill">1</div>
+        <h4>Trích xuất đặc trưng</h4>
+        <p>AI trích xuất tự động diện tích, tầng, số người tối đa, tòa nhà và hệ thống tiện nghi đi kèm của phòng.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num-pill">2</div>
+        <h4>Học máy Random Forest</h4>
+        <p>Mô hình xây dựng tập hợp nhiều cây quyết định để tìm ra mức giá tham khảo công bằng, cân bằng thị trường nội bộ.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num-pill">3</div>
+        <h4>Chủ nhà toàn quyền</h4>
+        <p>Mức giá được làm tròn đến hàng chục nghìn. Bạn hoàn toàn chủ động quyết định áp dụng hoặc điều chỉnh theo ý muốn.</p>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:#fffaf0;border-left:3px solid #f97316;border-radius:6px;font-size:12px;color:#78350f;display:flex;align-items:center;gap:8px;">
+      <i data-lucide="shield-check" style="width:16px;height:16px;color:#ea580c;flex-shrink:0;"></i>
+      <span><strong>An tâm sử dụng:</strong> Thao tác áp dụng giá gợi ý chỉ cập nhật giá niêm yết công khai của phòng, hoàn toàn không sửa đổi hay ảnh hưởng đến các hợp đồng thuê đang có hiệu lực.</span>
+    </div>
+  </section>
+
+  <!-- 6. LỊCH SỬ CÁC LẦN GỢI Ý -->
+  <section class="warm-panel price-history-section">
+    <h3>
+      <i data-lucide="history" style="color:#ea580c;width:20px;height:20px;"></i>
+      Lịch sử phân tích & gợi ý giá
+    </h3>
+    <div class="warm-table-wrap">
+      <table class="warm-table">
+        <thead>
+          <tr>
+            <th>Thời gian tạo</th>
+            <th>Giá lúc gợi ý</th>
+            <th>Giá đề xuất AI</th>
+            <th>Quy mô mẫu</th>
+            <th>Sai số (MAE / R²)</th>
+            <th style="text-align:right;">Trạng thái & Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in suggestions %}
+          <tr>
+            <td>
+              <strong>{{ item.created_at|date:"d/m/Y" }}</strong>
+              <div style="font-size:11px;color:#a8a29e;">{{ item.created_at|date:"H:i" }}</div>
+            </td>
+            <td>{{ item.current_price|vnd }} đ</td>
+            <td>
+              <strong style="color:#c2410c;font-size:14px;">{{ item.suggested_price|vnd }} đ</strong>
+            </td>
+            <td>{{ item.sample_count }} phòng</td>
+            <td>
+              <div style="font-size:12px;">
+                {% if item.validation_mae != None %}
+                  MAE: &plusmn;{{ item.validation_mae|vnd }} đ
+                {% else %}
+                  <span style="color:#a8a29e;">MAE: &mdash;</span>
+                {% endif %}
+              </div>
+              <div style="font-size:11px;color:#78716c;">
+                {% if item.validation_r2 != None %}
+                  R&sup2;: {{ item.validation_r2|floatformat:3 }}
+                {% else %}
+                  R&sup2;: &mdash;
+                {% endif %}
+              </div>
+            </td>
+            <td style="text-align:right;">
+              {% if item.applied_at %}
+                <span class="badge-history-status applied">
+                  <i data-lucide="check-check"></i> Đã áp dụng ({{ item.applied_at|date:"d/m" }})
+                </span>
+              {% elif item.current_price == room.monthly_rent %}
+                <form method="post" action="{% url 'price-suggestion-apply' room.id item.id %}" style="display:inline;" onsubmit="return confirm('Bạn có chắc muốn áp dụng mức giá {{ item.suggested_price|vnd }} đ/tháng?');">
+                  {% csrf_token %}
+                  <button class="btn-warm-mini" type="submit">
+                    <i data-lucide="badge-check"></i> Áp dụng
+                  </button>
+                </form>
+              {% else %}
+                <span class="badge-history-status stale" title="Giá phòng đã đổi so với lúc gợi ý">
+                  Giá đã đổi
+                </span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6">
+              <div class="price-empty-state">
+                <div class="price-empty-state-icon">
+                  <i data-lucide="sparkles"></i>
+                </div>
+                <h4>Chưa có lịch sử gợi ý giá</h4>
+                <p>Nhấn vào nút "Chạy phân tích AI ngay" ở trên để tạo đề xuất giá đầu tiên cho phòng này.</p>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+{% endblock %}

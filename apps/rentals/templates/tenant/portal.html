@@ -1,16 +1,134 @@
 {% extends "base.html" %}
-{% block title %}Trang người thuê{% endblock %}
+{% block title %}Trang người thuê — QL Phòng Cho Thuê{% endblock %}
 {% block page_title %}Xin chào, {{ tenant.full_name }}{% endblock %}
+{% block page_subtitle %}Cổng thông tin dành cho khách thuê: theo dõi phòng, hợp đồng, hóa đơn và yêu cầu hỗ trợ{% endblock %}
+
 {% block content %}
-<section class="stats-grid">
-  <article class="stat info"><span>Phòng hiện tại</span><strong>{% if active_contract %}{{ active_contract.room.number }}{% else %}—{% endif %}</strong></article>
-  <article class="stat"><span>Tòa nhà</span><strong class="small-value">{% if active_contract %}{{ active_contract.room.building.name }}{% else %}Chưa có{% endif %}</strong></article>
-  <article class="stat danger"><span>Tổng cần thanh toán</span><strong>{{ total_debt|vnd }} đ</strong></article>
-  <article class="stat warning"><span>Thông báo chưa đọc</span><strong>{{ unread_count }}</strong></article>
+<section class="stats-grid tenant-stats-grid">
+  <article class="stat">
+    <span>Phòng đang thuê</span>
+    <strong>{% if active_contract %}Phòng {{ active_contract.room.number }}{% else %}—{% endif %}</strong>
+  </article>
+  <article class="stat">
+    <span>Tòa nhà</span>
+    <strong class="small-value">{% if active_contract %}{{ active_contract.room.building.name }}{% else %}Chưa có{% endif %}</strong>
+  </article>
+  <article class="stat">
+    <span>Tổng cần thanh toán</span>
+    <strong style="color: {% if total_debt > 0 %}#c2410c{% else %}#15803d{% endif %};">{{ total_debt|vnd }} đ</strong>
+  </article>
+  <article class="stat">
+    <span>Thông báo chưa đọc</span>
+    <strong style="color: {% if unread_count > 0 %}#ea580c{% else %}#78716c{% endif %};">{{ unread_count }}</strong>
+  </article>
 </section>
-{% if active_contract %}<section class="panel tenant-room"><h2>Thông tin thuê hiện tại</h2><div class="detail-grid"><div><span>Mã hợp đồng</span><strong>{{ active_contract.code }}</strong></div><div><span>Thời hạn</span><strong>{{ active_contract.start_date|date:"d/m/Y" }} – {{ active_contract.end_date|date:"d/m/Y" }}</strong></div><div><span>Giá thuê</span><strong>{{ active_contract.monthly_rent|vnd }} đ/tháng</strong></div><div><span>Địa chỉ</span><strong>{{ active_contract.room.building.address }}</strong></div></div></section>{% endif %}
+
+{% if active_contract %}
+<section class="panel tenant-room-card">
+  <div class="panel-heading">
+    <div>
+      <span class="tenant-badge-eyebrow">{{ active_contract.room.building.name }}</span>
+      <h2>Thông tin phòng thuê hiện tại</h2>
+    </div>
+    <span class="badge" style="background:#ecfdf5;color:#047857;border:1px solid #a7f3d0;font-size:13px;">{{ active_contract.get_status_display }}</span>
+  </div>
+  <div class="detail-grid">
+    <div>
+      <span>Mã hợp đồng</span>
+      <strong style="color:#c2410c;font-family:monospace;font-size:15px;">{{ active_contract.code }}</strong>
+    </div>
+    <div>
+      <span>Thời hạn hợp đồng</span>
+      <strong>{{ active_contract.start_date|date:"d/m/Y" }} – {{ active_contract.end_date|date:"d/m/Y" }}</strong>
+    </div>
+    <div>
+      <span>Giá thuê hàng tháng</span>
+      <strong style="color:#c2410c;font-size:17px;">{{ active_contract.monthly_rent|vnd }} đ/tháng</strong>
+    </div>
+    <div>
+      <span>Tiền cọc giữ chỗ</span>
+      <strong>{{ active_contract.deposit_amount|vnd }} đ</strong>
+    </div>
+    <div>
+      <span>Địa chỉ tòa nhà</span>
+      <strong>{{ active_contract.room.building.address }}</strong>
+    </div>
+    <div>
+      <span>Tầng / Diện tích</span>
+      <strong>Tầng {{ active_contract.room.floor }}{% if active_contract.room.area %} · {{ active_contract.room.area }} m²{% endif %}</strong>
+    </div>
+  </div>
+</section>
+{% endif %}
+
 <section class="two-columns">
-  <article class="panel"><div class="panel-heading"><h2>Hóa đơn cần thanh toán</h2><a href="{% url 'tenant-invoices' %}">Xem tất cả</a></div><table><thead><tr><th>Kỳ</th><th>Còn nợ</th><th>Hạn trả</th></tr></thead><tbody>{% for x in unpaid_invoices %}<tr><td><a href="{% url 'tenant-invoice-detail' x.id %}">{{ x.period|date:"m/Y" }}</a></td><td>{{ x.balance|vnd }} đ</td><td>{{ x.due_date|date:"d/m/Y" }}</td></tr>{% empty %}<tr><td colspan="3">Không có hóa đơn cần thanh toán.</td></tr>{% endfor %}</tbody></table></article>
-  <article class="panel"><div class="panel-heading"><h2>Yêu cầu gần đây</h2><a class="btn primary compact" href="{% url 'tenant-incident-create' %}">Gửi yêu cầu</a></div><table><thead><tr><th>Nội dung</th><th>Trạng thái</th></tr></thead><tbody>{% for x in incidents %}<tr><td>{{ x.title }}</td><td><span class="badge">{{ x.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="2">Chưa có yêu cầu.</td></tr>{% endfor %}</tbody></table></article>
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Hóa đơn cần thanh toán</h2>
+      <a class="panel-more-link" href="{% url 'tenant-invoices' %}">Xem tất cả <i data-lucide="arrow-right"></i></a>
+    </div>
+    <table class="dashboard-table">
+      <thead>
+        <tr>
+          <th>Kỳ hóa đơn</th>
+          <th>Còn nợ</th>
+          <th>Hạn thanh toán</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in unpaid_invoices %}
+        <tr>
+          <td>
+            <a class="table-code-link" href="{% url 'tenant-invoice-detail' x.id %}">
+              {{ x.code }} ({{ x.period|date:"m/Y" }})
+            </a>
+          </td>
+          <td><strong style="color:#c2410c;font-weight:750;">{{ x.balance|vnd }} đ</strong></td>
+          <td><span class="table-date-val">{{ x.due_date|date:"d/m/Y" }}</span></td>
+          <td style="text-align:right;">
+            <a class="btn primary compact" href="{% url 'tenant-invoice-detail' x.id %}">Chi tiết</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" class="table-empty">Bạn không có hóa đơn nào cần thanh toán.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Yêu cầu hỗ trợ gần đây</h2>
+      <a class="btn primary compact" href="{% url 'tenant-incident-create' %}"><i data-lucide="plus"></i> Gửi yêu cầu</a>
+    </div>
+    <table class="dashboard-table">
+      <thead>
+        <tr>
+          <th>Nội dung yêu cầu</th>
+          <th>Ngày gửi</th>
+          <th>Trạng thái</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in incidents %}
+        <tr>
+          <td>
+            <strong style="color:#431407;font-size:13.5px;">{{ x.title }}</strong>
+            {% if x.description %}<div style="font-size:12px;color:#78716c;margin-top:2px;">{{ x.description|truncatechars:45 }}</div>{% endif %}
+          </td>
+          <td><span class="table-date-val">{{ x.created_at|date:"d/m/Y" }}</span></td>
+          <td><span class="badge">{{ x.get_status_display }}</span></td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="table-empty">Bạn chưa gửi yêu cầu hỗ trợ nào.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </article>
 </section>
 {% endblock %}

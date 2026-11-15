@@ -4,6 +4,10 @@
   "private": true,
   "description": "Frontend assets for the Django rental management application",
   "dependencies": {
-    "lucide": "^1.0.0"
+    "lucide": "^1.0.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
   }
 }

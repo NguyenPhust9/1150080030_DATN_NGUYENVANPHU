@@ -15,3 +15,8 @@ staticfiles/
 .vscode/
 node_modules/
 datasets/
+test-results/
+tmp/indoor-map-backups/
+runs/fire_detection/dfire_smallfire_*/
+runs/fire_detection/evaluations/
+tmp/fire-clip-*/

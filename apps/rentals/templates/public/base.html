@@ -6,14 +6,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Phòng cho thuê{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'images/logo.png' %}">
+  <link rel="stylesheet" href="{% static 'css/loading.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/public-home.css' %}?v=3">
+  <link rel="stylesheet" href="{% static 'css/public-home.css' %}?v=4">
   <link rel="stylesheet" href="{% static 'css/hero-banner.css' %}?v=3">
   <link rel="stylesheet" href="{% static 'css/lucide.css' %}">
   <link rel="stylesheet" href="{% static 'css/room-detail.css' %}">
   <link rel="stylesheet" href="{% static 'css/about.css' %}">
+  <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
 </head>
 <body class="public-page">
+  {% include 'includes/loading.html' %}
   <header class="public-header {% if request.resolver_match.url_name == 'public-home' %}transparent-hero-header{% endif %}">
     <a class="public-brand" href="{% url 'public-home' %}">
       <span class="logo-mark"><img src="{% static 'images/logo.png' %}" alt="Logo"></span>
@@ -34,8 +37,11 @@
       </a>
     </nav>
     <div class="header-actions">
+      <a class="favorite-link" href="{% url 'public-rooms' %}?favorites=1" title="Xem phòng đã lưu">
+        <i data-lucide="heart"></i> Yêu thích <span id="favorite-count">0</span>
+      </a>
       {% if user.is_authenticated %}
-        <a class="btn-cyan-login" href="{% url 'dashboard' %}">
+        <a class="btn-cyan-login" href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}">
           <i data-lucide="circle-user-round"></i>
           <span>Vào hệ thống</span>
         </a>
@@ -83,5 +89,6 @@
   <script src="{% static 'lucide.min.js' %}"></script>
   <script>lucide.createIcons({attrs:{"stroke-width":2}});</script>
   <script src="{% static 'js/favorites.js' %}"></script>
+  <script src="{% static 'js/loading.js' %}"></script>
 </body>
 </html>

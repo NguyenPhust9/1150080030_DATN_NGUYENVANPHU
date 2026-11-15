@@ -2,16 +2,127 @@
 {% block title %}Tổng quan{% endblock %}
 {% block page_title %}Tổng quan{% endblock %}
 {% block content %}
-<section class="stats-grid">
+<section class="stats-grid dashboard-stats-grid">
   <article class="stat"><span>Tổng số phòng</span><strong>{{ room_count }}</strong></article>
-  <article class="stat success"><span>Phòng trống</span><strong>{{ available_count }}</strong></article>
-  <article class="stat info"><span>Đang thuê</span><strong>{{ occupied_count }}</strong></article>
-  <article class="stat warning"><span>Hợp đồng hiệu lực</span><strong>{{ active_contract_count }}</strong></article>
-  <article class="stat danger"><span>Tổng công nợ</span><strong>{{ unpaid_total|vnd }} đ</strong></article>
+  <article class="stat"><span>Phòng trống</span><strong>{{ available_count }}</strong></article>
+  <article class="stat"><span>Đang thuê</span><strong>{{ occupied_count }}</strong></article>
+  <article class="stat"><span>Hợp đồng hiệu lực</span><strong>{{ active_contract_count }}</strong></article>
+  <article class="stat"><span>Tổng công nợ</span><strong>{{ unpaid_total|vnd }} đ</strong></article>
   <article class="stat"><span>Sự cố cần xử lý</span><strong>{{ open_incident_count }}</strong></article>
 </section>
-<section class="two-columns">
-  <article class="panel"><h2>Hóa đơn gần đây</h2><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Phòng</th><th>Tổng tiền</th><th>Trạng thái</th></tr></thead><tbody>{% for item in recent_invoices %}<tr><td>{{ item.code }}</td><td>{{ item.contract.room }}</td><td>{{ item.total_amount|vnd }} đ</td><td><span class="badge">{{ item.get_status_display }}</span></td></tr>{% empty %}<tr><td colspan="4">Chưa có hóa đơn.</td></tr>{% endfor %}</tbody></table></div></article>
-  <article class="panel"><h2>Hợp đồng sắp hết hạn</h2><div class="table-wrap"><table><thead><tr><th>Mã</th><th>Khách thuê</th><th>Ngày hết hạn</th></tr></thead><tbody>{% for item in expiring_contracts %}<tr><td>{{ item.code }}</td><td>{{ item.representative }}</td><td>{{ item.end_date|date:"d/m/Y" }}</td></tr>{% empty %}<tr><td colspan="3">Chưa có hợp đồng.</td></tr>{% endfor %}</tbody></table></div></article>
+<section class="monthly-chart-panel panel" aria-labelledby="monthly-chart-title">
+  <div class="panel-heading">
+    <div>
+      <h2 id="monthly-chart-title">Tình hình theo tháng</h2>
+      <p class="chart-description">Hóa đơn phát hành và tiền đã thu trong 6 tháng gần nhất.</p>
+    </div>
+    <div class="chart-legend" aria-label="Chú thích biểu đồ">
+      <span><i class="chart-dot billed"></i>Hóa đơn</span>
+      <span><i class="chart-dot collected"></i>Đã thu</span>
+    </div>
+  </div>
+  <div class="monthly-chart" role="img" aria-label="Biểu đồ hóa đơn và tiền đã thu trong sáu tháng gần nhất">
+    {% for month in monthly_data %}
+    <div class="chart-month">
+      <div class="chart-values">
+        <div class="chart-series">
+          <span class="chart-bar billed" data-percent="{{ month.invoice_percent }}" title="{{ month.label }}: Hóa đơn {{ month.invoice_total|vnd }} đ"></span>
+          <span class="chart-bar collected" data-percent="{{ month.payment_percent }}" title="{{ month.label }}: Đã thu {{ month.payment_total|vnd }} đ"></span>
+        </div>
+        <div class="chart-summary">
+          <strong>{{ month.invoice_total|vnd }} đ</strong>
+          <small>Thu: {{ month.payment_total|vnd }} đ</small>
+        </div>
+      </div>
+      <span class="chart-label">{{ month.label }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<script>
+  document.querySelectorAll(".chart-bar[data-percent]").forEach((bar) => {
+    bar.style.height = `${Math.min(100, Math.max(0, Number(bar.dataset.percent) || 0))}%`;
+  });
+</script>
+<section class="two-columns dashboard-panels">
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Hóa đơn gần đây</h2>
+      <a href="{% url 'invoices' %}" class="panel-more-link">Xem tất cả <i data-lucide="chevron-right"></i></a>
+    </div>
+    <div class="table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th class="th-bold" style="width:24%;">Mã</th>
+            <th class="th-bold" style="width:30%;">Phòng</th>
+            <th class="th-bold" style="width:22%;">Tổng tiền</th>
+            <th class="th-bold" style="width:24%;text-align:right;">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in recent_invoices %}
+          <tr>
+            <td>
+              <a href="{% url 'invoice-detail' item.id %}" class="table-code-link" title="Xem chi tiết {{ item.code }}">{{ item.code }}</a>
+            </td>
+            <td>
+              <div class="table-room-cell">
+                <strong>Phòng {{ item.contract.room.number }}</strong>
+                <small>{{ item.contract.room.building.name }}</small>
+              </div>
+            </td>
+            <td>
+              <strong class="table-price-val">{{ item.total_amount|vnd }} đ</strong>
+            </td>
+            <td style="text-align:right;">
+              <span class="badge badge-status-{{ item.status }}">{{ item.get_status_display }}</span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="table-empty">Chưa có hóa đơn nào.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-heading">
+      <h2>Hợp đồng sắp hết hạn</h2>
+      <a href="{% url 'contracts' %}" class="panel-more-link">Xem tất cả <i data-lucide="chevron-right"></i></a>
+    </div>
+    <div class="table-wrap">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th class="th-bold" style="width:28%;">Mã</th>
+            <th class="th-bold" style="width:42%;">Khách thuê</th>
+            <th class="th-bold" style="width:30%;text-align:right;">Ngày hết hạn</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in expiring_contracts %}
+          <tr>
+            <td>
+              <a href="{% url 'contract-detail' item.id %}" class="table-code-link" title="Xem chi tiết {{ item.code }}">{{ item.code }}</a>
+            </td>
+            <td>
+              <div class="table-room-cell">
+                <strong>{{ item.representative.full_name }}</strong>
+                <small>{{ item.room.building.name }} &bull; P.{{ item.room.number }}</small>
+              </div>
+            </td>
+            <td style="text-align:right;">
+              <span class="table-date-val">{{ item.end_date|date:"d/m/Y" }}</span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="table-empty">Không có hợp đồng sắp hết hạn.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </article>
 </section>
 {% endblock %}

@@ -104,6 +104,24 @@ class RoomMedia(UUIDTimeStampedModel):
         verbose_name_plural = "ảnh/video phòng"
 
 
+class PriceSuggestion(UUIDTimeStampedModel):
+    room = models.ForeignKey(Room, on_delete=models.PROTECT, related_name="price_suggestions")
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    current_price = models.DecimalField(max_digits=14, decimal_places=2)
+    suggested_price = models.DecimalField(max_digits=14, decimal_places=2)
+    sample_count = models.PositiveIntegerField()
+    validation_mae = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    validation_rmse = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    validation_r2 = models.DecimalField(max_digits=8, decimal_places=4, null=True, blank=True)
+    features = models.JSONField(default=dict)
+    applied_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+        verbose_name = "gợi ý giá thuê"
+        verbose_name_plural = "gợi ý giá thuê"
+
+
 class Service(UUIDTimeStampedModel):
     class Unit(models.TextChoices):
         KWH = "kwh", "kWh"
@@ -535,3 +553,199 @@ class ChatImage(UUIDTimeStampedModel):
 
     class Meta:
         ordering = ("created_at", "id")
+
+
+class IndoorMap(UUIDTimeStampedModel):
+    building = models.ForeignKey(Building, on_delete=models.CASCADE, related_name="indoor_maps")
+    floor = models.PositiveSmallIntegerField()
+    name = models.CharField(max_length=120, default="Sơ đồ tầng")
+    width = models.PositiveSmallIntegerField(default=1000)
+    height = models.PositiveSmallIntegerField(default=600)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("building", "floor"), name="unique_indoor_map_floor")]
+        ordering = ("building__name", "floor")
+
+    def __str__(self):
+        return f"{self.building} - Tầng {self.floor}"
+
+
+class MapNode(UUIDTimeStampedModel):
+    class Kind(models.TextChoices):
+        ROOM = "room", "Phòng"
+        CORRIDOR = "corridor", "Hành lang"
+        EXIT = "exit", "Lối thoát"
+        STAIRS = "stairs", "Cầu thang"
+        DEVICE = "device", "Thiết bị PCCC"
+
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="nodes")
+    label = models.CharField(max_length=100)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.CORRIDOR)
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name="map_nodes")
+    x = models.PositiveSmallIntegerField()
+    y = models.PositiveSmallIntegerField()
+    is_blocked = models.BooleanField(default=False)
+
+    def clean(self):
+        super().clean()
+        if self.room_id and self.indoor_map_id and (
+            self.room.building_id != self.indoor_map.building_id or self.room.floor != self.indoor_map.floor
+        ):
+            raise ValidationError("Phòng phải thuộc đúng tòa nhà và tầng của sơ đồ.")
+        if self.indoor_map_id and (self.x > self.indoor_map.width or self.y > self.indoor_map.height):
+            raise ValidationError("Tọa độ phải nằm trong kích thước sơ đồ.")
+
+    def __str__(self):
+        return self.label
+
+
+class MapEdge(UUIDTimeStampedModel):
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="edges")
+    start = models.ForeignKey(MapNode, on_delete=models.CASCADE, related_name="outgoing_edges")
+    end = models.ForeignKey(MapNode, on_delete=models.CASCADE, related_name="incoming_edges")
+    is_blocked = models.BooleanField(default=False)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("indoor_map", "start", "end"), name="unique_map_edge")]
+
+    def clean(self):
+        super().clean()
+        if self.start_id and self.end_id and self.start_id == self.end_id:
+            raise ValidationError("Một lối đi cần hai điểm khác nhau.")
+        if self.indoor_map_id and (
+            (self.start_id and self.start.indoor_map_id != self.indoor_map_id)
+            or (self.end_id and self.end.indoor_map_id != self.indoor_map_id)
+        ):
+            raise ValidationError("Hai điểm phải thuộc cùng sơ đồ.")
+
+    def __str__(self):
+        return f"{self.start} ↔ {self.end}"
+
+
+class MapZone(UUIDTimeStampedModel):
+    class Kind(models.TextChoices):
+        ROOM = "room", "Phòng"
+        CORRIDOR = "corridor", "Hành lang"
+        STAIRS = "stairs", "Cầu thang"
+        EXIT = "exit", "Lối thoát"
+        OTHER = "other", "Khu vực khác"
+
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="zones")
+    name = models.CharField(max_length=100)
+    kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.OTHER)
+    room = models.ForeignKey(Room, on_delete=models.SET_NULL, null=True, blank=True, related_name="map_zones")
+    x = models.PositiveSmallIntegerField()
+    y = models.PositiveSmallIntegerField()
+    width = models.PositiveSmallIntegerField()
+    height = models.PositiveSmallIntegerField()
+
+    def clean(self):
+        super().clean()
+        if self.indoor_map_id and (
+            self.width == 0 or self.height == 0
+            or self.x + self.width > self.indoor_map.width
+            or self.y + self.height > self.indoor_map.height
+        ):
+            raise ValidationError("Vùng phải nằm trong kích thước sơ đồ và có chiều rộng/cao lớn hơn 0.")
+        if self.room_id and self.indoor_map_id and (
+            self.room.building_id != self.indoor_map.building_id or self.room.floor != self.indoor_map.floor
+        ):
+            raise ValidationError("Phòng phải thuộc đúng tòa nhà và tầng của sơ đồ.")
+
+    def __str__(self):
+        return self.name
+
+
+class ExitPoint(UUIDTimeStampedModel):
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="exit_points")
+    node = models.OneToOneField(MapNode, on_delete=models.CASCADE, related_name="exit_point")
+    name = models.CharField(max_length=100)
+
+    def clean(self):
+        super().clean()
+        if self.node_id and self.indoor_map_id and self.node.indoor_map_id != self.indoor_map_id:
+            raise ValidationError("Lối thoát phải thuộc cùng sơ đồ.")
+        if self.node_id and self.node.kind != MapNode.Kind.EXIT:
+            raise ValidationError("Điểm được chọn phải có loại lối thoát.")
+
+    def __str__(self):
+        return self.name
+
+
+class SafetyDevice(UUIDTimeStampedModel):
+    class Kind(models.TextChoices):
+        EXTINGUISHER = "extinguisher", "Bình chữa cháy"
+        ALARM = "alarm", "Chuông báo cháy"
+        HOSE = "hose", "Vòi chữa cháy"
+        LIGHT = "light", "Đèn thoát hiểm"
+
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="safety_devices")
+    name = models.CharField(max_length=100)
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    x = models.PositiveSmallIntegerField()
+    y = models.PositiveSmallIntegerField()
+
+    def clean(self):
+        super().clean()
+        if self.indoor_map_id and (self.x > self.indoor_map.width or self.y > self.indoor_map.height):
+            raise ValidationError("Thiết bị phải nằm trong kích thước sơ đồ.")
+
+    def __str__(self):
+        return self.name
+
+
+class Camera(UUIDTimeStampedModel):
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="cameras")
+    zone = models.ForeignKey(MapZone, on_delete=models.SET_NULL, null=True, blank=True, related_name="cameras")
+    name = models.CharField(max_length=100)
+    source = models.CharField(max_length=250, blank=True, help_text="Ví dụ: webcam 0 hoặc RTSP URL; không lưu mật khẩu trong URL.")
+    is_active = models.BooleanField(default=True)
+
+    def clean(self):
+        super().clean()
+        if self.zone_id and self.indoor_map_id and self.zone.indoor_map_id != self.indoor_map_id:
+            raise ValidationError("Vùng giám sát phải thuộc cùng sơ đồ với camera.")
+
+    def __str__(self):
+        return self.name
+
+
+class HazardZone(UUIDTimeStampedModel):
+    indoor_map = models.ForeignKey(IndoorMap, on_delete=models.CASCADE, related_name="hazards")
+    zone = models.ForeignKey(MapZone, on_delete=models.PROTECT, related_name="hazards")
+    camera = models.ForeignKey(Camera, on_delete=models.SET_NULL, null=True, blank=True, related_name="hazards")
+    is_active = models.BooleanField(default=True)
+    is_simulation = models.BooleanField(default=False)
+    note = models.CharField(max_length=250, blank=True)
+
+    def clean(self):
+        super().clean()
+        if self.zone_id and self.indoor_map_id and self.zone.indoor_map_id != self.indoor_map_id:
+            raise ValidationError("Vùng nguy hiểm phải thuộc cùng sơ đồ.")
+        if self.camera_id and self.indoor_map_id and self.camera.indoor_map_id != self.indoor_map_id:
+            raise ValidationError("Camera phải thuộc cùng sơ đồ.")
+
+    def __str__(self):
+        return f"{self.zone} - {'đang nguy hiểm' if self.is_active else 'đã xử lý'}"
+
+
+class AlertEvent(UUIDTimeStampedModel):
+    class Status(models.TextChoices):
+        NEW = "new", "Mới"
+        ACKNOWLEDGED = "acknowledged", "Đã xác nhận"
+        RESOLVED = "resolved", "Đã xử lý"
+
+    camera = models.ForeignKey(Camera, on_delete=models.PROTECT, related_name="alerts")
+    hazard = models.ForeignKey(HazardZone, on_delete=models.SET_NULL, null=True, blank=True, related_name="alerts")
+    label = models.CharField(max_length=30)
+    confidence = models.DecimalField(max_digits=5, decimal_places=4, null=True, blank=True)
+    image_url = models.CharField(max_length=500, blank=True)
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.NEW)
+
+    def clean(self):
+        super().clean()
+        if self.hazard_id and self.camera_id and self.hazard.indoor_map_id != self.camera.indoor_map_id:
+            raise ValidationError("Cảnh báo và vùng nguy hiểm phải cùng sơ đồ.")
+
+    def __str__(self):
+        return f"{self.camera} - {self.label} - {self.created_at:%d/%m/%Y %H:%M}"

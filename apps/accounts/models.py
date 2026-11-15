@@ -15,6 +15,7 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     role = models.CharField("vai trò", max_length=20, choices=Role.choices, default=Role.STAFF)
     phone = models.CharField("số điện thoại", max_length=20, blank=True)
+    avatar = models.ImageField("ảnh đại diện", upload_to="avatars/", blank=True)
     managed_owner = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,

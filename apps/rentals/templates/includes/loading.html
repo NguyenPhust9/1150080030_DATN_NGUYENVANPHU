@@ -1,0 +1,7 @@
+{% load static %}
+<div id="site-loading" class="site-loading" role="status" aria-live="polite" aria-label="Đang tải trang">
+  <div class="site-loading__content">
+    <img src="{% static 'images/loading-dog.png' %}" alt="" class="site-loading__dog" width="240" height="160">
+    <span class="site-loading__label">Đang tải<span class="site-loading__dots" aria-hidden="true">...</span></span>
+  </div>
+</div>

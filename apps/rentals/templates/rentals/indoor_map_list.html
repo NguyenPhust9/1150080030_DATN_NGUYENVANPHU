@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Bản đồ trong nhà{% endblock %}
+{% block page_title %}Bản đồ trong nhà{% endblock %}
+{% block page_subtitle %}Chọn tòa nhà và tầng để xem sơ đồ, lối đi và tuyến thoát mô phỏng{% endblock %}
+{% block content %}
+<div class="panel" style="padding:24px">
+  {% for indoor in maps %}
+    <a href="{% url 'indoor-map' indoor.id %}" style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 4px;border-bottom:1px solid #e2e8f0;text-decoration:none;color:inherit">
+      <span><strong>{{ indoor.building.name }}</strong><br><small>Tầng {{ indoor.floor }} · {{ indoor.name }}</small></span>
+      <span>Xem bản đồ →</span>
+    </a>
+  {% empty %}
+    <p>Chưa có bản đồ tầng. Quản trị viên có thể tạo Indoor Map, Map Node và Map Edge trong Django Admin.</p>
+  {% endfor %}
+</div>
+{% endblock %}

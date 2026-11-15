@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Bản đồ trong nhà{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/indoor-map.css' %}?v=3">{% endblock %}
+{% block page_title %}Bản đồ trong nhà{% endblock %}
+{% block page_subtitle %}Khám phá không gian · tìm phòng · chỉ đường trong tầng{% endblock %}
+{% block content %}
+<section class="indoor-workspace">
+  <div class="indoor-heading"><a href="{% url 'indoor-map-list' %}">← Tất cả mặt bằng</a><span>{% if scene_data.map.is_demo %}MẶT BẰNG MẪU{% else %}BẢN ĐỒ TƯƠNG TÁC{% endif %} · TẦNG {{ indoor_map.floor }}</span></div>
+  <div class="indoor-layout">
+    <aside class="indoor-directory-panel" aria-label="Tìm kiếm và chỉ đường">
+      <div class="indoor-panel-section indoor-location-heading"><i data-lucide="building-2"></i><div><h2>{{ indoor_map.building.name }}</h2><p>Tầng {{ indoor_map.floor }} · Không gian trong nhà</p></div></div>
+      <div class="indoor-panel-section indoor-search-section"><label class="indoor-search"><i data-lucide="search"></i><input id="map-search" type="search" placeholder="Tìm phòng, lối thoát…" aria-label="Tìm địa điểm" autocomplete="off"></label></div>
+      <section class="indoor-panel-section indoor-route-section">
+        <div class="indoor-section-heading"><h3><i data-lucide="route"></i> Chỉ đường</h3><span>Trong tầng</span></div>
+        <form method="get" id="map-route-form">
+          <label for="start">Điểm bắt đầu</label>
+          <select id="start" name="start" required><option value="">Chọn phòng hoặc vị trí</option>{% for node in nodes %}{% if node.kind == 'room' or node.kind == 'exit' or node.kind == 'stairs' %}<option value="{{ node.id }}" {% if start_id == node.id|stringformat:'s' %}selected{% endif %}>{{ node.label }}</option>{% endif %}{% endfor %}</select>
+          <label for="end">Điểm đến</label>
+          <select id="end" name="end"><option value="">Lối thoát gần nhất</option>{% for node in nodes %}{% if node.kind == 'room' or node.kind == 'exit' or node.kind == 'stairs' %}<option value="{{ node.id }}" {% if end_id == node.id|stringformat:'s' %}selected{% endif %}>{{ node.label }}</option>{% endif %}{% endfor %}</select>
+          <button type="submit" class="indoor-primary-button"><i data-lucide="navigation"></i> Tìm đường</button>
+        </form>
+        <div id="route-summary" class="indoor-route-summary" hidden aria-live="polite"><strong id="route-destination"></strong><span id="route-distance"></span><ol id="route-steps"></ol></div>
+      </section>
+      <section class="indoor-panel-section indoor-rooms-section"><div class="indoor-section-heading"><h3>Địa điểm trong tầng</h3><span id="map-directory-count"></span></div><div id="map-directory" class="indoor-directory"></div><p id="map-directory-empty" hidden>Không tìm thấy địa điểm.</p></section>
+      <section id="map-selection" class="indoor-panel-section indoor-selection" hidden aria-live="polite"></section>
+      <details class="indoor-simulation"><summary><i data-lucide="flame"></i> Mô phỏng & lớp bản đồ</summary><div class="indoor-simulation-content">
+        <p>Chặn một vùng để kiểm tra đường đi thay thế. Đây không phải cảnh báo thực tế.</p>
+        {% if can_simulate %}{% for zone in zones %}<form method="post" action="{% url 'indoor-map-toggle-hazard' indoor_map.id zone.id %}" data-hazard-form data-zone-id="{{ zone.id }}">{% csrf_token %}<input type="hidden" name="start" value="{{ start_id }}"><input type="hidden" name="end" value="{{ end_id }}"><span>{{ zone.name }}</span><button type="submit">{% if zone.has_simulation %}Bỏ chặn{% else %}Chặn thử{% endif %}</button></form>{% endfor %}{% endif %}
+        <label class="indoor-graph-toggle"><input id="map-show-graph" type="checkbox"> Hiện mạng lưới định tuyến</label>
+        <h4>Camera</h4>{% for camera in cameras %}<p>{{ camera.name }}{% if camera.zone %} · {{ camera.zone.name }}{% endif %}</p>{% empty %}<p>Chưa gắn camera.</p>{% endfor %}
+      </div></details>
+      <footer class="indoor-panel-footer">{% if scene_data.map.is_demo %}Mặt bằng và nội thất giả định, chưa khảo sát thực tế.{% else %}Kích thước cần được hiệu chuẩn từ mặt bằng thực tế.{% endif %}</footer>
+    </aside>
+    <div class="indoor-map-panel">
+      <section class="indoor-map-stage" aria-label="Mặt bằng tương tác">
+        <div id="map-canvas-host"><canvas id="indoor-map-3d" aria-label="Mặt bằng 3D. Kéo để xoay, cuộn để thu phóng."></canvas><div id="map-labels"></div><div id="map-fallback" hidden></div></div>
+        <div class="indoor-map-topbar"><nav class="indoor-floor-switcher" aria-label="Chọn tầng"><i data-lucide="layers"></i>{% for floor in floor_maps %}<a href="{% url 'indoor-map' floor.id %}" {% if floor.id == indoor_map.id %}aria-current="page" class="is-active"{% endif %}>Tầng {{ floor.floor }}</a>{% endfor %}</nav><div class="indoor-view-switcher" role="group" aria-label="Chế độ xem"><button type="button" data-map-view="3d" class="is-active" aria-pressed="true"><i data-lucide="box"></i> 3D</button><button type="button" data-map-view="2d" aria-pressed="false"><i data-lucide="map"></i> 2D</button></div></div>
+        <div class="indoor-map-navigation" role="group" aria-label="Điều khiển bản đồ">
+          <button type="button" data-map-action="reset" title="Góc nhìn ban đầu" aria-label="Góc nhìn ban đầu"><i data-lucide="scan"></i></button>
+          <button type="button" data-map-action="zoom-in" title="Phóng to" aria-label="Phóng to"><i data-lucide="plus"></i></button>
+          <button type="button" data-map-action="zoom-out" title="Thu nhỏ" aria-label="Thu nhỏ"><i data-lucide="minus"></i></button>
+          <button type="button" data-map-action="rotate" title="Xoay góc nhìn" aria-label="Xoay góc nhìn"><i data-lucide="rotate-cw"></i></button>
+          <button type="button" data-map-action="fullscreen" title="Toàn màn hình" aria-label="Toàn màn hình"><i data-lucide="maximize"></i></button>
+        </div>
+        <div class="indoor-map-legend"><span><i class="legend-room"></i>Phòng</span><span><i class="legend-exit"></i>Lối thoát</span><span><i class="legend-route"></i>Đường đi</span><span><i class="legend-hazard"></i>Vùng chặn</span></div>
+        <div class="indoor-map-gesture-hint">Kéo để xoay · Cuộn để thu phóng · Chuột phải để di chuyển</div>
+      </section>
+      <footer class="indoor-map-statusbar"><div id="map-status" role="status" aria-live="polite">Đang dựng mặt bằng…</div><span>INDOOR EXPLORER</span></footer>
+    </div>
+  </div>
+  <p class="indoor-disclaimer">Bản đồ phục vụ mô phỏng đồ án; không thay thế mặt bằng khảo sát hoặc phương án thoát nạn được phê duyệt. Chỉ đường hiện hỗ trợ trong cùng một tầng.</p>
+  <noscript>Hãy bật JavaScript để sử dụng bản đồ tương tác.</noscript>
+</section>
+{{ scene_data|json_script:'indoor-scene-data' }}
+<script type="importmap">{"imports":{"three":"{% static 'vendor/three/three.module.js' %}"}}</script>
+<script type="module" src="{% static 'js/indoor-map-3d.js' %}?v=3"></script>
+{% endblock %}
