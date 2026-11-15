@@ -1,21 +1,31 @@
 from django.contrib import admin
 
 from .models import (
+    AlertEvent,
     Amenity,
     Building,
+    Camera,
     ChatMessage,
     Contract,
     ContractMember,
     ContractService,
     Conversation,
+    ExitPoint,
+    HazardZone,
     Incident,
+    IndoorMap,
     Invoice,
     InvoiceItem,
+    MapEdge,
+    MapNode,
+    MapZone,
     MeterReading,
     Notification,
     Payment,
+    PriceSuggestion,
     Room,
     RoomMedia,
+    SafetyDevice,
     Service,
     Tenant,
 )
@@ -35,6 +45,62 @@ class InvoiceItemInline(admin.TabularInline):
     model = InvoiceItem
     extra = 1
     readonly_fields = ("amount",)
+
+
+@admin.register(IndoorMap)
+class IndoorMapAdmin(admin.ModelAdmin):
+    list_display = ("building", "floor", "name", "width", "height")
+    list_filter = ("building",)
+
+
+@admin.register(MapNode)
+class MapNodeAdmin(admin.ModelAdmin):
+    list_display = ("label", "indoor_map", "kind", "room", "x", "y", "is_blocked")
+    list_filter = ("indoor_map", "kind", "is_blocked")
+    autocomplete_fields = ("room",)
+
+
+@admin.register(MapEdge)
+class MapEdgeAdmin(admin.ModelAdmin):
+    list_display = ("start", "end", "indoor_map", "is_blocked")
+    list_filter = ("indoor_map", "is_blocked")
+
+
+@admin.register(MapZone)
+class MapZoneAdmin(admin.ModelAdmin):
+    list_display = ("name", "indoor_map", "kind", "room", "x", "y", "width", "height")
+    list_filter = ("indoor_map", "kind")
+    autocomplete_fields = ("room",)
+
+
+@admin.register(ExitPoint)
+class ExitPointAdmin(admin.ModelAdmin):
+    list_display = ("name", "indoor_map", "node")
+    list_filter = ("indoor_map",)
+
+
+@admin.register(SafetyDevice)
+class SafetyDeviceAdmin(admin.ModelAdmin):
+    list_display = ("name", "indoor_map", "kind", "x", "y")
+    list_filter = ("indoor_map", "kind")
+
+
+@admin.register(Camera)
+class CameraAdmin(admin.ModelAdmin):
+    list_display = ("name", "indoor_map", "zone", "is_active")
+    list_filter = ("indoor_map", "is_active")
+
+
+@admin.register(HazardZone)
+class HazardZoneAdmin(admin.ModelAdmin):
+    list_display = ("zone", "indoor_map", "camera", "is_active", "is_simulation", "created_at")
+    list_filter = ("indoor_map", "is_active", "is_simulation")
+
+
+@admin.register(AlertEvent)
+class AlertEventAdmin(admin.ModelAdmin):
+    list_display = ("camera", "label", "confidence", "status", "created_at")
+    list_filter = ("status", "camera__indoor_map")
 
 
 @admin.register(Building)
@@ -101,6 +167,7 @@ admin.site.register(Notification)
 admin.site.register(RoomMedia)
 admin.site.register(Conversation)
 admin.site.register(ChatMessage)
+admin.site.register(PriceSuggestion)
 
 admin.site.site_header = "Quản lý phòng cho thuê"
 admin.site.site_title = "QL Phòng Cho Thuê"

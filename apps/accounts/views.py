@@ -32,6 +32,7 @@ from apps.rentals.permissions import (
 
 from .forms import (
     AdminPasswordResetForm,
+    AvatarUploadForm,
     StyledPasswordChangeForm,
     TenantProfileForm,
     UserCreateForm,
@@ -79,9 +80,19 @@ def profile_view(request):
     user = request.user
     tenant = getattr(user, "tenant_profile", None)
     is_tenant_account = (user.role == "tenant") and (tenant is not None)
+    avatar_form = AvatarUploadForm(instance=user)
+    is_avatar_post = request.method == "POST" and request.POST.get("profile_action") == "avatar"
+
+    if is_avatar_post:
+        avatar_form = AvatarUploadForm(request.POST, request.FILES, instance=user)
+        if avatar_form.is_valid():
+            avatar_form.save()
+            messages.success(request, "Đã cập nhật ảnh đại diện.")
+            return redirect("user-profile")
+        messages.error(request, "Không tải được ảnh đại diện. Vui lòng kiểm tra tệp ảnh.")
 
     if is_tenant_account:
-        if request.method == "POST":
+        if request.method == "POST" and not is_avatar_post:
             form = TenantProfileForm(request.POST, instance=tenant)
             if form.is_valid():
                 tenant = form.save()
@@ -101,7 +112,7 @@ def profile_view(request):
         else:
             form = TenantProfileForm(instance=tenant)
     else:
-        if request.method == "POST":
+        if request.method == "POST" and not is_avatar_post:
             form = UserProfileForm(request.POST, instance=user)
             if form.is_valid():
                 form.save()
@@ -114,6 +125,7 @@ def profile_view(request):
     context = {
         "title": "Hồ sơ cá nhân",
         "form": form,
+        "avatar_form": avatar_form,
         "is_tenant": is_tenant_account,
         "tenant": tenant,
         "recent_login_history": recent_login_history,

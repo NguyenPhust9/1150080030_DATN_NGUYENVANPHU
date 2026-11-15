@@ -7,9 +7,16 @@
 <div class="profile-layout" style="display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start;">
   <!-- Thẻ thông tin tóm tắt -->
   <section class="panel" style="text-align: center; padding: 28px 20px;">
-    <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, var(--primary), #183477); color: #fff; display: grid; place-items: center; font-size: 28px; font-weight: 700; margin: 0 auto 16px;">
-      {{ user.username|first|upper }}
-    </div>
+    <div class="profile-avatar">{% if user.avatar %}<img src="{{ user.avatar.url }}" alt="Ảnh đại diện của {{ user.get_full_name|default:user.username }}">{% else %}<span>{{ user.username|first|upper }}</span>{% endif %}</div>
+    <form method="post" enctype="multipart/form-data" class="profile-avatar-form">
+      {% csrf_token %}<input type="hidden" name="profile_action" value="avatar">
+      <label for="id_avatar" class="btn">Chọn ảnh đại diện</label>
+      {{ avatar_form.avatar }}
+      <span id="avatar-selected-name" class="profile-avatar-selected" aria-live="polite"></span>
+      {% if avatar_form.avatar.errors %}<small class="profile-avatar-error">{{ avatar_form.avatar.errors.0 }}</small>{% endif %}
+      <small>JPG, PNG hoặc WebP · tối đa 2 MB</small>
+      <button class="btn primary" type="submit">Lưu ảnh</button>
+    </form>
     <h2 style="margin: 0 0 6px 0; font-size: 20px;">{{ user.get_full_name|default:user.username }}</h2>
     <span class="badge" style="margin-bottom: 16px; display: inline-block;">{{ user.get_role_display }}</span>
 
@@ -115,6 +122,11 @@
     </table>
   </div>
 </section>
+<script>
+document.getElementById('id_avatar')?.addEventListener('change', function () {
+  document.getElementById('avatar-selected-name').textContent = this.files?.[0]?.name || '';
+});
+</script>
 {% endblock %}
 
 

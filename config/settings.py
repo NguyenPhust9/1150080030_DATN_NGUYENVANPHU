@@ -71,11 +71,12 @@ ROOT_URLCONF = "config.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "apps" / "rentals" / "templates"],
         "APP_DIRS": False,
         "OPTIONS": {
             "builtins": ["apps.rentals.templatetags.vietnamese"],
             "loaders": [
+                "django.template.loaders.filesystem.Loader",
                 ("django.template.loaders.locmem.Loader", EMBEDDED_TEMPLATES),
                 "django.template.loaders.app_directories.Loader",
             ],
@@ -107,6 +108,8 @@ if database_url:
             "PASSWORD": unquote(parsed_database_url.password or ""),
             "HOST": parsed_database_url.hostname or "",
             "PORT": parsed_database_url.port or 5432,
+            # Daphne serves ASGI requests: persistent per-thread connections
+            # can exhaust a small Supabase session pool during status polling.
             "CONN_MAX_AGE": 0,
             "OPTIONS": dict(parse_qsl(parsed_database_url.query)),
         }
@@ -120,9 +123,14 @@ else:
             "PASSWORD": env("POSTGRES_PASSWORD", "postgres"),
             "HOST": env("POSTGRES_HOST", "127.0.0.1"),
             "PORT": env("POSTGRES_PORT", "5432"),
-            "CONN_MAX_AGE": 60,
+            "CONN_MAX_AGE": 0,
+            "OPTIONS": {},
         }
     }
+
+# Bound connection attempts without overriding an explicit DATABASE_URL option.
+# Background workers must also close their own connections after each task.
+DATABASES["default"]["OPTIONS"].setdefault("connect_timeout", 5)
 
 development_database_name = str(DATABASES["default"]["NAME"])
 test_database_name = env("POSTGRES_TEST_DB", f"test_{development_database_name}").strip()
@@ -156,7 +164,7 @@ STORAGES = {
         )
     },
 }
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

@@ -73,7 +73,7 @@
           <h3 style="font-size: 15px; margin-bottom: 10px; color: var(--ink);">Thành viên trong phòng:</h3>
           <div style="display: flex; flex-wrap: wrap; gap: 12px;">
             {% for m in contract.members.all %}
-              <div style="background: #f8fafc; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 13px;">
+              <div style="background: #fff7ed; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; font-size: 13px;">
                 <strong>{{ m.tenant.full_name }}</strong>
                 {% if m.tenant.phone %}<span style="color: var(--muted); margin-left: 6px;">({{ m.tenant.phone }})</span>{% endif %}
                 <small style="display: block; color: var(--muted); margin-top: 2px;">Vào ở: {{ m.joined_date|date:"d/m/Y" }}</small>

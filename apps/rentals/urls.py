@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import indoor_map, price_views, views
 
 urlpatterns = [
     path("", views.public_home, name="public-home"),
@@ -13,7 +13,12 @@ urlpatterns = [
     path("phong/", views.object_list, {"resource": "rooms"}, name="rooms"),
     path("phong/them/", views.object_create, {"resource": "rooms"}, name="room-create"),
     path("phong/<uuid:object_id>/sua/", views.object_update, {"resource": "rooms"}, name="room-update"),
+    path("phong/<uuid:room_id>/goi-y-gia/", price_views.price_suggestion, name="price-suggestion"),
+    path("phong/<uuid:room_id>/goi-y-gia/<uuid:suggestion_id>/ap-dung/", price_views.apply_price_suggestion, name="price-suggestion-apply"),
     path("so-do-phong/", views.room_map, name="room-map"),
+    path("ban-do-trong-nha/", indoor_map.indoor_map_list, name="indoor-map-list"),
+    path("ban-do-trong-nha/<uuid:map_id>/", indoor_map.indoor_map, name="indoor-map"),
+    path("ban-do-trong-nha/<uuid:map_id>/vung/<uuid:zone_id>/mo-phong/", indoor_map.toggle_hazard_simulation, name="indoor-map-toggle-hazard"),
     path("khach-thue/", views.object_list, {"resource": "tenants"}, name="tenants"),
     path("khach-thue/them/", views.object_create, {"resource": "tenants"}, name="tenant-create"),
     path("khach-thue/<uuid:tenant_id>/", views.tenant_detail, name="tenant-detail"),

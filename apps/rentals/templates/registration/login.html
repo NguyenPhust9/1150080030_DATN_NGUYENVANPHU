@@ -6,11 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Đăng nhập | Nhà Trọ An Tâm</title>
   <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'css/loading.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
   <link rel="stylesheet" href="{% static 'css/login.css' %}">
   <link rel="stylesheet" href="{% static 'css/lucide.css' %}">
 </head>
 <body class="auth-page">
+  {% include 'includes/loading.html' %}
   <main class="auth-shell">
     <section class="auth-visual" style="--login-image:url('{% static 'images/anhlogin.png' %}')">
       <a class="auth-brand auth-brand-light" href="{% url 'public-home' %}"><span><img src="{% static 'images/anhlogo.png' %}" alt="Logo Nhà Trọ An Tâm"></span><div><strong>Nhà Trọ An Tâm</strong><small>An cư để vững bước</small></div></a>
@@ -33,12 +35,13 @@
           <label class="remember-row"><input type="checkbox" name="remember"><span>Ghi nhớ đăng nhập</span></label>
           <button class="auth-submit" type="submit">Đăng nhập</button>
         </form>
-        <p class="auth-help"><i data-lucide="headphones"></i> Cần hỗ trợ? <a href="mailto:hotro@nhatroantam.vn">Liên hệ quản trị viên</a></p>
+        <p class="auth-help"><i data-lucide="headphones"></i> Cần hỗ trợ? <a href="mailto:1150080030@sv.hcmunre.edu.vn">Liên hệ quản trị viên</a></p>
       </div>
       <p class="auth-copyright">© 2026 Nhà Trọ An Tâm. Mọi quyền được bảo lưu.</p>
     </section>
   </main>
   <script src="{% static 'lucide.min.js' %}"></script>
   <script>lucide.createIcons({attrs:{"stroke-width":2}});document.getElementById("toggle-password").addEventListener("click",function(){const input=document.getElementById("id_password");input.type=input.type==="password"?"text":"password";this.innerHTML=input.type==="password"?'<i data-lucide="eye"></i>':'<i data-lucide="eye-off"></i>';lucide.createIcons({attrs:{"stroke-width":2}})});</script>
+  <script src="{% static 'js/loading.js' %}"></script>
 </body>
 </html>

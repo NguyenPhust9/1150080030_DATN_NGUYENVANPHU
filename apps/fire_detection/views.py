@@ -45,7 +45,14 @@ def status(request):
 @require_GET
 def video_stream(request):
     _operator(request)
-    detector.start()
+    snapshot = detector.snapshot()
+    if snapshot["state"] in {"stopped", "stopping", "error"} or not (
+        snapshot["running"] or snapshot["loading"]
+    ):
+        return JsonResponse(
+            {"ok": False, "message": "Hãy bắt đầu giám sát trước khi mở luồng camera."},
+            status=409,
+        )
     return StreamingHttpResponse(
         detector.mjpeg_frames(),
         content_type="multipart/x-mixed-replace; boundary=frame",

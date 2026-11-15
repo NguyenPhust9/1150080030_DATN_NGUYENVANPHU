@@ -5,11 +5,13 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}Quản lý phòng cho thuê{% endblock %}</title>
   <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
+  <link rel="stylesheet" href="{% static 'css/loading.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}"><link rel="stylesheet" href="{% static 'css/pagination.css' %}"><link rel="stylesheet" href="{% static 'css/room-map.css' %}"><link rel="stylesheet" href="{% static 'css/room-map-compact.css' %}"><link rel="stylesheet" href="{% static 'css/navigation.css' %}"><link rel="stylesheet" href="{% static 'css/management.css' %}"><link rel="stylesheet" href="{% static 'css/toast.css' %}">
+  {% block extra_head %}{% endblock %}
 </head>
 <body>
+  {% include 'includes/loading.html' %}
   <aside class="sidebar">
-    <a class="brand" href="{% url 'public-home' %}" title="Về trang chủ"><span class="brand-icon"><img src="{% static 'images/anhlogo.png' %}" alt="Logo quản lý phòng cho thuê"></span><span>QL Phòng Cho Thuê<small>Quản lý dễ dàng · Vận hành hiệu quả</small></span></a>
     <nav>
       {% if user.role == 'tenant' %}
       <a class="{% if request.resolver_match.url_name == 'tenant-portal' %}active{% endif %}" href="{% url 'tenant-portal' %}"><i data-lucide="layout-dashboard"></i>Trang của tôi</a>
@@ -23,31 +25,12 @@
       <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
       <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
       {% else %}
-      <a class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i data-lucide="house"></i>Tổng quan</a>
-      <a class="{% if request.resolver_match.url_name == 'buildings' or request.resolver_match.url_name == 'building-create' or request.resolver_match.url_name == 'building-update' %}active{% endif %}" href="{% url 'buildings' %}"><i data-lucide="building-2"></i>Tòa nhà</a>
-      <a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' or request.resolver_match.url_name == 'room-update' %}active{% endif %}" href="{% url 'rooms' %}"><i data-lucide="bed-double"></i>Phòng</a>
-      <a class="{% if request.resolver_match.url_name == 'room-map' %}active{% endif %}" href="{% url 'room-map' %}"><i data-lucide="map"></i>Sơ đồ phòng</a>
-      <a class="{% if request.resolver_match.url_name == 'tenants' or request.resolver_match.url_name == 'tenant-create' or request.resolver_match.url_name == 'tenant-detail' or request.resolver_match.url_name == 'tenant-update' %}active{% endif %}" href="{% url 'tenants' %}"><i data-lucide="users"></i>Khách thuê</a>
-      <a class="{% if request.resolver_match.url_name == 'contracts' or request.resolver_match.url_name == 'contract-create' or request.resolver_match.url_name == 'contract-detail' or request.resolver_match.url_name == 'contract-update' %}active{% endif %}" href="{% url 'contracts' %}"><i data-lucide="files"></i>Hợp đồng</a>
-      <a class="{% if request.resolver_match.url_name == 'services' or request.resolver_match.url_name == 'service-create' or request.resolver_match.url_name == 'service-update' %}active{% endif %}" href="{% url 'services' %}"><i data-lucide="sparkles"></i>Dịch vụ</a>
-      <a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' or request.resolver_match.url_name == 'meter-update' %}active{% endif %}" href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a>
-      <a class="{% if request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice-create' or request.resolver_match.url_name == 'invoice-bulk-create' or request.resolver_match.url_name == 'invoice-detail' or request.resolver_match.url_name == 'invoice-update' %}active{% endif %}" href="{% url 'invoices' %}"><i data-lucide="receipt-text"></i>Hóa đơn</a>
-      <a class="{% if request.resolver_match.url_name == 'payments' or request.resolver_match.url_name == 'payment-create' %}active{% endif %}" href="{% url 'payments' %}"><i data-lucide="wallet-cards"></i>Thanh toán</a>
-      <a class="{% if request.resolver_match.app_name == 'fire_detection' %}active{% endif %}" href="{% url 'fire_detection:monitor' %}"><i data-lucide="flame"></i>Giám sát cháy</a>
-      <a class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident-detail' %}active{% endif %}" href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a>
-      <a class="{% if request.resolver_match.url_name == 'notifications' or request.resolver_match.url_name == 'notification-create' %}active{% endif %}" href="{% url 'notifications' %}"><i data-lucide="bell"></i>Thông báo</a>
-      {% if user|has_perm_code:'accounts.view_user' %}
-      <a class="{% if request.resolver_match.url_name == 'accounts' or request.resolver_match.url_name == 'account-create' or request.resolver_match.url_name == 'account-detail' or request.resolver_match.url_name == 'account-update' or request.resolver_match.url_name == 'account-reset-password' %}active{% endif %}" href="{% url 'accounts' %}"><i data-lucide="user-cog"></i>Quản lý tài khoản</a>
-      {% endif %}
-      {% if user|has_perm_code:'accounts.view_permission_matrix' %}
-      <a class="{% if request.resolver_match.url_name == 'permission-matrix' %}active{% endif %}" href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>
-      {% endif %}
-      {% if user|has_perm_code:'accounts.view_login_history' %}
-      <a class="{% if request.resolver_match.url_name == 'login-history' %}active{% endif %}" href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>
-      {% endif %}
-      <a class="{% if request.resolver_match.url_name == 'user-profile' %}active{% endif %}" href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a>
-      <a class="{% if request.resolver_match.url_name == 'password-change' %}active{% endif %}" href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a>
-      {% if user.is_staff %}<a href="{% url 'admin:index' %}"><i data-lucide="settings"></i>Quản trị</a>{% endif %}
+      <section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="map"></i><span>Sơ đồ phòng</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a class="{% if request.resolver_match.url_name == 'room-map' %}active{% endif %}" href="{% url 'room-map' %}">Xem sơ đồ</a></div></section>
+      <section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="building-2"></i><span>Quản lý cơ bản</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a href="{% url 'buildings' %}">Tòa nhà</a><a href="{% url 'rooms' %}">Phòng</a><a href="{% url 'tenants' %}">Khách thuê</a></div></section>
+      <a class="nav-single {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i data-lucide="chart-no-axes-column-increasing"></i>Thống kê</a>
+      {% if user|has_perm_code:'accounts.view_user' %}<section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="shield"></i><span>Quản trị</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a href="{% url 'accounts' %}">Quản lý tài khoản</a></div></section>{% endif %}
+      <section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="badge-dollar-sign"></i><span>Tài chính</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a href="{% url 'contracts' %}">Hợp đồng</a><a href="{% url 'invoices' %}">Hóa đơn</a><a href="{% url 'payments' %}">Thanh toán</a></div></section>
+      <div class="nav-extra"><a href="{% url 'indoor-map-list' %}"><i data-lucide="route"></i>Bản đồ trong nhà</a>{% if user.role == 'owner' or user.role == 'admin' or user.is_superuser %}<a href="{% url 'rooms' %}"><i data-lucide="badge-dollar-sign"></i>Gợi ý giá thuê</a>{% endif %}<a href="{% url 'services' %}"><i data-lucide="sparkles"></i>Dịch vụ</a><a href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a><a href="{% url 'fire_detection:monitor' %}"><i data-lucide="flame"></i>Giám sát cháy</a><a href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a><a href="{% url 'notifications' %}"><i data-lucide="bell"></i>Thông báo</a>{% if user|has_perm_code:'accounts.view_permission_matrix' %}<a href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>{% endif %}{% if user|has_perm_code:'accounts.view_login_history' %}<a href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>{% endif %}<a href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a><a href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a></div>
       {% endif %}
     </nav>
     <small class="sidebar-version">Version 1.0.0</small>
@@ -71,12 +54,71 @@
             {% if chat_unread_count > 0 %}<b>{{ chat_unread_count }}</b>{% endif %}
           </a>
         </div>
-        <a href="{% url 'user-profile' %}" title="Xem hồ sơ cá nhân" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;color:inherit;">
-          <span class="user-avatar">{{ user.username|first|upper }}</span>
-          <span class="user-name"><strong>{{ user.get_full_name|default:user.username }}</strong><small>{{ user.get_role_display }}</small></span>
-        </a>
-        <a href="{% url 'password-change' %}" class="link-button" title="Đổi mật khẩu" style="display:inline-flex;align-items:center;padding:4px;border-radius:6px;"><i data-lucide="key-round"></i></a>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="link-button" type="submit" title="Đăng xuất"><i data-lucide="log-out"></i></button></form>
+        <!-- USER PROFILE POPOVER (MATCHING USER SCREENSHOT) -->
+        <div class="user-popover-wrapper">
+          <button type="button" class="user-popover-trigger" id="userPopoverTrigger" aria-expanded="false" aria-haspopup="true" title="Tài khoản: {{ user.get_full_name|default:user.username }}">
+            <span class="user-avatar-circle">
+              {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="Ảnh đại diện" class="user-avatar-img">{% else %}<span class="user-avatar-initial">{{ user.username|first|upper }}</span>{% endif %}
+            </span>
+            <span class="user-trigger-text">
+              <strong>{{ user.get_full_name|default:user.username }}</strong>
+              <small>{{ user.get_role_display }}</small>
+            </span>
+            <i data-lucide="chevron-down" class="user-trigger-chevron"></i>
+          </button>
+
+          <!-- FLOATING DROPDOWN CARD -->
+          <div class="user-popover-card" id="userPopoverCard" role="menu">
+            <div class="user-popover-arrow"></div>
+
+            <!-- Big Centered Avatar & Name -->
+            <div class="user-popover-profile">
+              <div class="user-popover-avatar-lg">
+                {% if user.avatar %}<img src="{{ user.avatar.url }}" alt="Ảnh đại diện" class="avatar-lg-img">{% else %}<span class="avatar-lg-initial">{{ user.username|first|upper }}</span>{% endif %}
+              </div>
+              <h3 class="user-popover-name">{{ user.get_full_name|default:user.username }}</h3>
+              <p class="user-popover-email">{{ user.email|default:user.username }}</p>
+            </div>
+
+            <!-- Organization / Role Card Pill -->
+            <div class="user-popover-org-pill">
+              <i data-lucide="building-2"></i>
+              <span>{{ user.get_role_display|upper }} &bull; QL PHÒNG</span>
+              <i data-lucide="chevron-right" class="org-pill-arrow"></i>
+            </div>
+
+            <!-- Menu Actions List -->
+            <div class="user-popover-links">
+              <a href="{% url 'password-change' %}" class="user-popover-link" role="menuitem">
+                <i data-lucide="key-round"></i>
+                <span>Đổi mật khẩu</span>
+              </a>
+              <a href="{% url 'user-profile' %}" class="user-popover-link" role="menuitem">
+                <i data-lucide="user-cog"></i>
+                <span>Thiết lập tài khoản</span>
+              </a>
+              <a href="{% url 'login-history' %}" class="user-popover-link" role="menuitem">
+                <i data-lucide="shield-check"></i>
+                <span>Thiết lập bảo mật</span>
+              </a>
+              <div class="user-popover-link static-lang">
+                <span class="lang-flag">🇻🇳</span>
+                <span>Ngôn ngữ: Việt Nam</span>
+                <i data-lucide="chevron-down" class="lang-chevron"></i>
+              </div>
+            </div>
+
+            <!-- Divider & Logout Button -->
+            <div class="user-popover-divider"></div>
+            <form method="post" action="{% url 'logout' %}" class="user-popover-logout-form">
+              {% csrf_token %}
+              <button type="submit" class="user-popover-logout-btn" role="menuitem">
+                <i data-lucide="log-out"></i>
+                <span>Đăng xuất</span>
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </header>
     {% with route=request.resolver_match.url_name %}{% if route != 'dashboard' and route != 'tenant-portal' %}<nav class="breadcrumbs" aria-label="Điều hướng trang"><a href="{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}"><i data-lucide="house"></i>Trang chủ</a><i data-lucide="chevron-right"></i>
@@ -101,5 +143,40 @@
     </nav>{% endif %}{% endwith %}
     {% if messages %}<div class="toast-stack" aria-live="polite">{% for message in messages %}<div class="toast {{ message.tags }}"><i data-lucide="circle-check"></i><span>{{ message }}</span><button type="button" aria-label="Đóng"><i data-lucide="x"></i></button></div>{% endfor %}</div>{% endif %}{% block content %}{% endblock %}
   </main>
-  <script src="{% static 'lucide.min.js' %}"></script><script>lucide.createIcons({attrs:{"stroke-width":2}});document.querySelectorAll(".toast").forEach(toast=>{toast.querySelector("button").addEventListener("click",()=>toast.remove());setTimeout(()=>{toast.classList.add("hiding");setTimeout(()=>toast.remove(),250)},4000)});</script>
+  <script src="{% static 'lucide.min.js' %}"></script>
+  <script>
+    lucide.createIcons({attrs:{"stroke-width":2}});
+    document.querySelectorAll(".toast").forEach(toast=>{toast.querySelector("button").addEventListener("click",()=>toast.remove());setTimeout(()=>{toast.classList.add("hiding");setTimeout(()=>toast.remove(),250)},4000)});
+    const popTrigger = document.getElementById("userPopoverTrigger");
+    const popCard = document.getElementById("userPopoverCard");
+    if (popTrigger && popCard) {
+      popTrigger.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isExpanded = popTrigger.getAttribute("aria-expanded") === "true";
+        popTrigger.setAttribute("aria-expanded", !isExpanded);
+        popCard.classList.toggle("show");
+      });
+      document.addEventListener("click", (e) => {
+        if (!popCard.contains(e.target) && !popTrigger.contains(e.target)) {
+          popCard.classList.remove("show");
+          popTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          popCard.classList.remove("show");
+          popTrigger.setAttribute("aria-expanded", "false");
+        }
+      });
+    }
+    document.querySelectorAll(".nav-group-toggle").forEach((toggle) => {
+      const group = toggle.closest(".nav-group");
+      toggle.setAttribute("aria-expanded", String(group.classList.contains("is-open")));
+      toggle.addEventListener("click", () => {
+        const isOpen = group.classList.toggle("is-open");
+        toggle.setAttribute("aria-expanded", String(isOpen));
+      });
+    });
+  </script>
+  <script src="{% static 'js/loading.js' %}"></script>
 </body></html>

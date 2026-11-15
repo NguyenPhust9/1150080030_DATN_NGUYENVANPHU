@@ -59,6 +59,23 @@ class UserProfileForm(forms.ModelForm):
         }
 
 
+class AvatarUploadForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("avatar",)
+        widgets = {"avatar": forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"})}
+
+    def clean_avatar(self):
+        image = self.cleaned_data.get("avatar")
+        if not image:
+            raise forms.ValidationError("Vui lòng chọn ảnh đại diện.")
+        if image.size > 2 * 1024 * 1024:
+            raise forms.ValidationError("Ảnh đại diện tối đa 2 MB.")
+        if getattr(image, "content_type", "") not in {"image/jpeg", "image/png", "image/webp"}:
+            raise forms.ValidationError("Chỉ chấp nhận ảnh JPG, PNG hoặc WebP.")
+        return image
+
+
 class TenantProfileForm(forms.ModelForm):
     class Meta:
         model = Tenant
