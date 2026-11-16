@@ -123,7 +123,11 @@ def browser_frame(request):
     labels = {item["label"] for item in evidence}
     current = [item for item in detections if item["label"] in labels]
     alert = reserve_alert(request.user, current, raw) if state == "alert" and current else None
-    return JsonResponse({"state": state, "detections": detections, "width": image.width, "height": image.height,
+    # Preserve the confirmation window without presenting its older evidence as
+    # a detection in the latest image. Historical evidence must not send a new image.
+    current_state = "recent_alert" if state == "alert" and not current else state
+    return JsonResponse({"state": state, "current_state": current_state,
+                         "detections": detections, "width": image.width, "height": image.height,
                          "inference_ms": round((time.monotonic() - tick) * 1000),
                          "alert": {"id": str(alert.pk), "time": timezone.localtime(alert.created_at).strftime("%H:%M:%S %d/%m/%Y"),
                                    "labels": sorted(labels)} if alert else None})

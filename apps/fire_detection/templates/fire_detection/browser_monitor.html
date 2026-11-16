@@ -4,7 +4,7 @@
 {% block page_title %}Giám sát cháy AI{% endblock %}
 {% block page_subtitle %}Theo dõi dấu hiệu lửa và khói trực tiếp từ webcam{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/fire-monitor.css' %}?v=5">
+<link rel="stylesheet" href="{% static 'css/fire-monitor.css' %}?v=6">
 <section class="fire-monitor" data-state="stopped" data-config-url="{% url 'fire_detection:browser-config' %}" data-start-url="{% url 'fire_detection:browser-start' %}" data-stop-url="{% url 'fire_detection:browser-stop' %}" data-frame-url="{% url 'fire_detection:browser-frame' %}" data-delivery-base="{% url 'fire_detection:monitor' %}camera/canh-bao/">
   <div hidden>{% csrf_token %}</div>
   <div class="fire-toolbar">
@@ -38,5 +38,5 @@
   </div>
   <noscript><p class="monitor-message">Cần bật JavaScript để xem trạng thái giám sát trực tiếp. Hiện không thể hiển thị kết quả AI.</p></noscript>
 </section>
-<script src="{% static 'js/browser-fire-monitor.js' %}?v=2"></script>
+<script src="{% static 'js/browser-fire-monitor.js' %}?v=3"></script>
 {% endblock %}

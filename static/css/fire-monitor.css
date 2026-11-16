@@ -20,13 +20,13 @@
 #camera-placeholder { color: #cbd5e1; text-align: center; display: grid; place-items: center; gap: 8px; padding: 24px; }
 #camera-placeholder svg { width: 48px; height: 48px; }
 #camera-placeholder span { font-size: 14px; color: #94a3b8; overflow-wrap: anywhere; }
-.camera-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 16px; }
+.camera-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; padding: 13px 16px; }
 .camera-footer span { display: inline-flex; align-items: center; gap: 7px; }
 .camera-footer #safety-label { font-weight: 700; color: #475569; }
 .monitoring .camera-footer #safety-label { color: #0369a1; }
 .detecting .camera-footer #safety-label { color: #b45309; }
 .alert .camera-footer #safety-label { color: #dc2626; }
-#fps-label { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#fps-label { font-variant-numeric: tabular-nums; }
 .camera-caution { margin: 0; padding: 0 16px 16px; color: #64748b; font-size: 13px; line-height: 1.5; }
 .alert-panel { padding: 18px; display: grid; align-content: start; gap: 12px; min-width: 0; }
 .fire-monitor .metric { padding: 12px; border-radius: 12px; background: #f8fafc; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }

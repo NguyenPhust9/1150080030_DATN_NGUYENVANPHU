@@ -81,6 +81,29 @@ class BrowserFireTests(TestCase):
         self.assertEqual(self.frame(2).json()["state"], "detecting")
 
     @patch("apps.fire_detection.browser_views.predict_image")
+    def test_held_alert_is_distinguished_from_current_detection_without_new_delivery(self, predict):
+        smoke = [{**FIRE[0], "label": "smoke"}]
+        predict.side_effect = [smoke, smoke, [], FIRE, smoke]
+        self.assertEqual(self.frame(1).json()["current_state"], "detecting")
+        confirmed = self.frame(2).json()
+        self.assertEqual(confirmed["current_state"], "alert")
+        self.assertEqual(confirmed["alert"]["labels"], ["smoke"])
+        # A cooldown expiry must not turn old smoke into a new alert image.
+        with patch("apps.fire_detection.browser_views.reserve_alert") as reserve:
+            empty = self.frame(3).json()
+            self.assertEqual(empty["state"], "alert")
+            self.assertEqual(empty["current_state"], "recent_alert")
+            self.assertEqual(empty["detections"], [])
+            self.assertIsNone(empty["alert"])
+            unrelated = self.frame(4).json()
+            self.assertEqual(unrelated["current_state"], "recent_alert")
+            self.assertEqual(unrelated["detections"], FIRE)
+            self.assertIsNone(unrelated["alert"])
+            reserve.assert_not_called()
+        # Current confirmed evidence becomes an active alert again.
+        self.assertEqual(self.frame(5).json()["current_state"], "alert")
+
+    @patch("apps.fire_detection.browser_views.predict_image")
     def test_invalid_large_and_wrong_session_frames_do_not_run_model(self, predict):
         self.assertEqual(self.frame(1, b"fake image").status_code, 400)
         self.assertEqual(self.frame(1, b"x" * (1024 * 1024 + 1)).status_code, 400)
