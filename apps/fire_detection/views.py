@@ -5,6 +5,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from apps.rentals.permissions import require_operator
 
+from .browser_views import config_payload
 from .webcam import detector
 
 
@@ -15,7 +16,7 @@ def _operator(request):
 @login_required
 def monitor(request):
     _operator(request)
-    return render(request, "fire_detection/browser_monitor.html")
+    return render(request, "fire_detection/browser_monitor.html", config_payload())
 
 
 @login_required

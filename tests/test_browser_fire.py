@@ -38,6 +38,15 @@ class BrowserFireTests(TestCase):
     def frame(self, sequence, raw=None):
         return self.client.post(reverse("fire_detection:browser-frame"), {"run_id": self.run_id, "sequence": sequence, "image": upload(raw)})
 
+    def test_monitor_page_renders_after_login_without_server_camera_context(self):
+        response = self.client.get(reverse("fire_detection:monitor"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "fire_detection/browser_monitor.html")
+        self.assertContains(response, 'id="browser-camera"')
+        self.assertContains(response, "browser-fire-monitor.js")
+        self.assertContains(response, "YOLO lửa/khói")
+        self.assertContains(response, reverse("fire_detection:browser-frame"))
+
     def test_config_is_private_and_tenant_cannot_use_detection(self):
         self.assertEqual(Client().get(reverse("fire_detection:browser-config")).status_code, 302)
         tenant = get_user_model().objects.create_user(username="camera-tenant", role="tenant")
