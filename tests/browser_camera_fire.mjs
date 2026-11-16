@@ -27,20 +27,27 @@ await context.addInitScript(() => {
     createOscillator() { window.beepCount++; return super.createOscillator(); }
   };
   const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-  const enumerate = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
-  navigator.mediaDevices.enumerateDevices = async () => [...await enumerate(), { kind: 'videoinput', deviceId: 'fixture-black-camera', label: 'Black virtual camera' }];
+  window.blackCamera = false;
+  navigator.mediaDevices.enumerateDevices = async () => [
+    { kind: 'videoinput', deviceId: 'fixture-eshare', label: 'EShare Virtual Camera' },
+    { kind: 'videoinput', deviceId: 'fixture-hd', label: 'HD User Facing (0408:4061)' },
+    { kind: 'videoinput', deviceId: 'fixture-obs', label: 'OBS Virtual Camera' },
+  ];
   navigator.mediaDevices.getUserMedia = async (...args) => {
     window.cameraRequests++; window.lastCameraConstraints = args[0];
+    if (args[0].video?.deviceId?.exact !== 'fixture-hd') throw new Error('Opened a camera other than HD User Facing');
     let stream;
-    if (args[0].video?.deviceId?.exact === 'fixture-black-camera') {
+    if (window.blackCamera) {
       const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 240;
       const ctx = canvas.getContext('2d');
       stream = canvas.captureStream(10);
       const loop = setInterval(() => { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 320, 240); }, 100);
       const track = stream.getVideoTracks()[0]; window.blackCameraTrack = track;
       const stop = track.stop.bind(track); track.stop = () => { clearInterval(loop); stop(); };
-      track.getSettings = () => ({ deviceId: 'fixture-black-camera', width: 320, height: 240 });
-    } else stream = await original(...args);
+    } else stream = await original({ video: true, audio: false });
+    const track = stream.getVideoTracks()[0], settings = track.getSettings();
+    Object.defineProperty(track, 'label', { value: 'HD User Facing (0408:4061)' });
+    track.getSettings = () => ({ ...settings, deviceId: 'fixture-hd' });
     window.testStream = stream; return stream;
   };
 });
@@ -70,15 +77,15 @@ await context.route('**/camera/canh-bao/*/gui/', async route => {
   await new Promise(resolve => { releaseDelivery = resolve; });
   await route.fulfill({ json: { webhook_state: 'sent', image_url: '', persistence_state: 'unmapped' } });
 });
-async function verifyCameraPreference({ hidden = false, preferred = true, selection, cancel = false }) {
+async function verifyHDOnly({ hidden = false, preferred = true, cancel = false }) {
   const fixture = await browser.newContext({ permissions: ['camera'] });
   await fixture.addInitScript(({ hidden, preferred, cancel }) => {
     let permitted = !hidden;
     window.cameraConstraints = []; window.cameraTracks = [];
     const cameras = [
-      { kind: 'videoinput', deviceId: 'fixture-default', label: 'Default virtual camera' },
+      { kind: 'videoinput', deviceId: 'fixture-default', label: 'EShare Virtual Camera' },
       ...(preferred ? [{ kind: 'videoinput', deviceId: 'fixture-hd', label: 'HD User Facing (0408:4061)' }] : []),
-      { kind: 'videoinput', deviceId: 'fixture-usb', label: 'USB webcam' },
+      { kind: 'videoinput', deviceId: 'fixture-obs', label: 'OBS Virtual Camera' },
     ];
     navigator.mediaDevices.enumerateDevices = async () => cameras.map(device => ({ ...device, label: permitted ? device.label : '' }));
     const getUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
@@ -110,9 +117,10 @@ async function verifyCameraPreference({ hidden = false, preferred = true, select
   const cameraPage = await fixture.newPage();
   try {
     await cameraPage.goto(origin);
-    await expect(cameraPage.locator('#camera-device option')).toHaveCount(preferred ? 4 : 3);
+    await expect(cameraPage.locator('#camera-device')).toHaveText('HD User Facing');
+    await expect(cameraPage.locator('select#camera-device, #camera-device option')).toHaveCount(0);
+    await expect(cameraPage.locator('.fire-monitor')).not.toContainText(/EShare|OBS/);
     expect(await cameraPage.evaluate(() => window.cameraConstraints)).toEqual([]);
-    if (selection !== undefined) await cameraPage.locator('#camera-device').selectOption(selection);
     await cameraPage.locator('#start-camera').click();
     if (cancel) {
       await expect.poll(() => cameraPage.evaluate(() => Boolean(window.releasePreferredCamera))).toBe(true);
@@ -124,25 +132,24 @@ async function verifyCameraPreference({ hidden = false, preferred = true, select
       await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
       return;
     }
+    if (!preferred) {
+      await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'error');
+      await expect(cameraPage.locator('#monitor-message')).toContainText('Không tìm thấy camera HD User Facing');
+      expect(await cameraPage.evaluate(() => window.cameraConstraints)).toEqual(hidden ? [{ video: true, audio: false }] : []);
+      expect(await cameraPage.evaluate(() => window.cameraTracks.every(track => track.readyState === 'ended'))).toBe(true);
+      expect(starts).toBe(0); expect(frameCount).toBe(0);
+      expect(await cameraPage.locator('#browser-camera').evaluate(video => video.srcObject)).toBe(null);
+      return;
+    }
     await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'monitoring');
-    const expectedId = selection !== undefined ? selection || 'fixture-default' : preferred ? 'fixture-hd' : 'fixture-default';
     const requests = await cameraPage.evaluate(() => window.cameraConstraints);
-    expect(requests.at(-1).video).toEqual(expectedId === 'fixture-default' ? true : { deviceId: { exact: expectedId } });
-    expect(requests).toHaveLength(hidden && preferred && selection === undefined ? 2 : 1);
+    expect(requests.at(-1).video).toEqual({ deviceId: { exact: 'fixture-hd' } });
+    expect(requests).toHaveLength(hidden ? 2 : 1);
     expect(starts).toBe(1);
-    if (hidden && preferred) expect(await cameraPage.evaluate(() => window.cameraTracks[0].readyState)).toBe('ended');
-    await expect(cameraPage.locator('#camera-device')).toHaveValue(selection === '' ? '' : expectedId);
-    await expect(cameraPage.locator('#camera-source')).toContainText(expectedId === 'fixture-hd' ? 'HD User Facing' : expectedId === 'fixture-usb' ? 'USB webcam' : 'Default virtual camera');
+    if (hidden) expect(await cameraPage.evaluate(() => window.cameraTracks[0].readyState)).toBe('ended');
+    await expect(cameraPage.locator('#camera-source')).toContainText('HD User Facing');
     await cameraPage.locator('#stop-camera').click();
     await expect.poll(() => cameraPage.evaluate(() => window.cameraTracks.every(track => track.readyState === 'ended'))).toBe(true);
-    if (selection === '') {
-      await cameraPage.locator('#start-camera').click();
-      await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'monitoring');
-      expect(await cameraPage.evaluate(() => window.cameraConstraints.at(-1).video)).toBe(true);
-      await expect(cameraPage.locator('#camera-device')).toHaveValue('');
-      await cameraPage.locator('#stop-camera').click();
-      await expect.poll(() => cameraPage.evaluate(() => window.cameraTracks.every(track => track.readyState === 'ended'))).toBe(true);
-    }
   } finally {
     await fixture.close();
   }
@@ -180,18 +187,19 @@ try {
   await page.locator('#stop-camera').click();
   await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
   expect(await page.evaluate(() => window.testStream.getTracks().every(track => track.readyState === 'ended'))).toBe(true);
-  expect(await page.evaluate(() => window.lastCameraConstraints.video)).toBe(true);
-  const physical = await page.evaluate(async () => (await navigator.mediaDevices.enumerateDevices()).find(device => device.kind === 'videoinput' && device.deviceId !== 'fixture-black-camera').deviceId);
+  expect(await page.evaluate(() => window.lastCameraConstraints.video)).toEqual({ deviceId: { exact: 'fixture-hd' } });
   const beforeBlack = frames;
-  await page.locator('#camera-device').selectOption('fixture-black-camera');
+  await page.evaluate(() => { window.blackCamera = true; });
   await page.locator('#start-camera').click();
   await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'camera_issue');
-  await expect(page.locator('#monitor-message')).toContainText('Nguồn camera đang gửi hình đen');
+  await expect(page.locator('#monitor-message')).toContainText('Camera HD User Facing đang gửi hình đen');
   expect(frames).toBe(beforeBlack);
-  await page.locator('#camera-device').selectOption(physical);
-  await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'alert');
-  expect(await page.evaluate(() => window.lastCameraConstraints.video.deviceId.exact)).toBe(physical);
+  await page.locator('#stop-camera').click();
   expect(await page.evaluate(() => window.blackCameraTrack.readyState)).toBe('ended');
+  await page.evaluate(() => { window.blackCamera = false; });
+  await page.locator('#start-camera').click();
+  await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'alert');
+  expect(await page.evaluate(() => window.lastCameraConstraints.video.deviceId.exact)).toBe('fixture-hd');
   await expect(page.locator('#camera-source')).toContainText('×');
   await page.locator('#stop-camera').click();
   mode = 'held';
@@ -205,13 +213,12 @@ try {
   await expect(page.locator('#monitor-message')).toContainText('Bạn chưa cho phép camera');
   await expect(page.locator('#start-camera')).toBeEnabled();
   expect(errors).toEqual([]);
-  await verifyCameraPreference({});
-  await verifyCameraPreference({ hidden: true });
-  await verifyCameraPreference({ preferred: false });
-  await verifyCameraPreference({ selection: 'fixture-usb' });
-  await verifyCameraPreference({ selection: '' });
-  await verifyCameraPreference({ hidden: true, cancel: true });
-  console.log('PASS: HD User Facing preference before/after permission, explicit selection/default override, no-preference fallback, startup cancellation, recent-alert display, capture-to-response age, black-stream rejection, source switching, webhook independence, cleanup and permission denial');
+  await verifyHDOnly({});
+  await verifyHDOnly({ hidden: true });
+  await verifyHDOnly({ preferred: false });
+  await verifyHDOnly({ hidden: true, preferred: false });
+  await verifyHDOnly({ hidden: true, cancel: true });
+  console.log('PASS: HD User Facing only, hidden-name permission bootstrap and cleanup, missing-HD errors before/after permission, startup cancellation, recent-alert display, capture-to-response age, black-stream rejection, webhook independence, cleanup and permission denial');
 } finally {
   releaseFrame?.(); releaseDelivery?.();
   await browser.close(); server.close();

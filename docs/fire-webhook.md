@@ -49,8 +49,8 @@ Các endpoint webcam máy chủ cũ được giữ để tương thích local, c
 
 Xuất lại mô hình ở môi trường local có Ultralytics và onnx: `python ai/export_fire_onnx.py`. Không đổi checkpoint/ngưỡng triển khai khi chỉ đổi định dạng mô hình.
 
-## Chọn camera khi hình đen
+## Camera HD User Facing
 
-Mục Camera liệt kê thiết bị trình duyệt nhìn thấy; sau khi cấp quyền sẽ hiện tên thật. Mặc định ưu tiên HD User Facing (không phân biệt chữ hoa/thường, chấp nhận mã thiết bị phía sau). Nếu tên bị ẩn trước khi cấp quyền, ứng dụng xin quyền khi bấm Bắt đầu, liệt kê lại rồi chuyển sang HD User Facing trước khi gửi ảnh AI. Nếu không có thiết bị này thì dùng mặc định của trình duyệt. Lựa chọn thủ công của người dùng được giữ trong trang hiện tại, kể cả lựa chọn camera mặc định của trình duyệt. Không ép camera sau hoặc độ phân giải.
+Trang giám sát chỉ hiển thị và sử dụng HD User Facing (không phân biệt chữ hoa/thường, chấp nhận mã thiết bị phía sau). Đã bỏ danh sách chọn camera và các lựa chọn mặc định trình duyệt, EShare, OBS. Nếu tên bị ẩn trước khi cấp quyền, ứng dụng xin quyền khi bấm Bắt đầu, liệt kê lại rồi chuyển sang HD User Facing trước khi gửi ảnh AI. Nếu không tìm thấy HD User Facing thì báo lỗi và dừng, không dùng camera khác để giám sát. Không ép camera sau hoặc độ phân giải.
 
-Chọn thiết bị sẽ mở theo deviceId chính xác; đổi trong lúc giám sát sẽ đóng nguồn cũ trước khi mở nguồn mới. Tên nguồn và kích thước video được hiển thị dưới trạng thái. Khung hình gần như đen hoàn toàn liên tiếp sẽ hiện cảnh báo nguồn ảnh và tạm ngừng gửi AI; camera vẫn mở để có thể tự phục hồi khi có hình. Kiểm tra này không chứng minh thiết bị bị hỏng hoặc phân biệt được phòng tối với nguồn camera trống.
+HD User Facing được mở theo deviceId chính xác. Tên nguồn và kích thước video được hiển thị dưới trạng thái. Khung hình gần như đen hoàn toàn liên tiếp sẽ hiện cảnh báo nguồn ảnh và tạm ngừng gửi AI; camera vẫn mở để có thể tự phục hồi khi có hình. Kiểm tra này không chứng minh thiết bị bị hỏng hoặc phân biệt được phòng tối với nguồn camera trống.
