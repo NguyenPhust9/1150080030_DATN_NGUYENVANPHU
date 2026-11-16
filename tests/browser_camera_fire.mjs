@@ -54,6 +54,13 @@ await context.addInitScript(() => {
 let frames = 0, deliveries = 0, mode = 'fire', releaseDelivery, releaseFrame;
 const page = await context.newPage();
 const errors = [];
+const frameTimings = [], activeFrames = new Set();
+let maxConcurrentFrames = 0;
+page.on('request', request => {
+  if (new URL(request.url()).pathname !== '/api/frame') return;
+  activeFrames.add(request); maxConcurrentFrames = Math.max(maxConcurrentFrames, activeFrames.size);
+});
+for (const event of ['requestfinished', 'requestfailed']) page.on(event, request => activeFrames.delete(request));
 page.on('pageerror', error => errors.push(error.message));
 await context.route('**/api/**', async route => {
   const path = new URL(route.request().url()).pathname;
@@ -63,9 +70,11 @@ await context.route('**/api/**', async route => {
   if (path === '/api/stop') return route.fulfill({ json: { ok: true } });
   if (path === '/api/frame') {
     frames++;
+    const timing = { mode, requestedAt: performance.now(), fulfilledAt: null }; frameTimings.push(timing);
     expect(route.request().headers()['content-type']).toContain('multipart/form-data');
     if (mode === 'held') await new Promise(resolve => { releaseFrame = resolve; });
     if (mode === 'delayed') await new Promise(resolve => setTimeout(resolve, 550));
+    timing.fulfilledAt = performance.now();
     return route.fulfill({ json: { state: mode === 'fire' || mode === 'recent' ? 'alert' : 'monitoring', current_state: mode === 'recent' ? 'recent_alert' : undefined, width: 640, height: 480, inference_ms: 150,
       detections: mode === 'fire' ? [{ label: 'fire', confidence: .9, xyxy: [100, 100, 200, 250] }] : [],
       alert: mode === 'fire' && frames === 1 ? { id: 'event-1', time: 'fixture-time', labels: ['fire'] } : null } });
@@ -183,6 +192,10 @@ try {
   await expect.poll(async () => Number((await page.locator('#fps-label').textContent()).match(/Tổng ([\d.]+)/)?.[1] || 0)).toBeGreaterThanOrEqual(.5);
   await expect.poll(async () => parseFloat(await page.locator('#frame-freshness').textContent())).toBeGreaterThanOrEqual(.5);
   await expect(page.locator('#frame-freshness')).not.toContainText('Vừa cập nhật');
+  await expect.poll(() => frameTimings.filter(timing => timing.mode === 'delayed' && timing.fulfilledAt !== null).length).toBeGreaterThanOrEqual(2);
+  const slowFrameIndex = frameTimings.findIndex(timing => timing.mode === 'delayed');
+  expect(frameTimings[slowFrameIndex + 1].requestedAt - frameTimings[slowFrameIndex].fulfilledAt).toBeLessThan(400);
+  expect(maxConcurrentFrames).toBe(1);
   mode = 'fire';
   await page.locator('#stop-camera').click();
   await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
@@ -206,8 +219,12 @@ try {
   await page.locator('#start-camera').click();
   await expect.poll(() => Boolean(releaseFrame)).toBe(true);
   await page.locator('#stop-camera').click();
+  const stoppedFrames = frames;
   releaseFrame();
   await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
+  await page.waitForTimeout(450);
+  expect(frames).toBe(stoppedFrames);
+  expect(maxConcurrentFrames).toBe(1);
   await page.evaluate(() => { navigator.mediaDevices.getUserMedia = async () => { throw new DOMException('denied', 'NotAllowedError'); }; });
   await page.locator('#start-camera').click();
   await expect(page.locator('#monitor-message')).toContainText('Bạn chưa cho phép camera');
@@ -218,7 +235,7 @@ try {
   await verifyHDOnly({ preferred: false });
   await verifyHDOnly({ hidden: true, preferred: false });
   await verifyHDOnly({ hidden: true, cancel: true });
-  console.log('PASS: HD User Facing only, hidden-name permission bootstrap and cleanup, missing-HD errors before/after permission, startup cancellation, recent-alert display, capture-to-response age, black-stream rejection, webhook independence, cleanup and permission denial');
+  console.log('PASS: HD User Facing only, hidden-name permission bootstrap and cleanup, missing-HD errors before/after permission, startup cancellation, recent-alert display, capture-to-response age, prompt serial sampling after delayed response, black-stream rejection, webhook independence, cleanup and permission denial');
 } finally {
   releaseFrame?.(); releaseDelivery?.();
   await browser.close(); server.close();

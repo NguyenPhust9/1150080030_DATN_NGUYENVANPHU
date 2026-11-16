@@ -145,6 +145,7 @@
   }
   async function frame(version) {
     if (!running || disposed || version !== generation) return;
+    const startedAt = performance.now();
     try {
       if (!video.videoWidth || video.readyState < 2) { timer = setTimeout(() => frame(version), 300); return; }
       if (stream?.getVideoTracks()[0]?.muted || blackFrame()) {
@@ -187,7 +188,10 @@
       state('stale', text); message(text); overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
       if (failures >= 3) { stopCamera(); state('error', text); return; }
     }
-    if (running && version === generation && !disposed) timer = setTimeout(() => frame(version), 750);
+    if (running && version === generation && !disposed) {
+      const delay = failures ? 750 : Math.max(0, 250 - (performance.now() - startedAt));
+      timer = setTimeout(() => frame(version), delay);
+    }
   }
   function stopCamera() {
     const oldId = runId;
