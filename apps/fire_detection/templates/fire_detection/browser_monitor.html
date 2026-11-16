@@ -4,18 +4,18 @@
 {% block page_title %}Giám sát cháy AI{% endblock %}
 {% block page_subtitle %}Theo dõi dấu hiệu lửa và khói trực tiếp từ webcam{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/fire-monitor.css' %}?v=4">
+<link rel="stylesheet" href="{% static 'css/fire-monitor.css' %}?v=5">
 <section class="fire-monitor" data-state="stopped" data-config-url="{% url 'fire_detection:browser-config' %}" data-start-url="{% url 'fire_detection:browser-start' %}" data-stop-url="{% url 'fire_detection:browser-stop' %}" data-frame-url="{% url 'fire_detection:browser-frame' %}" data-delivery-base="{% url 'fire_detection:monitor' %}camera/canh-bao/">
   <div hidden>{% csrf_token %}</div>
   <div class="fire-toolbar">
     <div class="fire-heading"><span class="status-dot" aria-hidden="true"></span><div><strong id="camera-state" role="status">Đã dừng giám sát</strong><small id="camera-source">Camera trên thiết bị của bạn</small></div></div>
-    <div class="fire-actions"><button id="start-camera" class="button primary" type="button" disabled><i data-lucide="video"></i>Bắt đầu giám sát</button><button id="stop-camera" class="button secondary" type="button" disabled><i data-lucide="square"></i>Dừng</button></div>
+    <div class="fire-actions"><label class="camera-picker" for="camera-device">Camera<select id="camera-device" aria-label="Chọn camera"><option value="">Camera mặc định của trình duyệt</option></select></label><button id="start-camera" class="button primary" type="button" disabled><i data-lucide="video"></i>Bắt đầu giám sát</button><button id="stop-camera" class="button secondary" type="button" disabled><i data-lucide="square"></i>Dừng</button></div>
   </div>
   <div id="monitor-message" class="monitor-message" role="alert" hidden></div>
   <div id="fire-banner" class="fire-banner" role="alert"><i data-lucide="flame"></i><div><strong>Phát hiện dấu hiệu lửa hoặc khói!</strong><span>Kiểm tra khu vực camera ngay. Không chỉ dựa vào kết quả AI để đánh giá an toàn.</span></div></div>
   <div class="fire-grid">
     <div class="camera-card">
-      <div class="camera-screen"><video id="browser-camera" muted playsinline aria-label="Hình ảnh trực tiếp từ camera của bạn"></video><canvas id="detection-overlay" aria-hidden="true"></canvas><div id="camera-placeholder"><i data-lucide="camera-off"></i><strong id="camera-placeholder-title">Camera chưa hoạt động</strong><span id="camera-placeholder-text">Bấm “Bắt đầu giám sát” và cho phép trình duyệt dùng camera.</span></div></div>
+      <div class="camera-screen"><video id="browser-camera" autoplay muted playsinline aria-label="Hình ảnh trực tiếp từ camera của bạn"></video><canvas id="detection-overlay" aria-hidden="true"></canvas><div id="camera-placeholder"><i data-lucide="camera-off"></i><strong id="camera-placeholder-title">Camera chưa hoạt động</strong><span id="camera-placeholder-text">Bấm “Bắt đầu giám sát” và cho phép trình duyệt dùng camera.</span></div></div>
       <div class="camera-footer"><span id="safety-label">Chưa có kết quả giám sát</span><span id="fps-label">— FPS</span></div>
       <p class="camera-caution">Khung hình được gửi tới máy chủ để phân tích khi đang giám sát. “Chưa phát hiện” không có nghĩa là không có cháy. Lửa nhỏ, bị che khuất hoặc thiếu sáng có thể bị bỏ sót.</p>
     </div>
@@ -38,5 +38,5 @@
   </div>
   <noscript><p class="monitor-message">Cần bật JavaScript để xem trạng thái giám sát trực tiếp. Hiện không thể hiển thị kết quả AI.</p></noscript>
 </section>
-<script src="{% static 'js/browser-fire-monitor.js' %}?v=1"></script>
+<script src="{% static 'js/browser-fire-monitor.js' %}?v=2"></script>
 {% endblock %}

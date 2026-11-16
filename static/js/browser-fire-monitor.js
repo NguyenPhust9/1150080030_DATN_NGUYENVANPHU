@@ -4,17 +4,19 @@
   if (!root) return;
   const find = id => root.querySelector('#' + id);
   const video = find('browser-camera'), overlay = find('detection-overlay');
-  const start = find('start-camera'), stop = find('stop-camera');
+  const start = find('start-camera'), stop = find('stop-camera'), cameraSelect = find('camera-device');
+  const probe = document.createElement('canvas'); probe.width = 32; probe.height = 24;
+  const probeContext = probe.getContext('2d', { willReadFrequently: true });
   const csrf = root.querySelector('[name=csrfmiddlewaretoken]').value;
   const capture = document.createElement('canvas');
   let stream = null, generation = 0, runId = '', sequence = 0, timer = null;
   let controller = null, lastResult = 0, running = false, starting = false, disposed = false;
-  let wasAlert = false, audio = null, failures = 0;
+  let wasAlert = false, audio = null, failures = 0, blackFrames = 0;
   const events = new Map();
   const labels = {
     stopped: 'Đã dừng giám sát', starting: 'Đang mở camera và kết nối AI…',
     monitoring: 'Chưa phát hiện lửa/khói', detecting: 'Đang xác minh dấu hiệu lửa/khói…',
-    alert: 'CẢNH BÁO LỬA / KHÓI', stale: 'Chưa có kết quả AI mới', error: 'Lỗi giám sát',
+    alert: 'CẢNH BÁO LỬA / KHÓI', camera_issue: 'Camera đang trả về hình đen', stale: 'Chưa có kết quả AI mới', error: 'Lỗi giám sát',
   };
   function state(value, message = '') {
     root.dataset.state = value;
@@ -26,12 +28,42 @@
     find('camera-placeholder-text').textContent = message || 'Bấm “Bắt đầu giám sát” và cho phép sử dụng camera.';
     start.disabled = starting || running;
     stop.disabled = !starting && !running;
+    cameraSelect.disabled = starting;
     root.setAttribute('aria-busy', String(starting));
     if (value !== 'alert') wasAlert = false;
   }
   function message(text = '') {
     find('monitor-message').textContent = text;
     find('monitor-message').hidden = !text;
+  }
+  async function refreshCameras(activeId = '') {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    const selected = activeId || cameraSelect.value;
+    const devices = (await navigator.mediaDevices.enumerateDevices()).filter(device => device.kind === 'videoinput' && device.deviceId);
+    const choices = [new Option('Camera mặc định của trình duyệt', '')];
+    devices.forEach((device, index) => choices.push(new Option(device.label || 'Camera ' + (index + 1), device.deviceId)));
+    cameraSelect.replaceChildren(...choices);
+    if (devices.some(device => device.deviceId === selected)) cameraSelect.value = selected;
+  }
+  function blackFrame() {
+    probeContext.drawImage(video, 0, 0, probe.width, probe.height);
+    const pixels = probeContext.getImageData(0, 0, probe.width, probe.height).data;
+    let highest = 0, total = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const value = Math.max(pixels[i], pixels[i + 1], pixels[i + 2]);
+      highest = Math.max(highest, value); total += value;
+    }
+    return highest < 8 && total / (pixels.length / 4) < 3;
+  }
+  async function waitForVideoFrame(version) {
+    const deadline = Date.now() + 8000;
+    while (version === generation && !disposed && Date.now() < deadline) {
+      const track = stream?.getVideoTracks()[0];
+      if (!track || track.readyState !== 'live') throw new Error('Camera đã ngắt kết nối. Hãy chọn lại camera.');
+      if (!track.muted && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return;
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    throw new Error('Camera chưa trả về hình ảnh. Hãy chọn đúng webcam hoặc đóng ứng dụng đang dùng camera.');
   }
   function beep() {
     try {
@@ -115,6 +147,19 @@
     if (!running || disposed || version !== generation) return;
     try {
       if (!video.videoWidth || video.readyState < 2) { timer = setTimeout(() => frame(version), 300); return; }
+      if (stream?.getVideoTracks()[0]?.muted || blackFrame()) {
+        blackFrames += 1; lastResult = 0;
+        overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
+        find('detection-count').textContent = '—'; find('fps-label').textContent = '—';
+        find('frame-freshness').textContent = 'Chưa có hình ảnh hợp lệ';
+        if (blackFrames >= 3) {
+          const text = 'Nguồn camera đang gửi hình đen. Chọn webcam khác ở mục Camera; kiểm tra nắp che và đóng ứng dụng Camera Windows.';
+          state('camera_issue', text); message(text);
+        } else state('starting', 'Đang chờ hình ảnh từ camera…');
+        timer = setTimeout(() => frame(version), 750);
+        return;
+      }
+      blackFrames = 0;
       const scale = Math.min(1, 1280 / video.videoWidth, 720 / video.videoHeight);
       capture.width = Math.round(video.videoWidth * scale); capture.height = Math.round(video.videoHeight * scale);
       capture.getContext('2d').drawImage(video, 0, 0, capture.width, capture.height);
@@ -147,7 +192,8 @@
     overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
     lastResult = 0; wasAlert = false; find('detection-count').textContent = '—'; find('fps-label').textContent = '—';
     find('frame-freshness').textContent = 'Đã dừng camera'; state('stopped');
-    if (oldId) void request(root.dataset.stopUrl, { body: body({ run_id: oldId }) }).catch(() => {});
+    if (oldId) return request(root.dataset.stopUrl, { body: body({ run_id: oldId }) }).catch(() => {});
+    return Promise.resolve();
   }
   async function startCamera() {
     if (starting || running || disposed) return;
@@ -155,12 +201,21 @@
     let acquired = null;
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Cần trình duyệt hỗ trợ camera và địa chỉ HTTPS hoặc localhost.');
-      acquired = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'environment' }, audio: false });
+      const selectedId = cameraSelect.value;
+      const constraints = selectedId ? { deviceId: { exact: selectedId } } : true;
+      acquired = await navigator.mediaDevices.getUserMedia({ video: constraints, audio: false });
       if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
-      stream = acquired; video.srcObject = stream; await video.play(); video.classList.add('active');
+      stream = acquired; video.muted = true; video.srcObject = stream; await video.play(); video.classList.add('active');
+      await waitForVideoFrame(version);
+      if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      find('camera-source').textContent = (track.label || 'Camera đã chọn') + ' · ' + video.videoWidth + '×' + video.videoHeight;
+      await refreshCameras(settings.deviceId || selectedId);
+      if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
       const data = await request(root.dataset.startUrl, { body: new FormData() });
       if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
-      runId = data.run_id; sequence = 0; failures = 0; starting = false; running = true; lastResult = 0;
+      runId = data.run_id; sequence = 0; failures = 0; blackFrames = 0; starting = false; running = true; lastResult = 0;
       stream.getVideoTracks()[0]?.addEventListener('ended', () => { if (running) { stopCamera(); message('Camera đã ngắt kết nối.'); } });
       state('starting'); void frame(version);
     } catch (error) {
@@ -169,10 +224,19 @@
       stopCamera();
       const text = error.name === 'NotAllowedError' ? 'Bạn chưa cho phép camera. Hãy cấp quyền camera cho website trong trình duyệt.'
         : error.name === 'NotFoundError' ? 'Không tìm thấy camera trên thiết bị.'
-        : error.name === 'NotReadableError' ? 'Không mở được camera. Hãy đóng ứng dụng khác đang sử dụng camera.' : error.message;
+        : error.name === 'NotReadableError' ? 'Không mở được camera. Hãy đóng ứng dụng khác đang sử dụng camera.'
+        : error.name === 'OverconstrainedError' ? 'Camera đã chọn không còn khả dụng. Hãy chọn camera khác.' : error.message;
       state('error', text); message(text);
     }
   }
+  cameraSelect.addEventListener('change', async () => {
+    if (!running) return;
+    const stopped = stopCamera(); const version = generation;
+    await stopped;
+    if (version === generation && !disposed) void startCamera();
+  });
+  navigator.mediaDevices?.addEventListener?.('devicechange', () => { void refreshCameras().catch(() => {}); });
+  void refreshCameras().catch(() => {});
   start.addEventListener('click', startCamera); stop.addEventListener('click', () => { stopCamera(); message(); });
   const freshness = setInterval(() => {
     if (!running || !lastResult) return;

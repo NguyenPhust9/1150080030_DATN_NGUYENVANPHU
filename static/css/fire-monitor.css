@@ -80,3 +80,11 @@
 .camera-screen video.active { display: block; }
 .camera-screen video.active ~ #camera-placeholder { display: none; }
 #detection-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }
+
+.fire-actions { flex-wrap: wrap; align-items: center; }
+.camera-picker { display: grid; gap: 4px; font-size: 12px; color: #475569; }
+.camera-picker select { max-width: 270px; min-height: 38px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 6px 10px; background: #fff; color: #1e293b; }
+.camera-screen video { position: absolute; inset: 0; z-index: 0; }
+#detection-overlay { z-index: 1; background: transparent; }
+#camera-placeholder { z-index: 2; }
+@media (max-width: 700px) { .camera-picker { width: 100%; } .camera-picker select { max-width: 100%; width: 100%; } }

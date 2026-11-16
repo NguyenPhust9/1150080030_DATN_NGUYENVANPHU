@@ -46,3 +46,7 @@ Test backend dùng SQLite tách biệt và mock Cloudinary/n8n. Test Chromium d�
 Các endpoint webcam máy chủ cũ được giữ để tương thích local, cùng bounded worker độc lập. Trang web chính dùng API camera trình duyệt mới, không dùng luồng cv2 này.
 
 Xuất lại mô hình ở môi trường local có Ultralytics và onnx: `python ai/export_fire_onnx.py`. Không đổi checkpoint/ngưỡng triển khai khi chỉ đổi định dạng mô hình.
+
+## Chọn camera khi hình đen
+
+Mục Camera liệt kê thiết bị trình duyệt nhìn thấy; sau khi cấp quyền sẽ hiện tên thật. Mặc định dùng lựa chọn của trình duyệt, không ép camera sau hoặc độ phân giải. Chọn thiết bị sẽ mở theo deviceId chính xác; đổi trong lúc giám sát sẽ đóng nguồn cũ trước khi mở nguồn mới. Tên nguồn và kích thước video được hiển thị dưới trạng thái. Khung hình gần như đen hoàn toàn liên tiếp sẽ hiện cảnh báo nguồn ảnh và tạm ngừng gửi AI; camera vẫn mở để có thể tự phục hồi khi có hình. Kiểm tra này không chứng minh thiết bị bị hỏng hoặc phân biệt được phòng tối với nguồn camera trống.

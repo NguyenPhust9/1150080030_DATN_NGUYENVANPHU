@@ -22,7 +22,22 @@ const context = await browser.newContext({ permissions: ['camera'], viewport: { 
 await context.addInitScript(() => {
   window.cameraRequests = 0;
   const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
-  navigator.mediaDevices.getUserMedia = async (...args) => { window.cameraRequests++; const stream = await original(...args); window.testStream = stream; return stream; };
+  const enumerate = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+  navigator.mediaDevices.enumerateDevices = async () => [...await enumerate(), { kind: 'videoinput', deviceId: 'fixture-black-camera', label: 'Black virtual camera' }];
+  navigator.mediaDevices.getUserMedia = async (...args) => {
+    window.cameraRequests++; window.lastCameraConstraints = args[0];
+    let stream;
+    if (args[0].video?.deviceId?.exact === 'fixture-black-camera') {
+      const canvas = document.createElement('canvas'); canvas.width = 320; canvas.height = 240;
+      const ctx = canvas.getContext('2d');
+      stream = canvas.captureStream(10);
+      const loop = setInterval(() => { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, 320, 240); }, 100);
+      const track = stream.getVideoTracks()[0]; window.blackCameraTrack = track;
+      const stop = track.stop.bind(track); track.stop = () => { clearInterval(loop); stop(); };
+      track.getSettings = () => ({ deviceId: 'fixture-black-camera', width: 320, height: 240 });
+    } else stream = await original(...args);
+    window.testStream = stream; return stream;
+  };
 });
 let frames = 0, deliveries = 0, mode = 'fire', releaseDelivery, releaseFrame;
 const page = await context.newPage();
@@ -65,6 +80,20 @@ try {
   await page.locator('#stop-camera').click();
   await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
   expect(await page.evaluate(() => window.testStream.getTracks().every(track => track.readyState === 'ended'))).toBe(true);
+  expect(await page.evaluate(() => window.lastCameraConstraints.video)).toBe(true);
+  const physical = await page.evaluate(async () => (await navigator.mediaDevices.enumerateDevices()).find(device => device.kind === 'videoinput' && device.deviceId !== 'fixture-black-camera').deviceId);
+  const beforeBlack = frames;
+  await page.locator('#camera-device').selectOption('fixture-black-camera');
+  await page.locator('#start-camera').click();
+  await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'camera_issue');
+  await expect(page.locator('#monitor-message')).toContainText('Nguồn camera đang gửi hình đen');
+  expect(frames).toBe(beforeBlack);
+  await page.locator('#camera-device').selectOption(physical);
+  await expect(page.locator('.fire-monitor')).toHaveAttribute('data-state', 'alert');
+  expect(await page.evaluate(() => window.lastCameraConstraints.video.deviceId.exact)).toBe(physical);
+  expect(await page.evaluate(() => window.blackCameraTrack.readyState)).toBe('ended');
+  await expect(page.locator('#camera-source')).toContainText('×');
+  await page.locator('#stop-camera').click();
   mode = 'held';
   await page.locator('#start-camera').click();
   await expect.poll(() => Boolean(releaseFrame)).toBe(true);
@@ -76,7 +105,7 @@ try {
   await expect(page.locator('#monitor-message')).toContainText('Bạn chưa cho phép camera');
   await expect(page.locator('#start-camera')).toBeEnabled();
   expect(errors).toEqual([]);
-  console.log('PASS: no auto camera, fake webcam, frames continue during webhook, track cleanup, stop race, permission denial');
+  console.log('PASS: camera defaults, exact device selection, black-stream rejection, source switching, webhook independence, cleanup and permission denial');
 } finally {
   releaseFrame?.(); releaseDelivery?.();
   await browser.close(); server.close();
