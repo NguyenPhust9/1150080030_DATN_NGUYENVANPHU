@@ -41,6 +41,7 @@ def fire(score=0.75):
     return {"label": "fire", "confidence": score, "xyxy": (100, 100, 102, 104)}
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class DetectorConfigTests(SimpleTestCase):
     def test_default_resolution_and_thresholds(self):
         config = DetectorConfig.from_environment(settings.BASE_DIR, {})
@@ -65,6 +66,7 @@ class DetectorConfigTests(SimpleTestCase):
                 DetectorConfig.from_environment(settings.BASE_DIR, {name: value})
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class DetectionFilteringTests(SimpleTestCase):
     def setUp(self):
         self.config = DetectorConfig.from_environment(settings.BASE_DIR, {})
@@ -99,6 +101,7 @@ class DetectionFilteringTests(SimpleTestCase):
         self.assertEqual(filter_detections(prediction(None), (720, 1280, 3), self.config), [])
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class TemporalConfirmationTests(SimpleTestCase):
     def test_nonconsecutive_positive_frames_confirm(self):
         tracker = TemporalConfirmation()
@@ -128,6 +131,7 @@ class TemporalConfirmationTests(SimpleTestCase):
         self.assertEqual((state, evidence), ("monitoring", []))
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class DetectorLifecycleTests(SimpleTestCase):
     def setUp(self):
         self.environment = patch.dict(os.environ, {}, clear=True)
@@ -281,6 +285,7 @@ class DetectorLifecycleTests(SimpleTestCase):
         self.assertNotIn("AN TOAN", captions)
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class CameraAlertPersistenceTests(SimpleTestCase):
     def test_empty_or_invalid_alerts_never_touch_database(self):
         with patch.dict(os.environ, {"FIRE_CAMERA_ID": "d7b5ab1a-812f-4100-967e-6443f4c7d329"}):
@@ -299,6 +304,7 @@ class CameraAlertPersistenceTests(SimpleTestCase):
         cv2.imwrite.assert_not_called()
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class BackgroundAlertPersistenceTests(SimpleTestCase):
     def test_slow_database_cannot_block_history_or_create_unbounded_workers(self):
         detector = WebcamFireDetector()
@@ -439,6 +445,7 @@ class BackgroundAlertPersistenceTests(SimpleTestCase):
         self.assertNotIn("private-detail", event["persistence_error"])
 
 
+@patch.dict(os.environ, {"FIRE_WEBHOOK_URL": ""})
 class CameraStreamViewTests(SimpleTestCase):
     def setUp(self):
         self.request = RequestFactory().get("/giam-sat-chay/stream/")

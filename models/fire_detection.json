@@ -1,0 +1,13 @@
+{
+  "source": "runs/fire_detection/dfire_yolo11n_e30/weights/best.pt",
+  "source_sha256": "683a0e8645d8fe77309354086cd04ddc785de5f7696a7c85a52798c7361377ff",
+  "onnx_sha256": "82540092679fb452008569b79410fa618971825642a2d32748e020b34a47a7b0",
+  "image_size": 512,
+  "names": {
+    "0": "smoke",
+    "1": "fire"
+  },
+  "opset": 17,
+  "dynamic": false,
+  "nms": false
+}

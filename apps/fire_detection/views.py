@@ -15,7 +15,7 @@ def _operator(request):
 @login_required
 def monitor(request):
     _operator(request)
-    return render(request, "fire_detection/monitor.html", detector.snapshot())
+    return render(request, "fire_detection/browser_monitor.html")
 
 
 @login_required

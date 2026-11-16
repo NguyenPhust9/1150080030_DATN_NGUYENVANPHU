@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 import time
 import uuid
@@ -10,6 +11,7 @@ from django.conf import settings
 
 from .inference import DetectorConfig, TemporalConfirmation, filter_detections, validate_model_classes
 from .persistence import PERSISTENCE_ERROR, QUEUE_FULL_ERROR, AlertPersistenceWorker
+from .webhook import WEBHOOK_ERROR, AlertWebhookWorker
 
 logger = logging.getLogger(__name__)
 STATE_LABELS = {
@@ -41,6 +43,7 @@ class WebcamFireDetector:
         self._alert_labels = []
         self._events = deque(maxlen=10)
         self._persistence = AlertPersistenceWorker(self._update_event_persistence)
+        self._webhook = AlertWebhookWorker(self._update_event_webhook)
         self._last_alert_at = None
         self._confirmation = TemporalConfirmation()
         self._fps = 0.0
@@ -62,6 +65,8 @@ class WebcamFireDetector:
         self._confirmation.clear()
 
     def start(self):
+        if os.getenv("VERCEL"):
+            return False, "Webcam cần chạy trên máy có camera. Hãy mở trang giám sát trên Django local; Vercel không có webcam."
         with self._lock:
             if self._thread and self._thread.is_alive():
                 if self._stop_event.is_set():
@@ -130,6 +135,7 @@ class WebcamFireDetector:
                 "alert_labels": list(self._alert_labels),
                 "events": [dict(event) for event in self._events],
                 "persistence": self._persistence.snapshot(),
+                "webhook": self._webhook.snapshot(),
                 "model_name": config.model_path.name,
                 "model_source": source,
                 "model_run": (config.model_path.parent.parent.name
@@ -277,6 +283,16 @@ class WebcamFireDetector:
                     event["persistence_error"] = error
                     break
 
+    def _update_event_webhook(self, event_id, state, error="", image_url=""):
+        with self._lock:
+            for event in self._events:
+                if event["id"] == event_id:
+                    event["webhook_state"] = state
+                    event["webhook_error"] = error
+                    if image_url:
+                        event["webhook_image_url"] = image_url
+                    break
+
     def _save_event(self, frame, detections, cv2):
         if not detections:
             return False
@@ -294,6 +310,9 @@ class WebcamFireDetector:
         labels = sorted({item["label"] for item in detections})
         event = {
             "id": uuid.uuid4().hex,
+            "detected_at": datetime.now(timezone.utc).isoformat(),
+            "webhook_state": "queued" if self._webhook.enabled else "disabled",
+            "webhook_error": "",
             "time": datetime.now().strftime("%H:%M:%S %d/%m/%Y"),
             "labels": labels,
             "image_url": f"/{settings.MEDIA_URL.lstrip('/')}fire_alerts/{filename}",
@@ -302,6 +321,12 @@ class WebcamFireDetector:
         }
         with self._lock:
             self._events.appendleft(event)
+        if self._webhook.enabled:
+            try:
+                if not self._webhook.submit(event, detections, event_dir / filename):
+                    self._update_event_webhook(event["id"], "queue_full", "Hàng đợi n8n đã đầy.")
+            except Exception:
+                self._update_event_webhook(event["id"], "failed", WEBHOOK_ERROR)
         try:
             if not self._persistence.submit(event["id"], detections, event["image_url"]):
                 self._update_event_persistence(event["id"], "queue_full", QUEUE_FULL_ERROR)

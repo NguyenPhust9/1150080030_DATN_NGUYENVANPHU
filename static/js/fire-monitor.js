@@ -120,6 +120,16 @@
         persistence.textContent = persistenceLabels[item.persistence_state];
         detail.append(persistence);
       }
+      const webhookLabels = {
+        disabled: 'Chưa bật gửi n8n', queued: 'n8n: Đang chờ gửi',
+        sending: 'n8n: Đang tải ảnh và gửi', sent: 'n8n đã nhận cảnh báo',
+        failed: 'n8n: Chưa xác nhận nhận được · Kiểm tra kết nối', queue_full: 'n8n: Hàng đợi đầy',
+      };
+      if (Object.hasOwn(webhookLabels, item.webhook_state)) {
+        const delivery = document.createElement('small');
+        delivery.textContent = webhookLabels[item.webhook_state];
+        detail.append(delivery);
+      }
       entry.append(detail);
       fragment.append(entry);
     }

@@ -75,3 +75,8 @@
   .camera-footer { align-items: flex-start; font-size: 13px; }
   #camera-placeholder { padding: 18px; }
 }
+
+.camera-screen video { width: 100%; height: 100%; object-fit: contain; display: none; }
+.camera-screen video.active { display: block; }
+.camera-screen video.active ~ #camera-placeholder { display: none; }
+#detection-overlay { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none; }

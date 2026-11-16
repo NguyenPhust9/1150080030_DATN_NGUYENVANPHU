@@ -134,3 +134,7 @@ Công cụ chẩn đoán chỉ đọc video cục bộ, không mở webcam, khô
 ```
 
 Tọa độ crop/banner ở trên chỉ phù hợp video đã kiểm tra; cần điều chỉnh theo bố cục video khác. Đây là quy trình chẩn đoán, không phải pipeline tự gán nhãn huấn luyện. Dùng video có sẵn, không đốt vật liệu hay thử lửa gần mặt để kiểm tra phần mềm.
+
+## Gửi ảnh cảnh báo cháy qua n8n
+
+Xem [hướng dẫn cấu hình webhook chính thức](docs/fire-webhook.md). Trang giám sát mở camera bằng trình duyệt, gửi JPEG tới Django trên Vercel để nhận diện ONNX 512 px. Cảnh báo được lưu và gửi sang Cloudinary/n8n bằng yêu cầu riêng; không cần cài OpenCV trên Vercel.
