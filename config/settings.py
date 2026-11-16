@@ -166,6 +166,7 @@ STORAGES = {
         )
     },
 }
+AVATAR_USE_CLOUDINARY = bool(env("CLOUDINARY_URL") or env("CLOUDINARY_CLOUD_NAME") or env("VERCEL"))
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 

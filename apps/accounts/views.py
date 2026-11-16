@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
+from django.db import transaction
 from django.db.models import F, Q, Value
 from django.db.models.functions import Concat
 from django.shortcuts import get_object_or_404, redirect, render
@@ -30,6 +31,7 @@ from apps.rentals.permissions import (
     require_perm_code,
 )
 
+from .avatar_storage import AvatarUploadError
 from .forms import (
     AdminPasswordResetForm,
     AvatarUploadForm,
@@ -84,11 +86,18 @@ def profile_view(request):
     is_avatar_post = request.method == "POST" and request.POST.get("profile_action") == "avatar"
 
     if is_avatar_post:
+        previous_avatar = user.avatar.name
         avatar_form = AvatarUploadForm(request.POST, request.FILES, instance=user)
         if avatar_form.is_valid():
-            avatar_form.save()
-            messages.success(request, "Đã cập nhật ảnh đại diện.")
-            return redirect("user-profile")
+            try:
+                with transaction.atomic():
+                    avatar_form.save()
+            except AvatarUploadError as exc:
+                user.avatar = previous_avatar
+                avatar_form.add_error("avatar", str(exc))
+            else:
+                messages.success(request, "Đã cập nhật ảnh đại diện.")
+                return redirect("user-profile")
         messages.error(request, "Không tải được ảnh đại diện. Vui lòng kiểm tra tệp ảnh.")
 
     if is_tenant_account:
