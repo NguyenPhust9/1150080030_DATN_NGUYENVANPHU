@@ -59,11 +59,11 @@ class Command(BaseCommand):
 
     def _buildings(self, owner):
         data = [
-            ("Nhà trọ An Tâm", "118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", "Tòa nhà hiện đại ngay trung tâm, có thang máy."),
-            ("Nhà trọ Bình An", "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM", "Gần trường đại học, an ninh 24/7."),
-            ("Nhà trọ Cát Tường", "42 Linh Trung, TP. Thủ Đức, TP.HCM", "Không gian yên tĩnh, gần khu đại học."),
-            ("Nhà trọ Đại Phát", "86 Bến Vân Đồn, Quận 4, TP.HCM", "Căn hộ mini gần trung tâm và bờ sông."),
-            ("Nhà trọ Eden", "55 Phan Văn Trị, Gò Vấp, TP.HCM", "Tòa nhà 5 tầng, mỗi tầng một phòng riêng tư và thoáng mát."),
+            ("Tòa nhà An Tâm", "118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", "Tòa nhà hiện đại ngay trung tâm, có thang máy."),
+            ("Tòa nhà Bình An", "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM", "Gần trường đại học, an ninh 24/7."),
+            ("Tòa nhà Cát Tường", "42 Linh Trung, TP. Thủ Đức, TP.HCM", "Không gian yên tĩnh, gần khu đại học."),
+            ("Tòa nhà Duyên Hải", "86 Bến Vân Đồn, Quận 4, TP.HCM", "Căn hộ mini gần trung tâm và bờ sông."),
+            ("Tòa nhà Eden", "55 Phan Văn Trị, Gò Vấp, TP.HCM", "Tòa nhà 5 tầng, mỗi tầng một phòng riêng tư và thoáng mát."),
         ]
         return [Building.objects.get_or_create(name=n, defaults={"address": a, "description": d, "owner": owner})[0] for n, a, d in data]
 
