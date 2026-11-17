@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#242b28">
   <title>Tham quan phòng {{ room.number }} · {{ room.building.name }}</title>
   <link rel="icon" href="{% static 'images/favicon.png' %}">
-  <link rel="stylesheet" href="{% static 'css/room-walkthrough.css' %}?v=room-view-2">
+  <link rel="stylesheet" href="{% static 'css/room-walkthrough.css' %}?v=a104-tour-1">
 </head>
 <body>
   {{ tour_config|json_script:"tour-config" }}
@@ -42,6 +42,6 @@
   </main>
   <script src="{% static 'lucide.min.js' %}"></script>
   <script>lucide.createIcons();</script>
-  <script type="module" src="{% static 'js/room-walkthrough.js' %}?v=room-view-2"></script>
+  <script type="module" src="{% static 'js/room-walkthrough.js' %}?v=a104-tour-1"></script>
 </body>
 </html>

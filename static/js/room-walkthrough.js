@@ -24,9 +24,9 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=room-view-2"),
-    import("./walkthrough-avatar.js?v=room-view-2"),
-    import("./walkthrough-motion.js?v=room-view-2"),
+    import("./room-tour-world.js?v=a104-tour-1"),
+    import("./walkthrough-avatar.js?v=a104-tour-1"),
+    import("./walkthrough-motion.js?v=a104-tour-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -47,11 +47,14 @@ try {
   sun.target.position.set(0, 0, -2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -10, right: 7, top: 8, bottom: -8, near: 0.5, far: 25 });
+  Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 8, bottom: -8, near: 0.5, far: 30 });
   sun.shadow.bias = -0.0003;
   sun.shadow.normalBias = 0.025;
   scene.add(sun, sun.target);
   const world = buildRoomTourWorld(THREE, scene, config);
+  const corridorCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
+  sun.position.x = corridorCenterX - 3;
+  sun.target.position.x = corridorCenterX;
   const walker = createWalker(THREE);
   const player = walker.group;
   player.position.set(world.spawn.x, 0, world.spawn.z);
@@ -80,8 +83,8 @@ try {
   const isDialogOpen = () => dialogs.some(dialog => dialog.open);
   const viewButton = document.getElementById("tour-view");
   const tour = document.getElementById("room-tour");
-  const mapCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
-  const mapX = x => 110 + (x - mapCenterX) * 16;
+  const mapScaleX = 186 / (world.bounds.maxX - world.bounds.minX + .6);
+  const mapX = x => 110 + (x - corridorCenterX) * mapScaleX;
   tour.dataset.viewMode = "third-person";
 
   clearMovement = () => {
@@ -346,11 +349,11 @@ try {
     '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="184">Hành lang chung</text>' +
     world.rooms.map(room => {
       const x = mapX(room.minX);
-      const width = (room.maxX - room.minX) * 16;
+      const width = (room.maxX - room.minX) * mapScaleX;
       const loftFront = 134 + room.loft.maxZ * 18;
       const stairsX = mapX(room.stairs.minX);
       const stairsY = 134 + room.stairs.topZ * 18;
-      const stairsWidth = (room.stairs.maxX - room.stairs.minX) * 16;
+      const stairsWidth = (room.stairs.maxX - room.stairs.minX) * mapScaleX;
       const stairsDepth = (room.stairs.bottomZ - room.stairs.topZ) * 18;
       return `<rect x="${x}" y="15" width="${width}" height="119" class="map-floor"/><path d="M ${x} ${loftFront} h ${width}" class="map-line"/><text x="${x + width / 2}" y="35">${room.number}</text><rect x="${stairsX}" y="${stairsY}" width="${stairsWidth}" height="${stairsDepth}" rx="2" class="map-furniture"/>`;
     }).join("");

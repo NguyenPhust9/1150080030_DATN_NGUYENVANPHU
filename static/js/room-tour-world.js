@@ -1,6 +1,7 @@
-import { buildA101World } from './a101-world.js?v=room-view-2';
-import { buildA102World } from './a102-world.js?v=room-view-2';
-import { buildA103World } from './a103-world.js?v=room-view-2';
+import { buildA101World } from './a101-world.js?v=a104-tour-1';
+import { buildA102World } from './a102-world.js?v=a104-tour-1';
+import { buildA103World } from './a103-world.js?v=a104-tour-1';
+import { buildA104World } from './a104-world.js?v=a104-tour-1';
 
 // All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -12,7 +13,13 @@ export function buildRoomTourWorld(THREE, scene, config) {
     { number: 'A101', offsetX: 0, minX: -1.6, maxX: 1.6, headClearance: 2.06, build: () => buildA101World(THREE, scene, { includeLanding: false }) },
     { number: 'A102', offsetX: -3.6, minX: -5.3, maxX: -1.9, headClearance: 2.16, build: () => buildA102World(THREE, scene, { offsetX: -3.6 }) },
     { number: 'A103', offsetX: -7.2, minX: -8.9, maxX: -5.5, headClearance: 2.16, build: () => buildA103World(THREE, scene, { offsetX: -7.2 }) },
+    { number: 'A104', offsetX: -10.8, minX: -12.5, maxX: -9.1, headClearance: 2.2, build: () => buildA104World(THREE, scene, { offsetX: -10.8 }) },
   ];
+  const layout = [...descriptions].sort((a, b) => a.minX - b.minX);
+  const landingMinX = layout[0].minX - .5;
+  const landingMaxX = layout.at(-1).maxX + .6;
+  const landingWidth = landingMaxX - landingMinX;
+  const landingCenterX = (landingMinX + landingMaxX) / 2;
   const cream = new THREE.MeshStandardMaterial({ color: '#e7dfcf', roughness: .85 });
   const trim = new THREE.MeshStandardMaterial({ color: '#c9b28d', roughness: .8 });
   const dark = new THREE.MeshStandardMaterial({ color: '#596457', roughness: .8 });
@@ -50,16 +57,18 @@ export function buildRoomTourWorld(THREE, scene, config) {
   ctx.strokeStyle = '#c9bfae'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, 128, 128);
   const floorMap = new THREE.CanvasTexture(landingCanvas);
   floorMap.colorSpace = THREE.SRGBColorSpace;
-  floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(19, 6);
-  // From left to right the landing connects A103, A102, then A101.
-  box(-3.6, -.09, 1.85, 11.6, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
-  box(-9.15, 2.25, 0, .5, 4.5, .22, cream, true);
-  box(-5.4, 2.25, 0, .2, 4.5, .22, cream, true);
-  box(-1.75, 2.25, 0, .3, 4.5, .22, cream, true);
-  box(1.9, 2.25, 0, .6, 4.5, .22, cream, true);
-  box(-3.6, 4.5, .13, 11.6, .17, .65, trim);
-  box(-3.6, .12, 3.61, 11.6, .24, .14, cream, true);
-  for (const x of [-9.25, 2.05]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
+  floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(landingWidth / .6, 6);
+  // Extend the landing and its facade with the physical room order.
+  box(landingCenterX, -.09, 1.85, landingWidth, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
+  box(landingMinX + .25, 2.25, 0, .5, 4.5, .22, cream, true);
+  for (let i = 1; i < layout.length; i++) {
+    const left = layout[i - 1].maxX, right = layout[i].minX;
+    box((left + right) / 2, 2.25, 0, right - left, 4.5, .22, cream, true);
+  }
+  box(landingMaxX - .3, 2.25, 0, .6, 4.5, .22, cream, true);
+  box(landingCenterX, 4.5, .13, landingWidth, .17, .65, trim);
+  box(landingCenterX, .12, 3.61, landingWidth, .24, .14, cream, true);
+  for (const x of [landingMinX + .15, landingMaxX - .15]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
   // A small planter beside A101 preserves the sunny landing's visual cue.
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(.23, .17, .43, 14), trim);
   pot.position.set(1.45, .215, .6); pot.castShadow = true; scene.add(pot);
@@ -84,7 +93,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
   return {
     rooms, obstacles, cameraObstacles, spawn: entry.spawn,
-    bounds: { minX: -9.1, maxX: 1.9, minZ: -6.4, maxZ: 3.35 },
+    bounds: { minX: landingMinX + .3, maxX: landingMaxX - .3, minZ: -6.4, maxZ: 3.35 },
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),
     groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : 0,

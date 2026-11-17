@@ -2,7 +2,7 @@
 {% block title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_subtitle %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/room-form.css' %}">
-{% if editing %}{% if form.instance.number == 'A101' or form.instance.number == 'A102' or form.instance.number == 'A103' %}
+{% if editing %}{% if form.instance.number == 'A101' or form.instance.number == 'A102' or form.instance.number == 'A103' or form.instance.number == 'A104' %}
 <div class="page-actions"><a class="btn primary" href="{% url 'room-walkthrough' form.instance.id %}"><i data-lucide="person-standing"></i>Tham quan 3D phòng {{ form.instance.number }}</a></div>
 {% endif %}{% endif %}
 <section class="room-form-panel">
