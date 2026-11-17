@@ -1,5 +1,5 @@
-import { buildA101World } from './a101-world.js?v=a102-jump-1';
-import { buildA102World } from './a102-world.js?v=a102-jump-1';
+import { buildA101World } from './a101-world.js?v=loft-walk-1';
+import { buildA102World } from './a102-world.js?v=loft-walk-1';
 
 // Both doors face the same landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -20,7 +20,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
     mesh.position.set(x, y, z); mesh.scale.set(w, h, d);
     mesh.castShadow = mesh.receiveShadow = true; scene.add(mesh);
     if (block) {
-      obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+      obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, minY: y - h / 2, maxY: y + h / 2 });
       cameraObstacles.push(mesh);
     }
     return mesh;
@@ -34,9 +34,9 @@ export function buildRoomTourWorld(THREE, scene, config) {
     }
     const built = description.build();
     rooms.push({ ...description, ...built, hingeX: description.offsetX, doorX: description.offsetX + .55 });
-    obstacles.push(...built.obstacles);
+    obstacles.push(...built.obstacles.map(rect => ({ ...rect, roomNumber: description.number })));
     cameraObstacles.push(...built.cameraObstacles);
-    for (const [z, y, intensity] of [[-1, 3.35, 13], [-4.5, 1.94, 10]]) {
+    for (const [z, y, intensity] of [[-1, 3.35, 13], [-4.5, 1.94, 10], [-4.4, built.loft.ceilingY - .3, 12]]) {
       const light = new THREE.PointLight(0xfff5e4, intensity, 7, 2);
       light.position.set(description.offsetX, y, z); scene.add(light);
     }
@@ -74,7 +74,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
     branch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.sub(start).normalize());
     scene.add(branch);
   }
-  obstacles.push({ minX: 2.13, maxX: 2.67, minZ: .33, maxZ: .87 });
+  obstacles.push({ minX: 2.13, maxX: 2.67, minZ: .33, maxZ: .87, minY: 0, maxY: 1.15 });
   const entry = rooms.find(room => room.number === config.entryRoom) || rooms[0];
   if (!entry) throw new Error('No accessible walkthrough room');
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
@@ -84,8 +84,9 @@ export function buildRoomTourWorld(THREE, scene, config) {
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),
     groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : 0,
-    ceilingAt: (x, z) => {
+    ceilingAt: (x, z, level = 'ground') => {
       const room = roomAt(x, z);
+      if (room && level !== 'ground') return room.loft.ceilingY;
       // A102's bathroom lintel is lower than its mezzanine beams. Include the
       // character's radius so its head cannot clip the edge during a jump.
       if (room?.number === 'A102' && x - room.offsetX < -.65 && z < -4.85 && z > -5.5) return 2;

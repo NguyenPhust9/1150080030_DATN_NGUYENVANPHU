@@ -91,7 +91,7 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     function solid(x, y, z, w, h, d, mat, collidable = true) {
         const item = box(x, y, z, w, h, d, mat);
         cameraObstacles.push(item);
-        if (collidable) obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
+        if (collidable) obstacles.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2, minY: y - h / 2, maxY: y + h / 2 });
         return item;
     }
     function surface(x, y, z, width, height, rotation, texture, repeatX, repeatY = 1, extra = {}) {
@@ -165,7 +165,7 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     solid(1.35, 2.1, 0, .5, 4.2, .18, facade);
     solid(.55, 3.225, 0, 1.1, 1.95, .18, facade, false);
     // The window is impassable even though the thin glass can be seen through.
-    obstacles.push({ minX: -1.6, maxX: 0, minZ: -.1, maxZ: .1 });
+    obstacles.push({ minX: -1.6, maxX: 0, minZ: -.1, maxZ: .1, minY: 0, maxY: 2.31 });
     const glass = material('glass', '#b2c5bd', { transparent: true, opacity: .24, roughness: .18, metalness: .12, depthWrite: false });
     box(-.8, 1.66, 0, .8, 1.28, .025, glass).castShadow = false;
     for (const x of [-1.21, -.39]) box(x, 1.66, 0, .045, 1.35, .12, doorMetal);
@@ -207,21 +207,22 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     for (const z of [-2.8, -3.7, -4.6, -5.5, -6.4]) box(0, 2.13, z, 3.2, .12, .075, iron);
     for (const x of [-1.55, 1.55]) box(x, 2.12, -4.7, .1, .15, 3.85, iron);
     // Leave the left ladder access clear at the balustrade.
-    box(.3, 3.12, -2.8, 2.6, .065, .065, iron);
-    box(.3, 2.33, -2.8, 2.6, .065, .065, iron);
-    for (let i = 0; i <= 12; i++) box(-1 + i * (2.6 / 12), 2.725, -2.8, .033, .79, .033, iron);
-    for (const x of [-1, 1.57]) box(x, 2.7, -2.8, .065, .9, .065, iron);
+    cameraObstacles.push(box(.35, 3.12, -2.8, 2.5, .065, .065, iron));
+    cameraObstacles.push(box(.35, 2.33, -2.8, 2.5, .065, .065, iron));
+    for (let i = 0; i <= 12; i++) cameraObstacles.push(box(-.9 + i * (2.5 / 12), 2.725, -2.8, .033, .79, .033, iron));
+    for (const x of [-.9, 1.57]) cameraObstacles.push(box(x, 2.7, -2.8, .065, .9, .065, iron));
+    obstacles.push({ minX: -.935, maxX: 1.615, minZ: -2.84, maxZ: -2.76, minY: 2.305, maxY: 3.17, tag: 'loft-rail' });
     // Shallow upper-room detail gives the loft depth without inventing furniture.
     box(0, 3.85, -5.45, 3.2, .1, .1, plaster);
     box(.85, 3.48, -6.57, 1.08, .29, .07, cream);
     for (let i = 0; i < 4; i++) box(.85, 3.385 + i * .04, -6.526, .93, .012, .01, doorMetal);
     box(-1.59, 3.04, -3.55, .015, .43, .43, material('loftVent', '#aeb0a2'));
-    for (const x of [-1.53, -.99]) rod([x, .05, -1.27], [x, 2.3, -2.95], .032, iron);
-    for (let i = 0; i < 8; i++) {
-        const amount = (i + .35) / 8;
-        box(-1.26, .05 + amount * 2.25, -1.27 - amount * 1.68, .62, .055, .17, iron);
+    for (const x of [-1.53, -.99]) rod([x, .025, -1.27], [x, 2.305, -2.8], .032, iron);
+    for (let i = 0; i < 9; i++) {
+        const amount = (i + 1) / 9;
+        box(-1.26, amount * 2.305 - .0275, -1.27 - amount * 1.53, .62, .055, .17, iron);
     }
-    obstacles.push({ minX: -1.6, maxX: -.88, minZ: -3.05, maxZ: -1.17 });
+    obstacles.push({ minX: -1.6, maxX: -.88, minZ: -2.9, maxZ: -1.17, minY: 0, maxY: 2.305, tag: 'stairs' });
     // Ladder braces and a small magazine on one tread, as visible in the photo.
     rod([-1.57, 2.06, -2.8], [-1.57, 1.84, -2.5], .018, iron);
     const magazine = box(-1.3, 1.63, -2.43, .27, .035, .22, porcelain);
@@ -238,7 +239,7 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     box(1.235, 2.1, -5.35, .61, .055, .055, cream);
     box(1.235, 1.13, -5.35, .54, 1.87, .025, material('showerGlass', '#d0d9c4', { transparent: true, opacity: .42, roughness: .35, depthWrite: false })).castShadow = false;
     box(1.43, 1.14, -5.29, .02, .19, .025, chrome);
-    obstacles.push({ minX: .68, maxX: 1.6, minZ: -5.48, maxZ: -5.24 });
+    obstacles.push({ minX: .68, maxX: 1.6, minZ: -5.48, maxZ: -5.24, minY: .15, maxY: 2.13 });
     rod([.77, 1.08, -6.54], [.77, 1.94, -6.54], .012, chrome);
     rod([.77, 1.94, -6.54], [.77, 1.94, -6.38], .012, chrome);
     const showerHead = cylinder(.77, 1.91, -6.38, .07, .022, iron); showerHead.rotation.x = .3;
@@ -260,7 +261,7 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
         box(shelfX, y, shelfZ, 1.16, .035, .57, shelfMetal);
         for (const z of [shelfZ - .28, shelfZ + .28]) box(shelfX, y + .025, z, 1.16, .035, .027, iron);
     }
-    obstacles.push({ minX: shelfX - .6, maxX: shelfX + .6, minZ: shelfZ - .31, maxZ: shelfZ + .31 });
+    obstacles.push({ minX: shelfX - .6, maxX: shelfX + .6, minZ: shelfZ - .31, maxZ: shelfZ + .31, minY: 0, maxY: 1.95 });
     plant(-.37, 1.048, -4.79, .82);
     const book = box(.25, 1.058, -4.67, .3, .025, .22, porcelain); book.rotation.y = -.24;
     const page = box(.29, 1.075, -4.66, .13, .005, .19, material('bookPage', '#d2d5be')); page.rotation.y = -.24;
@@ -304,8 +305,8 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     sign('A102', 'TÒA NHÀ AN TÂM', -2.6, 2.57, .14, .52, .27);
     plant(2.35, 0, .55, 1.35, material('terracotta', '#b18a66'));
     plant(-3.06, 0, .78, 1.1, material('stonePot', '#c2bba4'));
-    obstacles.push({ minX: 2.08, maxX: 2.62, minZ: .28, maxZ: .82 });
-    obstacles.push({ minX: -3.29, maxX: -2.83, minZ: .55, maxZ: 1.01 });
+    obstacles.push({ minX: 2.08, maxX: 2.62, minZ: .28, maxZ: .82, minY: 0, maxY: 1.4 });
+    obstacles.push({ minX: -3.29, maxX: -2.83, minZ: .55, maxZ: 1.01, minY: 0, maxY: 1.15 });
     // Low parapet leaves the follow camera's view into the room unobstructed.
     solid(0, .12, 3.61, 7.1, .24, .14, facade);
     }
@@ -317,6 +318,8 @@ export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
         spawn: { x: .55, y: 0, z: 2.4 },
         bounds: { minX: -3.3, maxX: 3.3, minZ: -6.45, maxZ: 3.4 },
         roomBounds: { minX: -1.6, maxX: 1.6, minZ: -6.6, maxZ: 0 },
+        stairs: { minX: -1.57, maxX: -.95, bottomZ: -1.27, topZ: -2.8, bottomY: 0, topY: 2.305 },
+        loft: { minX: -1.6, maxX: 1.6, minZ: -6.6, maxZ: -2.8, y: 2.305, ceilingY: 4.2 },
         landmarks: [
             { position: { x: .55, y: 1.3, z: .25 }, label: 'Cửa phòng A101' },
             { position: { x: -1.2, y: 1.2, z: -2.1 }, label: 'Thang lên gác lửng' },

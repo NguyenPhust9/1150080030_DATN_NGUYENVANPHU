@@ -22,10 +22,11 @@ document.getElementById("tour-reload").addEventListener("click", () => location.
 
 try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
-  const [THREE, { buildRoomTourWorld }, { createWalker }] = await Promise.all([
+  const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=a102-jump-1"),
-    import("./walkthrough-avatar.js?v=a102-jump-1"),
+    import("./room-tour-world.js?v=loft-walk-1"),
+    import("./walkthrough-avatar.js?v=loft-walk-1"),
+    import("./walkthrough-motion.js?v=loft-walk-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -56,6 +57,7 @@ try {
   player.position.set(world.spawn.x, 0, world.spawn.z);
   player.rotation.y = Math.PI;
   scene.add(player);
+  const motion = createWalkthroughMotion(world, player.position);
   let yaw = 0;
   let pitch = 0.25;
   let distance = 2.8;
@@ -65,14 +67,7 @@ try {
   let drag = null;
   let lastZone = "";
   let animationFrame = 0;
-  let verticalVelocity = 0;
-  let airborne = false;
-  let jumpRequested = false;
   let currentRoom = null;
-  const radius = 0.20;
-  const bodyHeight = 1.4;
-  const gravity = 14;
-  const speed = 1.55;
   const target = new THREE.Vector3();
   const desired = new THREE.Vector3();
   const direction = new THREE.Vector3();
@@ -84,70 +79,24 @@ try {
 
   clearMovement = () => {
     keys.clear();
-    jumpRequested = false;
+    motion.clearInput();
     drag = null;
     host.classList.remove("dragging");
     touchButtons.forEach(button => button.classList.remove("pressed"));
   };
 
-  function overlaps(x, z, rect) {
-    const dx = x - Math.max(rect.minX, Math.min(x, rect.maxX));
-    const dz = z - Math.max(rect.minZ, Math.min(z, rect.maxZ));
-    return dx * dx + dz * dz < radius * radius;
-  }
-
-  function canStand(x, z) {
-    // Each room joins the shared corridor through its own door.
-    if (z > world.bounds.maxZ || z < world.bounds.minZ || x < world.bounds.minX || x > world.bounds.maxX) return false;
-    if (z < 0 && !world.rooms.some(room => x >= room.minX + radius && x <= room.maxX - radius)) return false;
-    if (player.position.y + bodyHeight > world.ceilingAt(x, z) + .001) return false;
-    if (world.obstacles.some(rect => overlaps(x, z, rect))) return false;
-    return !world.rooms.some(room => {
-      const angle = room.door.rotation.y;
-      return overlaps(x, z, {
-        minX: room.hingeX - .04, maxX: room.hingeX + 1.1 * Math.cos(angle) + .04,
-        minZ: -1.1 * Math.sin(angle) - .04, maxZ: .04,
-      });
-    });
-  }
-
   function requestJump() {
-    if (running && !isDialogOpen() && !airborne) jumpRequested = true;
-  }
-
-  function updateJump(dt) {
-    const ground = world.groundAt(player.position.x, player.position.z);
-    if (jumpRequested && !airborne) {
-      verticalVelocity = 4.6;
-      airborne = true;
-    }
-    jumpRequested = false;
-    if (airborne) {
-      player.position.y += verticalVelocity * dt - .5 * gravity * dt * dt;
-      verticalVelocity -= gravity * dt;
-      const maxY = world.ceilingAt(player.position.x, player.position.z) - bodyHeight;
-      if (player.position.y > maxY) {
-        player.position.y = maxY;
-        verticalVelocity = Math.min(verticalVelocity, 0);
-      }
-      if (player.position.y <= ground) {
-        player.position.y = ground;
-        verticalVelocity = 0;
-        airborne = false;
-      }
-    } else player.position.y = ground;
+    if (running && !isDialogOpen()) motion.requestJump();
   }
 
   function reset() {
     clearMovement();
-    player.position.set(world.spawn.x, 0, world.spawn.z);
+    motion.reset();
     player.rotation.y = Math.PI;
     yaw = 0;
     pitch = 0.25;
     distance = 2.8;
     cameraReady = false;
-    verticalVelocity = 0;
-    airborne = false;
     world.rooms.forEach(room => { room.door.rotation.y = 0; });
     if (running) host.focus({ preventScroll: true });
   }
@@ -252,8 +201,8 @@ try {
     const offsetHeight = Math.sin(pitch) * distance;
     const horizontal = Math.cos(pitch) * distance;
     desired.set(target.x + Math.sin(yaw) * horizontal, target.y + offsetHeight + 0.18, target.z + Math.cos(yaw) * horizontal);
-    // Keep the follow camera beneath the loft when standing under it.
-    desired.y = Math.min(desired.y, world.ceilingAt(desired.x, desired.z) - .08);
+    // Follow the occupied level so the camera can rise above the loft floor.
+    desired.y = Math.min(desired.y, world.ceilingAt(desired.x, desired.z, motion.state.level) - .08);
     desired.y = Math.max(desired.y, 0.35);
     scene.updateMatrixWorld(true);
     direction.copy(desired).sub(target);
@@ -280,12 +229,20 @@ try {
   function updateHud() {
     const room = world.nearestRoom(player.position.x, player.position.z);
     const inside = player.position.z < -0.2;
-    const zone = inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
+    const level = motion.state.level;
+    const zone = level === "stairs" ? `Cầu thang · Phòng ${room.number}`
+      : level === "loft" ? `Gác lửng · Phòng ${room.number}`
+      : inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
+    const nearStairs = inside && level === "ground" && Math.hypot(player.position.x - (room.stairs.minX + room.stairs.maxX) / 2, player.position.z - room.stairs.bottomZ) < 1.25;
+    const hint = level === "stairs" ? "Giữ W để lên · S để xuống · Space nhảy"
+      : level === "loft" ? "Gác lửng · Về đầu cầu thang để xuống"
+      : nearStairs ? "Tới chân cầu thang · Giữ W để lên gác"
+      : inside ? "WASD di chuyển · Space để nhảy" : `Đi tới cửa ${room.number} để vào phòng`;
     if (zone !== lastZone) {
       positionLabel.textContent = zone;
-      cue.textContent = inside ? "WASD di chuyển · Space để nhảy" : `Đi tới cửa ${room.number} để vào phòng`;
       lastZone = zone;
     }
+    if (cue.textContent !== hint) cue.textContent = hint;
     if (currentRoom !== room.number) {
       currentRoom = room.number;
       document.getElementById("tour-room-name").textContent = `Phòng ${currentRoom}`;
@@ -299,7 +256,8 @@ try {
     mapPlayer.dataset.x = player.position.x.toFixed(3);
     mapPlayer.dataset.z = player.position.z.toFixed(3);
     mapPlayer.dataset.y = player.position.y.toFixed(3);
-    mapPlayer.dataset.airborne = String(airborne);
+    mapPlayer.dataset.airborne = String(motion.state.airborne);
+    mapPlayer.dataset.level = level;
     mapPlayer.dataset.room = currentRoom;
   }
 
@@ -320,22 +278,14 @@ try {
         const doorAngle = nearDoor ? Math.PI / 2 : 0;
         room.door.rotation.y += (doorAngle - room.door.rotation.y) * (1 - Math.exp(-6 * dt));
       });
-      if (forward || strafe) {
-        const length = Math.hypot(forward, strafe);
-        const dx = (strafe * Math.cos(yaw) - forward * Math.sin(yaw)) / length * speed * dt;
-        const dz = (-forward * Math.cos(yaw) - strafe * Math.sin(yaw)) / length * speed * dt;
-        const beforeX = player.position.x;
-        const beforeZ = player.position.z;
-        // Axis-separated collision lets a character slide along a wall instead of getting stuck.
-        if (canStand(player.position.x + dx, player.position.z)) player.position.x += dx;
-        if (canStand(player.position.x, player.position.z + dz)) player.position.z += dz;
-        moved = Math.hypot(player.position.x - beforeX, player.position.z - beforeZ) > 0.0001;
-        const angle = Math.atan2(dx, dz);
+      const movement = motion.step(dt, { forward, strafe, yaw });
+      moved = movement.moved;
+      if (moved) {
+        const angle = movement.angle;
         player.rotation.y += Math.atan2(Math.sin(angle - player.rotation.y), Math.cos(angle - player.rotation.y)) * (1 - Math.exp(-14 * dt));
       }
-      updateJump(dt);
     }
-    walker.animate(walkTime, moved, { airborne, verticalVelocity });
+    walker.animate(walkTime, moved, motion.state);
     updateCamera(dt);
     updateHud();
     renderer.render(scene, camera);

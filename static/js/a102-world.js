@@ -109,12 +109,12 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     }
     const box = (x, y, z, width, height, depth, mat, parent = world) => mesh(unitBox, mat, x, y, z, width, height, depth, parent);
     const cylinder = (x, y, z, radius, height, mat, parent = world) => mesh(unitCylinder, mat, x, y, z, radius, height, radius, parent);
-    function obstacle(x, z, width, depth) {
-        obstacles.push({ minX: offsetX + x - width / 2, maxX: offsetX + x + width / 2, minZ: z - depth / 2, maxZ: z + depth / 2 });
+    function obstacle(x, z, width, depth, minY, maxY, extra = {}) {
+        obstacles.push({ minX: offsetX + x - width / 2, maxX: offsetX + x + width / 2, minZ: z - depth / 2, maxZ: z + depth / 2, minY, maxY, ...extra });
     }
     function solid(x, y, z, width, height, depth, mat, collidable = true) {
         const item = box(x, y, z, width, height, depth, mat);
-        cameraObstacles.push(item); if (collidable) obstacle(x, z, width, depth); return item;
+        cameraObstacles.push(item); if (collidable) obstacle(x, z, width, depth, y - height / 2, y + height / 2); return item;
     }
     function surface(x, y, z, width, height, rotation, map, repeatX = 1, repeatY = 1, extra = {}) {
         const clone = map.clone(); clone.needsUpdate = true; clone.repeat.set(repeatX, repeatY);
@@ -174,7 +174,7 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     solid(-.85, 3.39, 0, .8, 2.22, .18, facade, false);
     solid(1.4, 2.25, 0, .6, 4.5, .18, facade);
     solid(.55, 3.375, 0, 1.1, 2.25, .18, facade, false);
-    obstacle(-.85, 0, 1.7, .2);
+    obstacle(-.85, 0, 1.7, .2, 0, 2.3);
     const glass = material('glass', '#becfc5', { transparent: true, opacity: .25, roughness: .2, depthWrite: false });
     box(-.85, 1.65, 0, .8, 1.26, .022, glass).castShadow = false;
     for (const x of [-1.27, -.43]) box(x, 1.65, 0, .045, 1.34, .12, doorMetal);
@@ -211,22 +211,23 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     const loftBottom = surface(0, 2.224, -4.7, 3.4, 3.8, 0, warmWoodMap, 3, 2, { roughness: .64 }); loftBottom.rotation.x = Math.PI / 2;
     for (const z of [-2.85, -3.86, -4.9, -5.93]) box(0, 2.16, z, 3.4, .12, .075, white);
     // The ladder comes up on the left, leaving the forward side of the loft open.
-    for (const y of [2.45, 2.65, 2.85, 3.05, 3.25]) box(.36, y, -2.8, 2.65, .032, .035, steel);
-    for (const x of [-.965, .38, 1.685]) box(x, 2.85, -2.8, .045, .86, .045, steel);
-    for (const x of [-.965, .38]) {
-        box(x + .07, 2.85, -2.8, .025, .56, .05, steel);
-        for (const y of [2.57, 3.13]) box(x + .035, y, -2.8, .095, .025, .05, steel);
+    for (const y of [2.45, 2.65, 2.85, 3.05, 3.25]) cameraObstacles.push(box(.4, y, -2.8, 2.6, .032, .035, steel));
+    for (const x of [-.9, .38, 1.685]) cameraObstacles.push(box(x, 2.85, -2.8, .045, .86, .045, steel));
+    for (const x of [-.9, .38]) {
+        cameraObstacles.push(box(x + .07, 2.85, -2.8, .025, .56, .05, steel));
+        for (const y of [2.57, 3.13]) cameraObstacles.push(box(x + .035, y, -2.8, .095, .025, .05, steel));
     }
+    obstacle(.4, -2.8, 2.68, .08, 2.376, 3.29, { tag: 'loft-rail' });
     for (const x of [-1.58, -.99]) {
-        const side = box(x, 1.2, -2.02, .07, 2.86, .09, steel);
-        side.rotation.x = -.635;
+        const side = box(x, 1.188, -1.985, .07, Math.hypot(2.376, 1.63), .09, steel);
+        side.rotation.x = -Math.atan2(1.63, 2.376);
     }
-    for (let i = 0; i < 8; i++) {
-        const amount = (i + .3) / 8;
-        box(-1.285, .06 + amount * 2.31, -1.17 - amount * 1.7, .59, .05, .19, warmWood);
-        box(-1.285, .035 + amount * 2.31, -1.17 - amount * 1.7, .63, .028, .14, steel);
+    for (let i = 0; i < 9; i++) {
+        const amount = (i + 1) / 9;
+        box(-1.285, amount * 2.376 - .025, -1.17 - amount * 1.63, .59, .05, .19, warmWood);
+        box(-1.285, amount * 2.376 - .05, -1.17 - amount * 1.63, .63, .028, .14, steel);
     }
-    obstacle(-1.285, -2.02, .75, 1.94);
+    obstacle(-1.285, -1.985, .75, 1.83, 0, 2.376, { tag: 'stairs' });
 
     // Back left bathroom, with an open doorway and the fittings visible in the video.
     solid(-.79, 1.1, -5.86, .11, 2.2, 1.48, white);
@@ -235,7 +236,7 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     solid(-1.25, 2.115, -5.16, .9, .17, .12, white, false);
     surface(-.855, 1.02, -5.86, 1.48, 2.04, -Math.PI / 2, wallTexture, 2.46, 6.8);
     const bathroomDoor = box(-.875, 1.04, -5.57, .035, 2.02, .75, white);
-    cameraObstacles.push(bathroomDoor); obstacle(-.875, -5.57, .035, .75);
+    cameraObstacles.push(bathroomDoor); obstacle(-.875, -5.57, .035, .75, .03, 2.05);
     box(-.845, 1.04, -5.8, .025, .14, .025, chrome);
     const toiletGroup = new THREE.Group(); toiletGroup.position.set(-1.24, 0, -6.16); world.add(toiletGroup);
     mesh(unitSphere, porcelain, 0, .35, .08, .24, .13, .31, toiletGroup);
@@ -243,7 +244,7 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     box(0, .57, -.17, .42, .43, .14, porcelain, toiletGroup);
     box(0, .797, -.17, .45, .025, .17, porcelain, toiletGroup);
     const toiletSeat = mesh(new THREE.TorusGeometry(.145, .023, 8, 24), porcelain, 0, .465, .1, 1, 1.22, 1, toiletGroup); toiletSeat.rotation.x = -Math.PI / 2;
-    obstacle(-1.24, -6.1, .48, .66);
+    obstacle(-1.24, -6.1, .48, .66, 0, .81);
     rod([-1.67, 1.02, -5.78], [-1.67, 1.89, -5.78], .011, chrome);
     rod([-1.67, 1.89, -5.78], [-1.48, 1.89, -5.78], .011, chrome);
     cylinder(-1.48, 1.875, -5.78, .06, .016, chrome);
@@ -265,7 +266,7 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     const faucetCurve = new THREE.CubicBezierCurve3(new THREE.Vector3(-.42, .94, -6.34), new THREE.Vector3(-.42, 1.39, -6.34), new THREE.Vector3(-.42, 1.4, -6.1), new THREE.Vector3(-.42, 1.15, -6.1));
     mesh(new THREE.TubeGeometry(faucetCurve, 18, .014, 8, false), chrome, 0, 0, 0);
     pleatedCurtain(-.3, .43, -5.657, .87, .78, curtainTexture);
-    obstacle(-.3, -6.04, .9, .74);
+    obstacle(-.3, -6.04, .9, .74, 0, .94);
     for (const x of [-.75, .13]) box(x, 1.5, -6.31, .025, .66, .025, steel);
     for (const y of [1.31, 1.66]) {
         for (const z of [-6.5, -6.16]) box(-.31, y, z, .92, .024, .024, steel);
@@ -330,6 +331,7 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     for (const z of [-4.2, -5.03]) {
         const pillow = mesh(unitSphere, material('pillow', '#9a9a96', { roughness: 1 }), -1.0, 2.59, z, .3, .105, .35); pillow.rotation.y = -.05;
     }
+    obstacle(-.07, -4.62, 2.46, 1.76, 2.375, 2.71, { tag: 'loft-furniture' });
     // The curtains and lamp sit against the left wall, matching the second reference image.
     const curtainCreamMap = texture(256, 256, (ctx, w, h) => {
         ctx.fillStyle = '#ede7d0'; ctx.fillRect(0, 0, w, h);
@@ -338,16 +340,20 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
     });
     pleatedCurtain(-1.665, 3.35, -4.8, 1.85, 1.84, curtainCreamMap, Math.PI / 2, 2);
     rod([-1.6, 4.31, -5.8], [-1.6, 4.31, -3.8], .015, chrome);
-    box(-1.535, 3.94, -3.8, .27, .32, .96, porcelain);
+    solid(-1.535, 3.94, -3.8, .27, .32, .96, porcelain);
     box(-1.385, 3.84, -3.8, .025, .06, .83, material('acVent', '#747d71'));
     for (let i = 0; i < 3; i++) box(-1.368, 3.825 + i * .018, -3.8, .007, .006, .78, cream);
-    cylinder(-1.2, 2.393, -3.35, .18, .035, steel);
-    rod([-1.2, 2.41, -3.35], [-1.2, 3.65, -3.35], .014, steel);
-    rod([-1.2, 3.65, -3.35], [-1.07, 3.7, -3.35], .012, steel);
-    const shade = mesh(new THREE.ConeGeometry(.13, .15, 20, 1, true), material('lampShade', '#a68e65', { side: THREE.DoubleSide, metalness: .4, roughness: .5 }), -1.04, 3.63, -3.35);
+    // Keep the arrival strip behind the railing clear for walking off the stairs.
+    cameraObstacles.push(cylinder(-1.4, 2.393, -5.7, .18, .035, steel));
+    cameraObstacles.push(rod([-1.4, 2.41, -5.7], [-1.4, 3.65, -5.7], .014, steel));
+    rod([-1.4, 3.65, -5.7], [-1.27, 3.7, -5.7], .012, steel);
+    const shade = mesh(new THREE.ConeGeometry(.13, .15, 20, 1, true), material('lampShade', '#a68e65', { side: THREE.DoubleSide, metalness: .4, roughness: .5 }), -1.24, 3.63, -5.7);
     shade.rotation.z = -.17;
-    mesh(unitSphere, glow, -1.025, 3.58, -3.35, .09, .035, .09);
-    plant(-1.41, 2.38, -3.02, .7);
+    cameraObstacles.push(shade);
+    mesh(unitSphere, glow, -1.225, 3.58, -5.7, .09, .035, .09);
+    obstacle(-1.35, -5.7, .46, .38, 2.375, 3.78, { tag: 'loft-furniture' });
+    plant(-1.44, 2.38, -6.14, .7);
+    obstacle(-1.44, -6.14, .25, .25, 2.375, 2.99, { tag: 'loft-furniture' });
     box(-1.3, 2.414, -3.69, .35, .035, .24, material('bookCover', '#c6a07b'));
     box(-1.3, 2.443, -3.69, .32, .022, .22, cream);
     box(.76, 3.38, -6.57, 1.8, 1.98, .035, material('loftAccent', '#b8a88a'));
@@ -362,6 +368,8 @@ export function buildA102World(THREE, scene, { offsetX = -3.6 } = {}) {
         roomBounds: { minX: offsetX - 1.7, maxX: offsetX + 1.7, minZ: -6.6, maxZ: 0 },
         bounds: { minX: offsetX - 1.7, maxX: offsetX + 1.7, minZ: -6.6, maxZ: 3.4 },
         ceiling: { loftFrontZ: -2.8, undersideY: 2.22, roomHeight: 4.5 },
+        stairs: { minX: offsetX - 1.595, maxX: offsetX - .975, bottomZ: -1.17, topZ: -2.8, bottomY: 0, topY: 2.376 },
+        loft: { minX: offsetX - 1.7, maxX: offsetX + 1.7, minZ: -6.6, maxZ: -2.8, y: 2.376, ceilingY: 4.5 },
         landmarks: [
             { position: { x: offsetX + .55, y: 1.3, z: .25 }, label: 'Cửa phòng A102' },
             { position: { x: offsetX - 1.28, y: 1.2, z: -2.02 }, label: 'Thang lên gác gỗ' },
