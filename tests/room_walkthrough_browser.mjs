@@ -72,9 +72,19 @@ try {
   await expect(page.locator('[data-room-media="A101"]')).toBeHidden();
   await expect(page.locator('#media-title')).toContainText('A102');
   await page.locator('#tour-media-dialog [data-close-dialog]').click();
+  await expect(page.locator('#tour-canvas')).toBeFocused();
+  // Record the short jump in the page: a busy software renderer may finish it
+  // between Playwright polls, while the peak still proves Space was handled.
+  await page.evaluate(() => {
+    const marker = document.getElementById('map-player');
+    window.roomJumpPeak = 0;
+    window.roomJumpObserver = new MutationObserver(() => { window.roomJumpPeak = Math.max(window.roomJumpPeak, Number(marker.dataset.y)); });
+    window.roomJumpObserver.observe(marker, { attributes: true, attributeFilter: ['data-y'] });
+  });
   await page.keyboard.press('Space');
-  await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'true');
+  await expect.poll(() => page.evaluate(() => window.roomJumpPeak), { intervals: [30] }).toBeGreaterThan(.15);
   await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'false');
+  await page.evaluate(() => window.roomJumpObserver.disconnect());
   await expect(page.locator('#map-player')).toHaveAttribute('data-y', '0.000');
   // The lower bathroom lintel also limits a jumping character's head.
   await moveUntil('a', p => p.x < -4.79);
@@ -86,7 +96,7 @@ try {
     window.jumpObserver.observe(marker, { attributes: true, attributeFilter: ['data-y'] });
   });
   await page.keyboard.press('Space');
-  await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'true');
+  await expect.poll(() => page.evaluate(() => window.jumpPeak), { intervals: [30] }).toBeGreaterThan(.2);
   await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'false');
   const jumpPeak = await page.evaluate(() => { window.jumpObserver.disconnect(); return window.jumpPeak; });
   expect(jumpPeak).toBeGreaterThan(.2);

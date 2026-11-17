@@ -24,9 +24,9 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=loft-walk-1"),
-    import("./walkthrough-avatar.js?v=loft-walk-1"),
-    import("./walkthrough-motion.js?v=loft-walk-1"),
+    import("./room-tour-world.js?v=a103-tour-1"),
+    import("./walkthrough-avatar.js?v=a103-tour-1"),
+    import("./walkthrough-motion.js?v=a103-tour-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -249,7 +249,7 @@ try {
       document.querySelectorAll("[data-room-media]").forEach(panel => { panel.hidden = panel.dataset.roomMedia !== currentRoom; });
       document.getElementById("media-title").textContent = `Ảnh & video phòng ${currentRoom}`;
     }
-    const x = 129 + player.position.x * 20;
+    const x = 110 + player.position.x * 16;
     const y = 134 + player.position.z * 18;
     mapPlayer.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-yaw * 180 / Math.PI).toFixed(1)})`);
     // Position data also makes the accessible mini-map inspectable without reading WebGL internals.
@@ -301,12 +301,19 @@ try {
   new ResizeObserver(resize).observe(host);
   resize();
   document.getElementById("map-geometry").innerHTML =
-    '<rect x="16" y="134" width="183" height="65" rx="2" class="map-floor"/><text x="105" y="184">Hành lang chung</text>' +
+    '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="184">Hành lang chung</text>' +
     world.rooms.map(room => {
-      const x = 129 + room.minX * 20;
-      const width = (room.maxX - room.minX) * 20;
-      return `<rect x="${x}" y="15" width="${width}" height="119" class="map-floor"/><path d="M ${x} 85 h ${width}" class="map-line"/><text x="${x + width / 2}" y="35">${room.number}</text><rect x="${x + 4}" y="76" width="9" height="29" rx="2" class="map-furniture"/>`;
+      const x = 110 + room.minX * 16;
+      const width = (room.maxX - room.minX) * 16;
+      const loftFront = 134 + room.loft.maxZ * 18;
+      const stairsX = 110 + room.stairs.minX * 16;
+      const stairsY = 134 + room.stairs.topZ * 18;
+      const stairsWidth = (room.stairs.maxX - room.stairs.minX) * 16;
+      const stairsDepth = (room.stairs.bottomZ - room.stairs.topZ) * 18;
+      return `<rect x="${x}" y="15" width="${width}" height="119" class="map-floor"/><path d="M ${x} ${loftFront} h ${width}" class="map-line"/><text x="${x + width / 2}" y="35">${room.number}</text><rect x="${stairsX}" y="${stairsY}" width="${stairsWidth}" height="${stairsDepth}" rx="2" class="map-furniture"/>`;
     }).join("");
+  const roomConnections = document.querySelector(".connected-rooms");
+  if (roomConnections) roomConnections.textContent = [...world.rooms].sort((a, b) => a.minX - b.minX).map(room => room.number).join(" ↔ ") + " · Cùng hành lang";
   renderer.domElement.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     cancelAnimationFrame(animationFrame);

@@ -1,7 +1,8 @@
-import { buildA101World } from './a101-world.js?v=loft-walk-1';
-import { buildA102World } from './a102-world.js?v=loft-walk-1';
+import { buildA101World } from './a101-world.js?v=a103-tour-1';
+import { buildA102World } from './a102-world.js?v=a103-tour-1';
+import { buildA103World } from './a103-world.js?v=a103-tour-1';
 
-// Both doors face the same landing; each interior keeps its own layout.
+// All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
   const allowed = new Set(config.rooms);
   const rooms = [];
@@ -10,6 +11,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const descriptions = [
     { number: 'A101', offsetX: 0, minX: -1.6, maxX: 1.6, headClearance: 2.06, build: () => buildA101World(THREE, scene, { includeLanding: false }) },
     { number: 'A102', offsetX: -3.6, minX: -5.3, maxX: -1.9, headClearance: 2.16, build: () => buildA102World(THREE, scene, { offsetX: -3.6 }) },
+    { number: 'A103', offsetX: 3.6, minX: 1.9, maxX: 5.3, headClearance: 2.16, build: () => buildA103World(THREE, scene, { offsetX: 3.6 }) },
   ];
   const cream = new THREE.MeshStandardMaterial({ color: '#e7dfcf', roughness: .85 });
   const trim = new THREE.MeshStandardMaterial({ color: '#c9b28d', roughness: .8 });
@@ -48,14 +50,15 @@ export function buildRoomTourWorld(THREE, scene, config) {
   ctx.strokeStyle = '#c9bfae'; ctx.lineWidth = 2; ctx.strokeRect(0, 0, 128, 128);
   const floorMap = new THREE.CanvasTexture(landingCanvas);
   floorMap.colorSpace = THREE.SRGBColorSpace;
-  floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(15, 6);
-  box(-1.05, -.09, 1.85, 9.5, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
+  floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(19, 6);
+  box(0, -.09, 1.85, 11.6, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
   box(-5.55, 2.25, 0, .5, 4.5, .22, cream, true);
   box(-1.75, 2.25, 0, .3, 4.5, .22, cream, true);
-  box(2.6, 2.25, 0, 1.8, 4.5, .22, cream, true);
-  box(-1.05, 4.5, .13, 9.5, .17, .65, trim);
-  box(-1.05, .12, 3.61, 9.5, .24, .14, cream, true);
-  for (const x of [-5.65, 3.45]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
+  box(1.75, 2.25, 0, .3, 4.5, .22, cream, true);
+  box(5.55, 2.25, 0, .5, 4.5, .22, cream, true);
+  box(0, 4.5, .13, 11.6, .17, .65, trim);
+  box(0, .12, 3.61, 11.6, .24, .14, cream, true);
+  for (const x of [-5.65, 5.65]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
   // A small planter beside A101 preserves the sunny landing's visual cue.
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(.23, .17, .43, 14), trim);
   pot.position.set(2.4, .215, .6); pot.castShadow = true; scene.add(pot);
@@ -80,7 +83,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
   return {
     rooms, obstacles, cameraObstacles, spawn: entry.spawn,
-    bounds: { minX: -5.5, maxX: 3.3, minZ: -6.4, maxZ: 3.35 },
+    bounds: { minX: -5.5, maxX: 5.5, minZ: -6.4, maxZ: 3.35 },
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),
     groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : 0,
@@ -90,7 +93,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
       // A102's bathroom lintel is lower than its mezzanine beams. Include the
       // character's radius so its head cannot clip the edge during a jump.
       if (room?.number === 'A102' && x - room.offsetX < -.65 && z < -4.85 && z > -5.5) return 2;
-      return room && z < -2.7 ? room.headClearance : 4.1;
+      return room && z < room.loft.maxZ + .1 ? room.headClearance : (room?.loft.ceilingY ?? 4.1);
     },
   };
 }

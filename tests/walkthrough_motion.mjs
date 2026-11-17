@@ -5,8 +5,9 @@ import { createWalkthroughMotion } from '../static/js/walkthrough-motion.js';
 // Pure movement fixtures use the real rooms' deck heights and stair direction.
 // Rendering and world metadata are covered separately by browser checks.
 const variants = [
-  { number: 'A101', deckY: 2.305, roofY: 4.2, groundCeiling: 2.06 },
-  { number: 'A102', deckY: 2.376, roofY: 4.5, groundCeiling: 2.16 },
+  { number: 'A101', deckY: 2.305, roofY: 4.2, groundCeiling: 2.06, stairBottomZ: -1.27 },
+  { number: 'A102', deckY: 2.376, roofY: 4.5, groundCeiling: 2.16, stairBottomZ: -1.17 },
+  { number: 'A103', deckY: 2.36, roofY: 4.4, groundCeiling: 2.16, stairBottomZ: -.85 },
 ];
 const DT = 1 / 60;
 const close = (actual, expected, tolerance = .00001) => {
@@ -14,7 +15,7 @@ const close = (actual, expected, tolerance = .00001) => {
 };
 
 function fixture(variant, initial = {}) {
-  const stairs = { minX: -1.6, maxX: -.9, bottomZ: -1.17, topZ: -2.8, bottomY: 0, topY: variant.deckY };
+  const stairs = { minX: -1.6, maxX: -.9, bottomZ: variant.stairBottomZ, topZ: -2.8, bottomY: 0, topY: variant.deckY };
   const room = {
     number: variant.number, minX: -1.6, maxX: 1.6,
     stairs, loft: { y: variant.deckY, minZ: -6.6, maxZ: -2.8 },

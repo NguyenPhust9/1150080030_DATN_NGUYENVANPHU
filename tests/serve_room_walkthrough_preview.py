@@ -1,11 +1,12 @@
-"""Local A101/A102 UI fixture; all database data lives in process memory.
+"""Local A101/A102/A103 UI fixture; all database data lives in process memory.
 
 Run: .venv/Scripts/python.exe tests/serve_room_walkthrough_preview.py
 Login: walkthrough-preview / local-preview-only
 URL: http://127.0.0.1:8003/phong/a1010000-0000-4000-8000-000000000001/tham-quan/
 URL: http://127.0.0.1:8003/phong/a1020000-0000-4000-8000-000000000002/tham-quan/
+URL: http://127.0.0.1:8003/phong/a1030000-0000-4000-8000-000000000003/tham-quan/
 
-Optional images/Anhphongtro/A101 and A102 files are served without uploading.
+Optional images/Anhphongtro/A101, A102 and A103 files are served without uploading.
 The configured application database is never opened or modified.
 """
 
@@ -18,7 +19,11 @@ from urllib.parse import quote
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ROOM_ID = "a1010000-0000-4000-8000-000000000001"
-ROOM_IDS = {"A101": ROOM_ID, "A102": "a1020000-0000-4000-8000-000000000002"}
+ROOM_IDS = {
+    "A101": ROOM_ID,
+    "A102": "a1020000-0000-4000-8000-000000000002",
+    "A103": "a1030000-0000-4000-8000-000000000003",
+}
 sys.path.insert(0, str(REPO_ROOT))
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.test_indoor_settings"
 

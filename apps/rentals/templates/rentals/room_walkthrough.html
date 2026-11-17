@@ -7,14 +7,14 @@
   <meta name="theme-color" content="#242b28">
   <title>Tham quan phòng {{ room.number }} · {{ room.building.name }}</title>
   <link rel="icon" href="{% static 'images/favicon.png' %}">
-  <link rel="stylesheet" href="{% static 'css/room-walkthrough.css' %}?v=loft-walk-1">
+  <link rel="stylesheet" href="{% static 'css/room-walkthrough.css' %}?v=a103-tour-1">
 </head>
 <body>
   {{ tour_config|json_script:"tour-config" }}
   <main id="room-tour" class="room-tour" aria-label="Mô phỏng tham quan phòng {{ room.number }}">
     <div id="tour-canvas" tabindex="0" role="application" aria-label="Không gian 3D. W tiến, S lùi, A sang trái, D sang phải, Space nhảy. Tới chân cầu thang rồi giữ W để lên gác, S để xuống. Kéo chuột để xoay góc nhìn."></div>
     <header class="tour-header">
-      <div class="room-heading"><span class="eyebrow">{{ room.building.name }} · Tầng {{ room.floor }}</span><h1><span id="tour-room-name">Phòng {{ room.number }}</span> <span class="tour-badge">Tham quan 3D</span></h1><p><span class="live-dot"></span><span id="tour-position" aria-live="polite">Trước cửa phòng {{ room.number }}</span></p>{% if tour_rooms|length > 1 %}<div class="connected-rooms">A102 ↔ A101 · Cùng hành lang</div>{% endif %}</div>
+      <div class="room-heading"><span class="eyebrow">{{ room.building.name }} · Tầng {{ room.floor }}</span><h1><span id="tour-room-name">Phòng {{ room.number }}</span> <span class="tour-badge">Tham quan 3D</span></h1><p><span class="live-dot"></span><span id="tour-position" aria-live="polite">Trước cửa phòng {{ room.number }}</span></p>{% if tour_rooms|length > 1 %}<div class="connected-rooms">{% for item in tour_rooms %}{{ item.number }}{% if not forloop.last %} · {% endif %}{% endfor %} · Cùng hành lang</div>{% endif %}</div>
       <nav class="tour-actions" aria-label="Công cụ tham quan">
         <button id="tour-media" class="media-button" type="button"><i data-lucide="images"></i><span>Ảnh & video</span></button>
         <button id="tour-reset" type="button" aria-label="Trở về trước cửa phòng" title="Trở về cửa (R)"><i data-lucide="rotate-ccw"></i></button>
@@ -25,7 +25,7 @@
     </header>
     <div id="tour-cue" class="tour-cue"><i data-lucide="door-open"></i><span>Đi tới cửa để vào phòng</span></div>
     <div id="tour-loading" class="tour-overlay">
-      <div class="intro-card"><span class="intro-icon"><i data-lucide="footprints"></i></span><span class="eyebrow">MỘT GÓC NHÌN MỚI</span><h2>{% if tour_rooms|length > 1 %}Khám phá A101 & A102{% else %}Bước vào phòng {{ room.number }}{% endif %}</h2><p>{% if tour_rooms|length > 1 %}Hai căn phòng, cùng một hành lang.<br>Đi qua lại, lên gác và nhìn quanh.{% else %}Khám phá căn phòng có gác lửng,<br>theo cách của riêng bạn.{% endif %}</p><div class="intro-keys" aria-label="Phím di chuyển"><kbd>W</kbd><div><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><kbd class="space-key">Space · Nhảy</kbd></div><p class="intro-hint">W tiến · S lùi · A/D sang hai bên<br>Tới chân cầu thang · W lên gác, S xuống<br>Kéo chuột để nhìn quanh</p><button id="tour-start" type="button" disabled>Đang chuẩn bị không gian…</button><small>Phỏng dựng theo ảnh và video. Kích thước ước lượng.</small></div>
+      <div class="intro-card"><span class="intro-icon"><i data-lucide="footprints"></i></span><span class="eyebrow">MỘT GÓC NHÌN MỚI</span><h2>{% if tour_rooms|length > 1 %}Khám phá các căn phòng{% else %}Bước vào phòng {{ room.number }}{% endif %}</h2><p>{% if tour_rooms|length > 1 %}{{ tour_rooms|length }} căn phòng, cùng một hành lang.<br>Đi qua lại, lên gác và nhìn quanh.{% else %}Khám phá căn phòng có gác lửng,<br>theo cách của riêng bạn.{% endif %}</p><div class="intro-keys" aria-label="Phím di chuyển"><kbd>W</kbd><div><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></div><kbd class="space-key">Space · Nhảy</kbd></div><p class="intro-hint">W tiến · S lùi · A/D sang hai bên<br>Tới chân cầu thang · W lên gác, S xuống<br>Kéo chuột để nhìn quanh</p><button id="tour-start" type="button" disabled>Đang chuẩn bị không gian…</button><small>Phỏng dựng theo ảnh và video. Kích thước ước lượng.</small></div>
     </div>
     <div id="tour-fallback" class="tour-overlay" hidden><div class="intro-card"><i data-lucide="monitor"></i><h2>Chưa mở được không gian 3D</h2><p id="tour-error">Hãy thử tải lại trang hoặc bật tăng tốc đồ họa trong trình duyệt.</p><a href="{{ return_url }}" class="primary-link">Quay lại phòng</a><button type="button" id="tour-reload">Tải lại</button></div></div>
     <footer class="tour-footer">
@@ -41,6 +41,6 @@
   </main>
   <script src="{% static 'lucide.min.js' %}"></script>
   <script>lucide.createIcons();</script>
-  <script type="module" src="{% static 'js/room-walkthrough.js' %}?v=loft-walk-1"></script>
+  <script type="module" src="{% static 'js/room-walkthrough.js' %}?v=a103-tour-1"></script>
 </body>
 </html>
