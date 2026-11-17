@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import indoor_map, price_views, tenant_views, views
+from . import indoor_map, price_views, room_walkthrough, tenant_views, views
 
 urlpatterns = [
     path("", views.public_home, name="public-home"),
@@ -14,6 +14,7 @@ urlpatterns = [
     path("phong/", views.object_list, {"resource": "rooms"}, name="rooms"),
     path("phong/them/", views.object_create, {"resource": "rooms"}, name="room-create"),
     path("phong/<uuid:object_id>/sua/", views.object_update, {"resource": "rooms"}, name="room-update"),
+    path("phong/<uuid:room_id>/tham-quan/", room_walkthrough.room_walkthrough, name="room-walkthrough"),
     path("phong/<uuid:room_id>/goi-y-gia/", price_views.price_suggestion, name="price-suggestion"),
     path("phong/<uuid:room_id>/goi-y-gia/<uuid:suggestion_id>/ap-dung/", price_views.apply_price_suggestion, name="price-suggestion-apply"),
     path("so-do-phong/", views.room_map, name="room-map"),

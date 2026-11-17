@@ -2,6 +2,9 @@
 {% block title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_subtitle %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/room-form.css' %}">
+{% if editing and form.instance.number == 'A101' %}
+<div class="page-actions"><a class="btn primary" href="{% url 'room-walkthrough' form.instance.id %}"><i data-lucide="person-standing"></i>Tham quan 3D phòng A101</a></div>
+{% endif %}
 <section class="room-form-panel">
   <div class="room-form-tabs"><button type="button" class="active" data-tab="info"><i data-lucide="info"></i>Thông tin</button><button type="button" data-tab="images"><i data-lucide="image"></i>Ảnh phòng</button><button type="button" data-tab="videos"><i data-lucide="video"></i>Video phòng</button></div>
   <form id="room-create-form" method="post" data-upload-signature-url="{% url 'cloudinary-upload-signature' %}">{% csrf_token %}<input id="media-payload" type="hidden" name="media_payload" value="[]"><input id="primary-image" type="hidden" name="primary_image" value="">
