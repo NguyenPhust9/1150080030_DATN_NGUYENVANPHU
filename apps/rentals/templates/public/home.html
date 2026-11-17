@@ -1,4 +1,5 @@
 {% extends "public/base.html" %}
+{% load static %}
 {% block title %}Tìm phòng trọ phù hợp{% endblock %}
 {% block content %}
 <section class="guest-hero">
@@ -47,10 +48,22 @@
         <div class="building-info"><h3>{{ group.building.name }} {% if forloop.first %}<span>Tòa nhà nổi bật</span>{% endif %}</h3><p><i data-lucide="map-pin"></i> {{ group.building.address }}</p><div><span><i data-lucide="building-2"></i> {{ group.floor_count }} tầng</span><span><i data-lucide="bed-double"></i> {{ group.available_count }} phòng trống</span><span><i data-lucide="map-pin"></i> Gần chợ, trường học, trung tâm</span></div></div>
         <a class="view-building" href="{% url 'public-rooms' %}?q={{ group.building.name|urlencode }}">Xem tất cả {{ group.available_count }} phòng <i data-lucide="arrow-right"></i></a>
       </header>
-      <div class="compact-room-grid">{% for room in group.rooms %}{% include "public/room_card.html" %}{% endfor %}</div>
+      <div class="room-carousel" data-room-carousel>
+        <div class="compact-room-grid" id="building-rooms-{{ group.building.id }}" tabindex="0" role="region" aria-label="Các phòng của {{ group.building.name }}">
+          {% for room in group.rooms %}{% include "public/room_card.html" %}{% endfor %}
+        </div>
+        <div class="room-carousel-controls" hidden>
+          <span><i data-lucide="move-horizontal"></i> Kéo ngang để xem thêm phòng</span>
+          <div class="room-carousel-buttons">
+            <button type="button" data-room-prev aria-controls="building-rooms-{{ group.building.id }}" aria-label="Xem phòng phía trước của {{ group.building.name }}"><i data-lucide="chevron-left"></i></button>
+            <button type="button" data-room-next aria-controls="building-rooms-{{ group.building.id }}" aria-label="Xem phòng tiếp theo của {{ group.building.name }}"><i data-lucide="chevron-right"></i></button>
+          </div>
+        </div>
+      </div>
     </article>
     {% empty %}<div class="empty-state">Hiện chưa có phòng trống được đăng.</div>{% endfor %}
   </div>
 </section>
+<script src="{% static 'js/room-carousel.js' %}" defer></script>
 <script>document.addEventListener("DOMContentLoaded",function(){const range=document.getElementById("price-filter"),value=document.getElementById("price-filter-value");if(range&&value){const update=()=>value.textContent=new Intl.NumberFormat("vi-VN").format(range.value)+" đ";range.addEventListener("input",update);update()}});</script>
 {% endblock %}

@@ -196,7 +196,7 @@ def public_home(request):
     for building in buildings:
         building_groups.append({
             "building": building,
-            "rooms": rooms_by_building[building.id][:4],
+            "rooms": rooms_by_building[building.id],
             "available_count": len(rooms_by_building[building.id]),
             "floor_count": len(floors_by_building[building.id]),
         })
