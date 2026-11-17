@@ -17,12 +17,12 @@ try {
   await expect(page.locator('.guest-hero')).toBeVisible();
   await expect(page.locator('.custom-hero, .public-brand')).toHaveCount(0);
   await expect(page.locator('link[href*="hero-banner.css"], link[href*="about.css"]')).toHaveCount(0);
-  await expect(page.locator('.guest-hero')).toHaveCSS('height', '300px');
+  await expect(page.locator('.guest-hero h1')).toBeVisible();
   await expect(page.locator('.guest-search [name="building"]')).toBeVisible();
   await expect(page.locator('.guest-search [name="min_price"]')).toBeVisible();
   await expect(page.locator('.guest-search [name="max_price"]')).toBeVisible();
   await expect(page.locator('.public-header')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  await expect(page.locator('.login-cta')).toHaveCSS('border-top-color', 'rgb(234, 88, 12)');
+  await expect(page.locator('.login-cta')).toHaveAttribute('href', '/dang-nhap/');
   await expect(page.locator('#site-loading')).toHaveCSS('opacity', '0');
   await page.screenshot({ path: 'test-results/local-home-desktop.png', fullPage: true });
 

@@ -1,56 +1,80 @@
 {% extends "public/base.html" %}
 {% load static %}
 {% block title %}Tìm phòng trọ phù hợp{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/home-discovery.css' %}?v=home-1">{% endblock %}
+{% block body_class %} home-discovery{% endblock %}
+{% block header_identity %}<a class="home-wordmark" href="{% url 'public-home' %}" aria-label="QL Phòng Cho Thuê — Trang chủ"><i data-lucide="house"></i><span>QL Phòng Cho Thuê</span></a>{% endblock %}
+{% block header_menu %}<button id="public-menu-toggle" class="home-menu-toggle" type="button" aria-controls="public-nav" aria-expanded="true" hidden><i data-lucide="menu"></i><span>Menu</span></button>{% endblock %}
 {% block content %}
 <section class="guest-hero">
   <div class="guest-hero-inner">
-    <div class="guest-hero-copy"><h1>Tìm phòng trọ phù hợp<br>với cuộc sống của bạn</h1><p>Đa dạng lựa chọn <b>•</b> Thông tin minh bạch <b>•</b> An tâm dài lâu</p></div>
-    <div class="hero-assurance"><i data-lucide="shield-check"></i><span>Không chỉ là phòng trọ<small>Mà là nơi để vững bước</small></span></div>
-    <form class="guest-search" action="{% url 'public-rooms' %}">
-      <label><i data-lucide="map-pin"></i><input name="q" placeholder="Khu vực, quận huyện, địa chỉ..."></label>
-      <label><i data-lucide="building-2"></i><select name="building"><option value="">Chọn tòa nhà</option>{% for building in buildings %}<option value="{{ building.name }}">{{ building.name }}</option>{% endfor %}</select></label>
-      <label class="price-range"><i data-lucide="circle-dollar-sign"></i><input name="min_price" type="number" placeholder="Giá từ"><b>-</b><input name="max_price" type="number" placeholder="Giá đến"></label>
-      <label><i data-lucide="bed-double"></i><select><option>Loại phòng</option><option>Phòng trọ</option><option>Căn hộ mini</option></select></label>
-      <button class="btn primary"><i data-lucide="search"></i> Tìm phòng</button>
+    <div class="guest-hero-copy">
+      <p class="home-intro">{{ building_count }} tòa nhà <span aria-hidden="true">/</span> {{ available_count }} phòng đang cho thuê</p>
+      <h1>Tìm phòng trọ<br>phù hợp với bạn</h1>
+      <p>Xem phòng theo tòa nhà, khoảng giá và tiện ích.<br class="desktop-break"> Lưu lại những lựa chọn bạn muốn cân nhắc.</p>
+      <div class="hero-assurance"><i data-lucide="shield-check"></i><span>Không chỉ là phòng trọ<small>Mà là nơi để vững bước</small></span></div>
+    </div>
+    {% if hero_room %}
+    <a class="home-room-preview" href="{% url 'public-room-detail' hero_room.id %}" aria-label="Xem phòng {{ hero_room.number }} tại {{ hero_room.building.name }}">
+      <div class="home-preview-image"><img src="{{ hero_room.cover_image_url }}" alt="Ảnh phòng {{ hero_room.number }} tại {{ hero_room.building.name }}" width="720" height="440" fetchpriority="high"></div>
+      <div class="home-preview-caption"><span class="home-room-number">{{ hero_room.number }}</span><span><strong>{{ hero_room.building.name }}</strong><small>{{ hero_room.monthly_rent|vnd }} đ/tháng</small></span><i data-lucide="arrow-up-right"></i></div>
+    </a>
+    {% else %}
+    <div class="home-room-summary">
+      <i data-lucide="building-2"></i><h2>Các phòng đang cho thuê</h2>
+      <p>{{ available_count }} phòng tại {{ building_count }} tòa nhà</p>
+      {% for room in featured_rooms|slice:':3' %}<a href="{% url 'public-room-detail' room.id %}"><span>Phòng {{ room.number }}<small>{{ room.building.name }}</small></span><span>{{ room.monthly_rent|vnd }} đ/tháng <i data-lucide="arrow-up-right"></i></span></a>{% empty %}<p>Thông tin phòng sẽ xuất hiện tại đây khi có phòng trống.</p>{% endfor %}
+    </div>
+    {% endif %}
+    <form class="guest-search" action="{% url 'public-rooms' %}" role="search" aria-label="Tìm phòng trọ">
+      <label class="home-search-field"><span>Khu vực</span><span class="home-field-input"><i data-lucide="map-pin"></i><input name="q" aria-label="Khu vực, quận huyện, địa chỉ" placeholder="Quận, huyện, địa chỉ"></span></label>
+      <label class="home-search-field"><span>Tòa nhà</span><span class="home-field-input"><i data-lucide="building-2"></i><select name="building" aria-label="Chọn tòa nhà"><option value="">Tất cả tòa nhà</option>{% for building in buildings %}<option value="{{ building.name }}">{{ building.name }}</option>{% endfor %}</select></span></label>
+      <div class="home-search-field price-range"><span>Giá thuê / tháng</span><div class="home-field-input"><input name="min_price" type="number" min="0" step="1" inputmode="numeric" aria-label="Giá thuê từ" placeholder="Giá từ"><span aria-hidden="true">–</span><input name="max_price" type="number" min="0" step="1" inputmode="numeric" aria-label="Giá thuê đến" placeholder="Giá đến"></div></div>
+      <label class="home-search-field"><span>Loại phòng</span><span class="home-field-input"><i data-lucide="bed-double"></i><select aria-label="Loại phòng"><option>Loại phòng</option><option>Phòng trọ</option><option>Căn hộ mini</option></select></span></label>
+      <button class="btn primary" type="submit"><i data-lucide="search"></i> Tìm phòng</button>
     </form>
   </div>
 </section>
-<section class="benefit-strip">
+<section class="benefit-strip" aria-label="Tìm phòng thuận tiện">
   <div><i data-lucide="house"></i><span><strong>Nhiều tòa nhà</strong><small>và vị trí thuận tiện</small></span></div>
   <div><i data-lucide="shield-check"></i><span><strong>Thông tin rõ ràng</strong><small>hình ảnh thực tế</small></span></div>
   <div><i data-lucide="heart"></i><span><strong>Dễ dàng so sánh</strong><small>và lưu phòng yêu thích</small></span></div>
   <div><i data-lucide="headphones"></i><span><strong>Hỗ trợ nhanh chóng</strong><small>tận tình, chuyên nghiệp</small></span></div>
 </section>
 <section id="gioi-thieu" class="property-browser">
-  <aside class="filter-panel">
-    <h2>Bộ lọc tìm kiếm</h2>
-    <form action="{% url 'public-rooms' %}">
-      <h3>Khu vực</h3>
-      <select name="district"><option value="">Tất cả quận / huyện</option><option value="Quận 3">Quận 3</option><option value="Quận 4">Quận 4</option><option value="Bình Thạnh">Bình Thạnh</option><option value="Thủ Đức">Thủ Đức</option><option value="Gò Vấp">Gò Vấp</option></select>
-      <h3>Tòa nhà</h3>
-      {% for group in building_groups %}<label class="check-row"><input type="checkbox" name="building" value="{{ group.building.name }}"><span>{{ group.building.name }}</span><small>{{ group.available_count }}</small></label>{% endfor %}
-      <h3>Khoảng giá</h3>
-      <input id="price-filter" name="max_price" class="range-control" type="range" min="1000000" max="10000000" step="500000" value="10000000">
-      <div class="range-label"><span>0 đ</span><strong id="price-filter-value">10.000.000 đ</strong></div>
-      <h3>Tiện ích</h3>
-      <label class="check-row"><input type="checkbox" name="amenity" value="Máy lạnh"><span>Có máy lạnh</span></label>
-      <label class="check-row"><input type="checkbox" name="amenity" value="Bãi xe"><span>Có bãi xe</span></label>
-      <label class="check-row"><input type="checkbox" name="amenity" value="Wi-Fi"><span>WiFi miễn phí</span></label>
-      <button class="btn primary mobile-filter-submit"><i data-lucide="list-filter"></i> Áp dụng bộ lọc</button>
+  <aside class="filter-panel" aria-label="Bộ lọc tìm kiếm">
+    <div class="home-filter-heading"><h2>Bộ lọc tìm kiếm</h2><button id="home-filter-toggle" type="button" aria-controls="home-filter-fields" aria-expanded="true" hidden><i data-lucide="sliders-horizontal"></i><span>Bộ lọc tìm kiếm</span><i data-lucide="chevron-down"></i></button></div>
+    <form id="home-filters" action="{% url 'public-rooms' %}">
+      <div id="home-filter-fields">
+        <label for="home-district" class="home-filter-label">Khu vực</label>
+        <select id="home-district" name="district"><option value="">Tất cả quận / huyện</option><option value="Quận 3">Quận 3</option><option value="Quận 4">Quận 4</option><option value="Bình Thạnh">Bình Thạnh</option><option value="Thủ Đức">Thủ Đức</option><option value="Gò Vấp">Gò Vấp</option></select>
+        <fieldset><legend>Tòa nhà</legend>
+          {% for group in building_groups %}<label class="check-row"><input type="checkbox" name="building" value="{{ group.building.name }}"><span>{{ group.building.name }}</span><small aria-label="{{ group.available_count }} phòng trống">{{ group.available_count }}</small></label>{% endfor %}
+        </fieldset>
+        <label for="price-filter" class="home-filter-label">Khoảng giá</label>
+        <input id="price-filter" name="max_price" class="range-control" type="range" min="1000000" max="10000000" step="500000" value="10000000">
+        <div class="range-label"><span>0 đ</span><output id="price-filter-value" for="price-filter">10.000.000 đ</output></div>
+        <fieldset><legend>Tiện ích</legend>
+          <label class="check-row"><input type="checkbox" name="amenity" value="Máy lạnh"><span>Có máy lạnh</span></label>
+          <label class="check-row"><input type="checkbox" name="amenity" value="Bãi xe"><span>Có bãi xe</span></label>
+          <label class="check-row"><input type="checkbox" name="amenity" value="Wi-Fi"><span>WiFi miễn phí</span></label>
+        </fieldset>
+        <button class="btn primary mobile-filter-submit" type="submit"><i data-lucide="list-filter"></i> Áp dụng bộ lọc</button>
+      </div>
     </form>
   </aside>
   <div class="building-results">
-    <div class="results-heading"><div><h2>Danh sách tòa nhà</h2><p>Chọn tòa nhà để xem các phòng bên trong</p></div><label>Sắp xếp <select><option>Mới nhất</option><option>Giá thấp nhất</option></select></label></div>
+    <div class="results-heading"><div><h2>Danh sách tòa nhà</h2><p>Chọn tòa nhà để xem các phòng bên trong</p></div><label for="home-sort">Sắp xếp <select id="home-sort" name="sort" form="home-filters"><option value="">Theo số phòng</option><option value="price_asc">Giá thấp nhất</option><option value="price_desc">Giá cao nhất</option></select></label></div>
     {% for group in building_groups %}
     <article class="building-block">
       <header>
-        <div class="building-thumb building-thumb-{{ forloop.counter }}"></div>
+        <div class="home-building-marker" aria-hidden="true">{% if forloop.counter < 10 %}0{% endif %}{{ forloop.counter }}</div>
         <div class="building-info"><h3>{{ group.building.name }} {% if forloop.first %}<span>Tòa nhà nổi bật</span>{% endif %}</h3><p><i data-lucide="map-pin"></i> {{ group.building.address }}</p><div><span><i data-lucide="building-2"></i> {{ group.floor_count }} tầng</span><span><i data-lucide="bed-double"></i> {{ group.available_count }} phòng trống</span><span><i data-lucide="map-pin"></i> Gần chợ, trường học, trung tâm</span></div></div>
         <a class="view-building" href="{% url 'public-rooms' %}?q={{ group.building.name|urlencode }}">Xem tất cả {{ group.available_count }} phòng <i data-lucide="arrow-right"></i></a>
       </header>
       <div class="room-carousel" data-room-carousel>
         <div class="compact-room-grid" id="building-rooms-{{ group.building.id }}" tabindex="0" role="region" aria-label="Các phòng của {{ group.building.name }}">
-          {% for room in group.rooms %}{% include "public/room_card.html" %}{% endfor %}
+          {% for room in group.rooms %}{% include "public/room_card.html" with home_card=True %}{% endfor %}
         </div>
         <div class="room-carousel-controls" hidden>
           <span><i data-lucide="move-horizontal"></i> Kéo ngang để xem thêm phòng</span>
@@ -61,9 +85,9 @@
         </div>
       </div>
     </article>
-    {% empty %}<div class="empty-state">Hiện chưa có phòng trống được đăng.</div>{% endfor %}
+    {% empty %}<div class="empty-state"><i data-lucide="house"></i><h3>Chưa có phòng trống</h3><p>Thông tin phòng sẽ được cập nhật tại đây.</p><a href="#lien-he">Liên hệ hỗ trợ <i data-lucide="arrow-right"></i></a></div>{% endfor %}
   </div>
 </section>
 <script src="{% static 'js/room-carousel.js' %}" defer></script>
-<script>document.addEventListener("DOMContentLoaded",function(){const range=document.getElementById("price-filter"),value=document.getElementById("price-filter-value");if(range&&value){const update=()=>value.textContent=new Intl.NumberFormat("vi-VN").format(range.value)+" đ";range.addEventListener("input",update);update()}});</script>
+<script src="{% static 'js/home-discovery.js' %}?v=home-1" defer></script>
 {% endblock %}

@@ -203,6 +203,7 @@ def public_home(request):
         })
     context = {
         "featured_rooms": rooms[:6],
+        "hero_room": next((room for room in rooms if room.cover_image_url), None),
         "building_groups": building_groups,
         "buildings": buildings,
         "available_count": len(rooms),
