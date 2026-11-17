@@ -1,10 +1,11 @@
-"""Local A101 UI fixture; all database data lives in process memory.
+"""Local A101/A102 UI fixture; all database data lives in process memory.
 
 Run: .venv/Scripts/python.exe tests/serve_room_walkthrough_preview.py
 Login: walkthrough-preview / local-preview-only
 URL: http://127.0.0.1:8003/phong/a1010000-0000-4000-8000-000000000001/tham-quan/
+URL: http://127.0.0.1:8003/phong/a1020000-0000-4000-8000-000000000002/tham-quan/
 
-Optional images/Anhphongtro/A101 files are served locally without uploading.
+Optional images/Anhphongtro/A101 and A102 files are served without uploading.
 The configured application database is never opened or modified.
 """
 
@@ -17,6 +18,7 @@ from urllib.parse import quote
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 ROOM_ID = "a1010000-0000-4000-8000-000000000001"
+ROOM_IDS = {"A101": ROOM_ID, "A102": "a1020000-0000-4000-8000-000000000002"}
 sys.path.insert(0, str(REPO_ROOT))
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.test_indoor_settings"
 
@@ -45,11 +47,16 @@ def main():
     settings.SESSION_COOKIE_SECURE = False
     settings.CSRF_COOKIE_SECURE = False
     settings.SECURE_SSL_REDIRECT = False
-    reference_dir = REPO_ROOT / "images" / "Anhphongtro" / "A101"
-    if reference_dir.is_dir():
+    reference_dirs = {
+        number: REPO_ROOT / "images" / "Anhphongtro" / number
+        for number in ROOM_IDS
+    }
+    for number, reference_dir in reference_dirs.items():
+        if not reference_dir.is_dir():
+            continue
         settings.STATICFILES_DIRS = [
             *settings.STATICFILES_DIRS,
-            ("walkthrough-reference", reference_dir),
+            (f"walkthrough-reference-{number}", reference_dir),
         ]
     django.setup()
 
@@ -65,11 +72,14 @@ def main():
         building = Building.objects.create(
             name="Tòa nhà An Tâm", address="Dữ liệu kiểm thử cục bộ", owner=owner,
         )
-        room = Room.objects.create(
-            id=ROOM_ID, building=building, number="A101", floor=1,
-            area=25, monthly_rent=3200000,
-        )
-        if reference_dir.is_dir():
+        for number, room_id in ROOM_IDS.items():
+            room = Room.objects.create(
+                id=room_id, building=building, number=number, floor=1,
+                area=25, monthly_rent=3200000,
+            )
+            reference_dir = reference_dirs[number]
+            if not reference_dir.is_dir():
+                continue
             for source in sorted(reference_dir.iterdir()):
                 if not source.is_file():
                     continue
@@ -82,10 +92,11 @@ def main():
                     continue
                 RoomMedia.objects.create(
                     room=room, media_type=media_type,
-                    url=f"http://127.0.0.1:{args.port}/static/walkthrough-reference/{quote(source.name)}",
-                    public_id=f"local-preview/{source.name}", format=suffix[1:],
+                    url=f"http://127.0.0.1:{args.port}/static/walkthrough-reference-{number}/{quote(source.name)}",
+                    public_id=f"local-preview/{number}/{source.name}", format=suffix[1:],
                 )
-        print(f"Walkthrough: http://127.0.0.1:{args.port}/phong/{ROOM_ID}/tham-quan/", flush=True)
+        for number, room_id in ROOM_IDS.items():
+            print(f"{number}: http://127.0.0.1:{args.port}/phong/{room_id}/tham-quan/", flush=True)
         print("Login: walkthrough-preview / local-preview-only", flush=True)
         call_command("runserver", f"127.0.0.1:{args.port}", use_reloader=False)
     finally:

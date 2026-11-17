@@ -21,10 +21,11 @@ function showError(message) {
 document.getElementById("tour-reload").addEventListener("click", () => location.reload());
 
 try {
-  const [THREE, { buildA101World }, { createWalker }] = await Promise.all([
+  const config = JSON.parse(document.getElementById("tour-config").textContent);
+  const [THREE, { buildRoomTourWorld }, { createWalker }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./a101-world.js"),
-    import("./walkthrough-avatar.js"),
+    import("./room-tour-world.js?v=a102-jump-1"),
+    import("./walkthrough-avatar.js?v=a102-jump-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -45,17 +46,11 @@ try {
   sun.target.position.set(0, 0, -2);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
-  Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 8, bottom: -8, near: 0.5, far: 22 });
+  Object.assign(sun.shadow.camera, { left: -10, right: 7, top: 8, bottom: -8, near: 0.5, far: 25 });
   sun.shadow.bias = -0.0003;
   sun.shadow.normalBias = 0.025;
   scene.add(sun, sun.target);
-  const frontLight = new THREE.PointLight(0xfff5de, 13, 8, 2);
-  frontLight.position.set(0, 3.4, -1);
-  const rearLight = new THREE.PointLight(0xffffff, 10, 7, 2);
-  rearLight.position.set(0, 1.95, -4.2);
-  scene.add(frontLight, rearLight);
-
-  const world = buildA101World(THREE, scene);
+  const world = buildRoomTourWorld(THREE, scene, config);
   const walker = createWalker(THREE);
   const player = walker.group;
   player.position.set(world.spawn.x, 0, world.spawn.z);
@@ -70,20 +65,26 @@ try {
   let drag = null;
   let lastZone = "";
   let animationFrame = 0;
+  let verticalVelocity = 0;
+  let airborne = false;
+  let jumpRequested = false;
+  let currentRoom = null;
   const radius = 0.20;
+  const bodyHeight = 1.4;
+  const gravity = 14;
   const speed = 1.55;
   const target = new THREE.Vector3();
   const desired = new THREE.Vector3();
   const direction = new THREE.Vector3();
   const raycaster = new THREE.Raycaster();
   const lookTarget = new THREE.Vector3();
-  const closedDoor = { minX: -0.04, maxX: 1.14, minZ: -0.07, maxZ: 0.07 };
   const touchButtons = [...document.querySelectorAll("[data-move]")];
   const dialogs = [...document.querySelectorAll("dialog")];
   const isDialogOpen = () => dialogs.some(dialog => dialog.open);
 
   clearMovement = () => {
     keys.clear();
+    jumpRequested = false;
     drag = null;
     host.classList.remove("dragging");
     touchButtons.forEach(button => button.classList.remove("pressed"));
@@ -96,16 +97,45 @@ try {
   }
 
   function canStand(x, z) {
-    // The walkable ground is the union of the corridor and the room.
-    if (z > 3.35 || z < -6.6 + radius || Math.abs(x) > 3.3) return false;
-    if (z < 0 && Math.abs(x) > 1.6 - radius) return false;
+    // Each room joins the shared corridor through its own door.
+    if (z > world.bounds.maxZ || z < world.bounds.minZ || x < world.bounds.minX || x > world.bounds.maxX) return false;
+    if (z < 0 && !world.rooms.some(room => x >= room.minX + radius && x <= room.maxX - radius)) return false;
+    if (player.position.y + bodyHeight > world.ceilingAt(x, z) + .001) return false;
     if (world.obstacles.some(rect => overlaps(x, z, rect))) return false;
-    const angle = world.door.rotation.y;
-    const doorBounds = angle < 0.05 ? closedDoor : {
-      minX: -0.04, maxX: 1.1 * Math.cos(angle) + 0.04,
-      minZ: -1.1 * Math.sin(angle) - 0.04, maxZ: 0.04,
-    };
-    return !overlaps(x, z, doorBounds);
+    return !world.rooms.some(room => {
+      const angle = room.door.rotation.y;
+      return overlaps(x, z, {
+        minX: room.hingeX - .04, maxX: room.hingeX + 1.1 * Math.cos(angle) + .04,
+        minZ: -1.1 * Math.sin(angle) - .04, maxZ: .04,
+      });
+    });
+  }
+
+  function requestJump() {
+    if (running && !isDialogOpen() && !airborne) jumpRequested = true;
+  }
+
+  function updateJump(dt) {
+    const ground = world.groundAt(player.position.x, player.position.z);
+    if (jumpRequested && !airborne) {
+      verticalVelocity = 4.6;
+      airborne = true;
+    }
+    jumpRequested = false;
+    if (airborne) {
+      player.position.y += verticalVelocity * dt - .5 * gravity * dt * dt;
+      verticalVelocity -= gravity * dt;
+      const maxY = world.ceilingAt(player.position.x, player.position.z) - bodyHeight;
+      if (player.position.y > maxY) {
+        player.position.y = maxY;
+        verticalVelocity = Math.min(verticalVelocity, 0);
+      }
+      if (player.position.y <= ground) {
+        player.position.y = ground;
+        verticalVelocity = 0;
+        airborne = false;
+      }
+    } else player.position.y = ground;
   }
 
   function reset() {
@@ -116,7 +146,9 @@ try {
     pitch = 0.25;
     distance = 2.8;
     cameraReady = false;
-    world.door.rotation.y = 0;
+    verticalVelocity = 0;
+    airborne = false;
+    world.rooms.forEach(room => { room.door.rotation.y = 0; });
     if (running) host.focus({ preventScroll: true });
   }
   document.getElementById("tour-reset").addEventListener("click", reset);
@@ -130,6 +162,10 @@ try {
   window.addEventListener("keydown", event => {
     if (!running || isDialogOpen() || event.ctrlKey || event.metaKey || event.altKey || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName)) return;
     if (movementCodes.has(event.code)) { event.preventDefault(); keys.add(event.code); }
+    if (event.code === "Space" && !event.target.closest("button, a, [role=button]")) {
+      event.preventDefault();
+      if (!event.repeat) requestJump();
+    }
     if (event.code === "KeyR" && !event.repeat) { event.preventDefault(); reset(); }
   });
   window.addEventListener("keyup", event => keys.delete(event.code));
@@ -182,6 +218,7 @@ try {
     button.addEventListener("pointercancel", release);
     button.addEventListener("lostpointercapture", release);
   });
+  document.getElementById("tour-jump").addEventListener("click", requestJump);
 
   function openDialog(id) {
     clearMovement();
@@ -216,7 +253,7 @@ try {
     const horizontal = Math.cos(pitch) * distance;
     desired.set(target.x + Math.sin(yaw) * horizontal, target.y + offsetHeight + 0.18, target.z + Math.cos(yaw) * horizontal);
     // Keep the follow camera beneath the loft when standing under it.
-    if (desired.z < -2.7 && Math.abs(desired.x) < 1.7) desired.y = Math.min(desired.y, 2.02);
+    desired.y = Math.min(desired.y, world.ceilingAt(desired.x, desired.z) - .08);
     desired.y = Math.max(desired.y, 0.35);
     scene.updateMatrixWorld(true);
     direction.copy(desired).sub(target);
@@ -241,19 +278,29 @@ try {
   }
 
   function updateHud() {
+    const room = world.nearestRoom(player.position.x, player.position.z);
     const inside = player.position.z < -0.2;
-    const zone = inside ? "Bên trong phòng A101" : "Trước cửa phòng";
+    const zone = inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
     if (zone !== lastZone) {
       positionLabel.textContent = zone;
-      cue.textContent = inside ? "Khám phá tầng trệt · kéo chuột để nhìn quanh" : "Đi tới cửa để vào phòng";
+      cue.textContent = inside ? "WASD di chuyển · Space để nhảy" : `Đi tới cửa ${room.number} để vào phòng`;
       lastZone = zone;
     }
-    const x = 90 + player.position.x * 25;
-    const y = 146 + player.position.z * (player.position.z > 0 ? 15 : 19);
+    if (currentRoom !== room.number) {
+      currentRoom = room.number;
+      document.getElementById("tour-room-name").textContent = `Phòng ${currentRoom}`;
+      document.querySelectorAll("[data-room-media]").forEach(panel => { panel.hidden = panel.dataset.roomMedia !== currentRoom; });
+      document.getElementById("media-title").textContent = `Ảnh & video phòng ${currentRoom}`;
+    }
+    const x = 129 + player.position.x * 20;
+    const y = 134 + player.position.z * 18;
     mapPlayer.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-yaw * 180 / Math.PI).toFixed(1)})`);
     // Position data also makes the accessible mini-map inspectable without reading WebGL internals.
     mapPlayer.dataset.x = player.position.x.toFixed(3);
     mapPlayer.dataset.z = player.position.z.toFixed(3);
+    mapPlayer.dataset.y = player.position.y.toFixed(3);
+    mapPlayer.dataset.airborne = String(airborne);
+    mapPlayer.dataset.room = currentRoom;
   }
 
   function frame(now) {
@@ -267,9 +314,12 @@ try {
       const forward = Number(keys.has("KeyW") || keys.has("ArrowUp")) - Number(keys.has("KeyS") || keys.has("ArrowDown"));
       const strafe = Number(keys.has("KeyD") || keys.has("ArrowRight")) - Number(keys.has("KeyA") || keys.has("ArrowLeft"));
       yaw += (Number(keys.has("KeyE")) - Number(keys.has("KeyQ"))) * dt * 1.5;
-      const nearDoor = player.position.z < 0 || Math.hypot(player.position.x - 0.55, player.position.z) < 1.9;
-      const doorAngle = nearDoor ? Math.PI / 2 : 0;
-      world.door.rotation.y += (doorAngle - world.door.rotation.y) * (1 - Math.exp(-6 * dt));
+      world.rooms.forEach(room => {
+        const insideRoom = world.roomAt(player.position.x, player.position.z) === room;
+        const nearDoor = insideRoom || Math.hypot(player.position.x - room.doorX, player.position.z) < 1.9;
+        const doorAngle = nearDoor ? Math.PI / 2 : 0;
+        room.door.rotation.y += (doorAngle - room.door.rotation.y) * (1 - Math.exp(-6 * dt));
+      });
       if (forward || strafe) {
         const length = Math.hypot(forward, strafe);
         const dx = (strafe * Math.cos(yaw) - forward * Math.sin(yaw)) / length * speed * dt;
@@ -279,13 +329,13 @@ try {
         // Axis-separated collision lets a character slide along a wall instead of getting stuck.
         if (canStand(player.position.x + dx, player.position.z)) player.position.x += dx;
         if (canStand(player.position.x, player.position.z + dz)) player.position.z += dz;
-        player.position.y = player.position.z < -5.1 ? 0.15 : 0;
         moved = Math.hypot(player.position.x - beforeX, player.position.z - beforeZ) > 0.0001;
         const angle = Math.atan2(dx, dz);
         player.rotation.y += Math.atan2(Math.sin(angle - player.rotation.y), Math.cos(angle - player.rotation.y)) * (1 - Math.exp(-14 * dt));
       }
+      updateJump(dt);
     }
-    walker.animate(walkTime, moved);
+    walker.animate(walkTime, moved, { airborne, verticalVelocity });
     updateCamera(dt);
     updateHud();
     renderer.render(scene, camera);
@@ -300,6 +350,13 @@ try {
   }
   new ResizeObserver(resize).observe(host);
   resize();
+  document.getElementById("map-geometry").innerHTML =
+    '<rect x="16" y="134" width="183" height="65" rx="2" class="map-floor"/><text x="105" y="184">Hành lang chung</text>' +
+    world.rooms.map(room => {
+      const x = 129 + room.minX * 20;
+      const width = (room.maxX - room.minX) * 20;
+      return `<rect x="${x}" y="15" width="${width}" height="119" class="map-floor"/><path d="M ${x} 85 h ${width}" class="map-line"/><text x="${x + width / 2}" y="35">${room.number}</text><rect x="${x + 4}" y="76" width="9" height="29" rx="2" class="map-furniture"/>`;
+    }).join("");
   renderer.domElement.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     cancelAnimationFrame(animationFrame);

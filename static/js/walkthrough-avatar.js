@@ -79,6 +79,7 @@ export function createWalker(THREE) {
 
     const arms = [];
     const legs = [];
+    const knees = [];
     for (const side of [-1, 1]) {
         const arm = new THREE.Group();
         arm.position.set(side * 0.19, 0.855, 0);
@@ -93,29 +94,45 @@ export function createWalker(THREE) {
         const leg = new THREE.Group();
         leg.position.set(side * 0.084, 0.53, 0);
         group.add(leg);
-        mesh(leg, cylinder, trousers, [0, -0.203, 0], [0.068, 0.406, 0.077]);
-        mesh(leg, cylinder, trousers, [0, -0.401, 0], [0.07, 0.035, 0.078]);
-        mesh(leg, sphere, soles, [0, -0.487, 0.043], [0.079, 0.034, 0.135]);
-        mesh(leg, sphere, shoes, [0, -0.46, 0.041], [0.077, 0.052, 0.131]);
-        mesh(leg, box, cream, [0, -0.424, 0.081], [0.057, 0.012, 0.033]);
+        mesh(leg, cylinder, trousers, [0, -0.103, 0], [0.068, 0.206, 0.077]);
+        mesh(leg, sphere, trousers, [0, -0.205, 0], [0.068, 0.067, 0.077]);
+        const knee = new THREE.Group();
+        knee.position.y = -0.205;
+        leg.add(knee);
+        mesh(knee, cylinder, trousers, [0, -0.1, 0], [0.068, 0.2, 0.077]);
+        mesh(knee, cylinder, trousers, [0, -0.196, 0], [0.07, 0.035, 0.078]);
+        mesh(knee, sphere, soles, [0, -0.282, 0.043], [0.079, 0.034, 0.135]);
+        mesh(knee, sphere, shoes, [0, -0.255, 0.041], [0.077, 0.052, 0.131]);
+        mesh(knee, box, cream, [0, -0.219, 0.081], [0.057, 0.012, 0.033]);
         legs.push(leg);
+        knees.push(knee);
     }
 
     let previousTime;
     let walkingBlend = 0;
-    function animate(time, moving) {
+    let airborneBlend = 0;
+    function animate(time, moving, { airborne = false, verticalVelocity = 0 } = {}) {
         const elapsed = previousTime === undefined ? 0 : Math.max(0, Math.min(time - previousTime, 0.1));
         previousTime = time;
-        walkingBlend = THREE.MathUtils.damp(walkingBlend, moving ? 1 : 0, 12, elapsed);
-        const stride = Math.sin(time * 9) * walkingBlend;
-        legs[0].rotation.x = stride * 0.43;
-        legs[1].rotation.x = -stride * 0.43;
-        arms[0].rotation.x = -stride * 0.39 - 0.05;
-        arms[1].rotation.x = stride * 0.39 - 0.05;
-        body.position.y = Math.abs(Math.cos(time * 9)) * 0.018 * walkingBlend
-            + Math.sin(time * 2.2) * 0.003 * (1 - walkingBlend);
-        body.rotation.z = Math.sin(time * 9) * 0.015 * walkingBlend;
-        head.rotation.z = Math.sin(time * 1.5) * 0.014 * (1 - walkingBlend);
+        walkingBlend = THREE.MathUtils.damp(walkingBlend, moving && !airborne ? 1 : 0, 12, elapsed);
+        airborneBlend = THREE.MathUtils.damp(airborneBlend, airborne ? 1 : 0, 18, elapsed);
+        const onGround = 1 - airborneBlend;
+        const rising = THREE.MathUtils.clamp(verticalVelocity / 3, -1, 1);
+        const stride = Math.sin(time * 9) * walkingBlend * onGround;
+        // Only joints animate here; the controller owns the root's jump height.
+        const tuckedHip = (-0.25 - rising * 0.06) * airborneBlend;
+        legs[0].rotation.x = stride * 0.43 + tuckedHip;
+        legs[1].rotation.x = -stride * 0.43 + tuckedHip;
+        knees.forEach(knee => { knee.rotation.x = (0.65 + rising * 0.1) * airborneBlend; });
+        arms[0].rotation.x = (-stride * 0.39 - 0.05) * onGround + (-0.7 - rising * 0.12) * airborneBlend;
+        arms[1].rotation.x = (stride * 0.39 - 0.05) * onGround + (-0.7 - rising * 0.12) * airborneBlend;
+        arms[0].rotation.z = -0.11 - airborneBlend * 0.13;
+        arms[1].rotation.z = 0.11 + airborneBlend * 0.13;
+        body.position.y = (Math.abs(Math.cos(time * 9)) * 0.018 * walkingBlend
+            + Math.sin(time * 2.2) * 0.003 * (1 - walkingBlend)) * onGround;
+        body.rotation.x = airborneBlend * 0.035;
+        body.rotation.z = Math.sin(time * 9) * 0.015 * walkingBlend * onGround;
+        head.rotation.z = Math.sin(time * 1.5) * 0.014 * (1 - walkingBlend) * onGround;
     }
 
     return { group, animate };

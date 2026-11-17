@@ -1,5 +1,5 @@
 /* A101: a measured-looking interpretation of the room's photos, not a survey. */
-export function buildA101World(THREE, scene) {
+export function buildA101World(THREE, scene, { includeLanding = true } = {}) {
     const obstacles = [];
     const cameraObstacles = [];
     const world = new THREE.Group();
@@ -288,6 +288,7 @@ export function buildA101World(THREE, scene) {
     floralPicture(-1.568, 1.88, -5.25, '#f0e6d8', '#b66b4d', Math.PI / 2);
 
     // Quiet, sunlit landing outside. All exterior detail is an illustrative setting.
+    if (includeLanding) {
     const landingTexture = tileTexture.clone(); landingTexture.needsUpdate = true; landingTexture.repeat.set(9, 4.5);
     const landingMaterial = new THREE.MeshStandardMaterial({ color: '#e4d4b8', map: landingTexture, roughness: .86 });
     solid(0, -.085, 1.85, 7.2, .16, 3.7, landingMaterial, false);
@@ -307,6 +308,7 @@ export function buildA101World(THREE, scene) {
     obstacles.push({ minX: -3.29, maxX: -2.83, minZ: .55, maxZ: 1.01 });
     // Low parapet leaves the follow camera's view into the room unobstructed.
     solid(0, .12, 3.61, 7.1, .24, .14, facade);
+    }
 
     return {
         obstacles,
