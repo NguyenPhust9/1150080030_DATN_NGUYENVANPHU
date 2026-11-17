@@ -78,7 +78,9 @@
 .home-discovery .hero-assurance span { display: block; }
 .home-discovery .hero-assurance small { display: block; color: var(--home-muted); font-size: 13px; font-weight: 400; margin: 0; }
 .home-room-preview { display: block; overflow: hidden; color: inherit; text-decoration: none; border: 1px solid var(--home-line); border-radius: 16px; background: var(--home-surface); }
-.home-preview-image { height: 280px; background: var(--home-raised); display: grid; place-items: center; overflow: hidden; }
+.home-preview-image { position: relative; height: 280px; background: var(--home-raised); display: grid; place-items: center; overflow: hidden; }
+.home-featured-badge { position: absolute; top: 16px; left: 16px; z-index: 1; display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: 6px; background: var(--home-orange); color: #fff; font-size: 13px; line-height: 16px; font-weight: 600; box-shadow: 0 2px 8px rgb(41 39 35 / 12%); pointer-events: none; }
+.home-featured-badge svg { width: 16px; height: 16px; }
 .home-preview-image img { width: 100%; height: 100%; object-fit: cover; object-position: center 56%; }
 .home-preview-caption { display: flex; align-items: center; gap: 16px; padding: 16px 20px; }
 .home-room-number { padding: 8px 12px; border: 1px solid #d3c6b5; border-radius: 4px; color: var(--home-ink); background: #f5efe5; font-size: 20px; font-weight: 500; }
