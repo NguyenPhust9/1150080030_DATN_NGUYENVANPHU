@@ -11,3 +11,10 @@
 @media(pointer:coarse){.touch-jump{display:flex}}
 @media(max-width:600px){.touch-jump{display:flex;left:65px;bottom:130px}.connected-rooms{font-size:8px;margin-top:5px}.mini-map{width:130px}.tour-cue{top:143px}}
 @media(max-height:380px){.touch-jump{left:180px;bottom:12px}.connected-rooms{display:none}.tour-cue{top:105px}}
+
+.tour-header{bottom:auto}
+.tour-actions .view-button{padding:0 13px;font-size:12px;font-weight:600;white-space:nowrap}
+.tour-actions .view-button[aria-pressed="true"]{background:#edf0dc;color:#324b39;border-color:#fff9}
+@media(min-width:1101px) and (max-width:1550px){.tour-cue{top:158px}}
+@media(max-width:900px){.tour-actions{gap:5px}.tour-actions button,.tour-actions a{height:36px;min-width:36px;border-radius:11px}.tour-actions .view-button{padding:0 10px;font-size:10px}.tour-actions .media-button{padding:0}.media-button span{display:none}.tour-actions #tour-reset{display:none}}
+@media(max-width:600px){.tour-actions{width:100%;justify-content:flex-end}.tour-cue{top:181px}.tour-actions .view-button{margin-right:auto}}

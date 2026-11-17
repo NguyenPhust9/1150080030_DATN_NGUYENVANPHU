@@ -24,9 +24,9 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=a103-tour-1"),
-    import("./walkthrough-avatar.js?v=a103-tour-1"),
-    import("./walkthrough-motion.js?v=a103-tour-1"),
+    import("./room-tour-world.js?v=room-view-2"),
+    import("./walkthrough-avatar.js?v=room-view-2"),
+    import("./walkthrough-motion.js?v=room-view-2"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -60,6 +60,8 @@ try {
   const motion = createWalkthroughMotion(world, player.position);
   let yaw = 0;
   let pitch = 0.25;
+  let firstPerson = false;
+  const savedPitch = { first: 0, third: 0.25 };
   let distance = 2.8;
   let lastTime = performance.now();
   let walkTime = 0;
@@ -76,6 +78,11 @@ try {
   const touchButtons = [...document.querySelectorAll("[data-move]")];
   const dialogs = [...document.querySelectorAll("dialog")];
   const isDialogOpen = () => dialogs.some(dialog => dialog.open);
+  const viewButton = document.getElementById("tour-view");
+  const tour = document.getElementById("room-tour");
+  const mapCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
+  const mapX = x => 110 + (x - mapCenterX) * 16;
+  tour.dataset.viewMode = "third-person";
 
   clearMovement = () => {
     keys.clear();
@@ -89,12 +96,30 @@ try {
     if (running && !isDialogOpen()) motion.requestJump();
   }
 
+  function toggleView() {
+    if (!running || isDialogOpen()) return;
+    clearMovement();
+    savedPitch[firstPerson ? "first" : "third"] = pitch;
+    firstPerson = !firstPerson;
+    pitch = savedPitch[firstPerson ? "first" : "third"];
+    cameraReady = false;
+    tour.dataset.viewMode = firstPerson ? "first-person" : "third-person";
+    viewButton.setAttribute("aria-pressed", String(firstPerson));
+    const label = firstPerson ? "Góc nhìn thứ ba" : "Góc nhìn thứ nhất";
+    viewButton.querySelector("span").textContent = label;
+    viewButton.title = `${label} (V)`;
+    host.focus({ preventScroll: true });
+  }
+  viewButton.addEventListener("click", toggleView);
+
   function reset() {
     clearMovement();
     motion.reset();
     player.rotation.y = Math.PI;
     yaw = 0;
-    pitch = 0.25;
+    savedPitch.first = 0;
+    savedPitch.third = 0.25;
+    pitch = firstPerson ? savedPitch.first : savedPitch.third;
     distance = 2.8;
     cameraReady = false;
     world.rooms.forEach(room => { room.door.rotation.y = 0; });
@@ -116,6 +141,7 @@ try {
       if (!event.repeat) requestJump();
     }
     if (event.code === "KeyR" && !event.repeat) { event.preventDefault(); reset(); }
+    if (event.code === "KeyV" && !event.repeat) { event.preventDefault(); toggleView(); }
   });
   window.addEventListener("keyup", event => keys.delete(event.code));
   window.addEventListener("blur", clearMovement);
@@ -135,7 +161,7 @@ try {
   host.addEventListener("pointermove", event => {
     if (!drag || drag.id !== event.pointerId) return;
     yaw -= (event.clientX - drag.x) * 0.005;
-    pitch = THREE.MathUtils.clamp(pitch + (event.clientY - drag.y) * 0.004, -0.13, 0.85);
+    pitch = THREE.MathUtils.clamp(pitch + (event.clientY - drag.y) * 0.004, firstPerson ? -1.15 : -0.13, firstPerson ? 1.15 : 0.85);
     drag.x = event.clientX;
     drag.y = event.clientY;
   });
@@ -151,6 +177,7 @@ try {
   host.addEventListener("wheel", event => {
     if (!running || isDialogOpen()) return;
     event.preventDefault();
+    if (firstPerson) return;
     distance = THREE.MathUtils.clamp(distance + event.deltaY * 0.002, 1.3, 3.4);
   }, { passive: false });
 
@@ -197,6 +224,21 @@ try {
   });
 
   function updateCamera(dt) {
+    if (firstPerson) {
+      // Keep the eye inside the collision body so walls and low ceilings stay
+      // solid. Follow jump/stair height directly, without orbit-camera lag.
+      camera.position.copy(player.position);
+      camera.position.y += 1.27;
+      lookTarget.set(
+        camera.position.x - Math.sin(yaw) * Math.cos(pitch),
+        camera.position.y - Math.sin(pitch),
+        camera.position.z - Math.cos(yaw) * Math.cos(pitch),
+      );
+      camera.lookAt(lookTarget);
+      player.visible = false;
+      cameraReady = false;
+      return;
+    }
     target.copy(player.position).add(new THREE.Vector3(0, 1.07, 0));
     const offsetHeight = Math.sin(pitch) * distance;
     const horizontal = Math.cos(pitch) * distance;
@@ -249,7 +291,7 @@ try {
       document.querySelectorAll("[data-room-media]").forEach(panel => { panel.hidden = panel.dataset.roomMedia !== currentRoom; });
       document.getElementById("media-title").textContent = `Ảnh & video phòng ${currentRoom}`;
     }
-    const x = 110 + player.position.x * 16;
+    const x = mapX(player.position.x);
     const y = 134 + player.position.z * 18;
     mapPlayer.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-yaw * 180 / Math.PI).toFixed(1)})`);
     // Position data also makes the accessible mini-map inspectable without reading WebGL internals.
@@ -303,10 +345,10 @@ try {
   document.getElementById("map-geometry").innerHTML =
     '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="184">Hành lang chung</text>' +
     world.rooms.map(room => {
-      const x = 110 + room.minX * 16;
+      const x = mapX(room.minX);
       const width = (room.maxX - room.minX) * 16;
       const loftFront = 134 + room.loft.maxZ * 18;
-      const stairsX = 110 + room.stairs.minX * 16;
+      const stairsX = mapX(room.stairs.minX);
       const stairsY = 134 + room.stairs.topZ * 18;
       const stairsWidth = (room.stairs.maxX - room.stairs.minX) * 16;
       const stairsDepth = (room.stairs.bottomZ - room.stairs.topZ) * 18;

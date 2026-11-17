@@ -1,6 +1,6 @@
-import { buildA101World } from './a101-world.js?v=a103-tour-1';
-import { buildA102World } from './a102-world.js?v=a103-tour-1';
-import { buildA103World } from './a103-world.js?v=a103-tour-1';
+import { buildA101World } from './a101-world.js?v=room-view-2';
+import { buildA102World } from './a102-world.js?v=room-view-2';
+import { buildA103World } from './a103-world.js?v=room-view-2';
 
 // All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -11,7 +11,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const descriptions = [
     { number: 'A101', offsetX: 0, minX: -1.6, maxX: 1.6, headClearance: 2.06, build: () => buildA101World(THREE, scene, { includeLanding: false }) },
     { number: 'A102', offsetX: -3.6, minX: -5.3, maxX: -1.9, headClearance: 2.16, build: () => buildA102World(THREE, scene, { offsetX: -3.6 }) },
-    { number: 'A103', offsetX: 3.6, minX: 1.9, maxX: 5.3, headClearance: 2.16, build: () => buildA103World(THREE, scene, { offsetX: 3.6 }) },
+    { number: 'A103', offsetX: -7.2, minX: -8.9, maxX: -5.5, headClearance: 2.16, build: () => buildA103World(THREE, scene, { offsetX: -7.2 }) },
   ];
   const cream = new THREE.MeshStandardMaterial({ color: '#e7dfcf', roughness: .85 });
   const trim = new THREE.MeshStandardMaterial({ color: '#c9b28d', roughness: .8 });
@@ -51,39 +51,40 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const floorMap = new THREE.CanvasTexture(landingCanvas);
   floorMap.colorSpace = THREE.SRGBColorSpace;
   floorMap.wrapS = floorMap.wrapT = THREE.RepeatWrapping; floorMap.repeat.set(19, 6);
-  box(0, -.09, 1.85, 11.6, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
-  box(-5.55, 2.25, 0, .5, 4.5, .22, cream, true);
+  // From left to right the landing connects A103, A102, then A101.
+  box(-3.6, -.09, 1.85, 11.6, .18, 3.7, new THREE.MeshStandardMaterial({ map: floorMap, roughness: .9 }));
+  box(-9.15, 2.25, 0, .5, 4.5, .22, cream, true);
+  box(-5.4, 2.25, 0, .2, 4.5, .22, cream, true);
   box(-1.75, 2.25, 0, .3, 4.5, .22, cream, true);
-  box(1.75, 2.25, 0, .3, 4.5, .22, cream, true);
-  box(5.55, 2.25, 0, .5, 4.5, .22, cream, true);
-  box(0, 4.5, .13, 11.6, .17, .65, trim);
-  box(0, .12, 3.61, 11.6, .24, .14, cream, true);
-  for (const x of [-5.65, 5.65]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
+  box(1.9, 2.25, 0, .6, 4.5, .22, cream, true);
+  box(-3.6, 4.5, .13, 11.6, .17, .65, trim);
+  box(-3.6, .12, 3.61, 11.6, .24, .14, cream, true);
+  for (const x of [-9.25, 2.05]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
   // A small planter beside A101 preserves the sunny landing's visual cue.
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(.23, .17, .43, 14), trim);
-  pot.position.set(2.4, .215, .6); pot.castShadow = true; scene.add(pot);
+  pot.position.set(1.45, .215, .6); pot.castShadow = true; scene.add(pot);
   const leafMaterial = new THREE.MeshStandardMaterial({ color: '#63834d', roughness: .9 });
   const stem = new THREE.Mesh(new THREE.CylinderGeometry(.013, .018, .72, 8), dark);
-  stem.position.set(2.4, .77, .6); scene.add(stem);
+  stem.position.set(1.45, .77, .6); scene.add(stem);
   for (let i = 0; i < 9; i++) {
     const leaf = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 6), leafMaterial);
     const angle = i * 2.4;
-    leaf.position.set(2.4 + Math.cos(angle) * .19, .5 + i * .065, .6 + Math.sin(angle) * .19);
+    leaf.position.set(1.45 + Math.cos(angle) * .19, .5 + i * .065, .6 + Math.sin(angle) * .19);
     leaf.scale.set(.22, .035, .09); leaf.rotation.y = -angle; scene.add(leaf);
-    const start = new THREE.Vector3(2.4, leaf.position.y - .035, .6);
+    const start = new THREE.Vector3(1.45, leaf.position.y - .035, .6);
     const end = leaf.position.clone();
     const branch = new THREE.Mesh(new THREE.CylinderGeometry(.007, .007, start.distanceTo(end), 6), leafMaterial);
     branch.position.copy(start).add(end).multiplyScalar(.5);
     branch.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), end.sub(start).normalize());
     scene.add(branch);
   }
-  obstacles.push({ minX: 2.13, maxX: 2.67, minZ: .33, maxZ: .87, minY: 0, maxY: 1.15 });
+  obstacles.push({ minX: 1.18, maxX: 1.72, minZ: .33, maxZ: .87, minY: 0, maxY: 1.15 });
   const entry = rooms.find(room => room.number === config.entryRoom) || rooms[0];
   if (!entry) throw new Error('No accessible walkthrough room');
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
   return {
     rooms, obstacles, cameraObstacles, spawn: entry.spawn,
-    bounds: { minX: -5.5, maxX: 5.5, minZ: -6.4, maxZ: 3.35 },
+    bounds: { minX: -9.1, maxX: 1.9, minZ: -6.4, maxZ: 3.35 },
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),
     groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : 0,

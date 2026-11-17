@@ -7,8 +7,11 @@ import { mkdir } from 'node:fs/promises';
 const origin = process.env.WALKTHROUGH_TEST_ORIGIN || 'http://127.0.0.1:8003';
 const roomIds = {
   A101: 'a1010000-0000-4000-8000-000000000001',
+  A102: 'a1020000-0000-4000-8000-000000000002',
   A103: 'a1030000-0000-4000-8000-000000000003',
 };
+const a103Offset = -7.2;
+const a103X = localX => a103Offset + localX;
 const output = 'test-results/a103-walkthrough';
 const browser = await chromium.launch({
   channel: 'msedge', headless: true, args: ['--enable-unsafe-swiftshader'],
@@ -60,8 +63,21 @@ async function openRoom(number) {
   }
   await expect(page.locator('#room-tour')).toHaveAttribute('data-ready', 'true', { timeout: 45000 });
   await expect(page.locator('#tour-fallback')).toBeHidden();
+  await page.keyboard.press('v');
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'third-person');
   await page.locator('#tour-start').click();
   await expect(page.locator('#map-player')).toHaveAttribute('data-room', number);
+}
+
+async function switchView(mode, keyboard = false) {
+  const before = await position();
+  if (keyboard) await page.keyboard.press('v');
+  else await page.locator('#tour-view').click();
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', mode);
+  const firstPerson = mode === 'first-person';
+  await expect(page.locator('#tour-view')).toHaveAttribute('aria-pressed', String(firstPerson));
+  await expect(page.locator('#tour-view')).toContainText(firstPerson ? 'Góc nhìn thứ ba' : 'Góc nhìn thứ nhất');
+  expect(await position()).toEqual(before);
 }
 
 async function jumpAndLand({ floor, ceiling }) {
@@ -75,7 +91,7 @@ async function jumpAndLand({ floor, ceiling }) {
   });
   try {
     await page.keyboard.down('Space');
-    await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'true', { timeout: 10000 });
+    await expect.poll(() => page.evaluate(() => Math.max(...window.a103JumpSamples)), { timeout: 10000, intervals: [30] }).toBeGreaterThan(floor + .15);
     await page.keyboard.down('Space'); // Repeated keydown must not create a second jump.
     await expect(page.locator('#map-player')).toHaveAttribute('data-airborne', 'false', { timeout: 15000 });
     await holdFrames('Space', 5);
@@ -94,9 +110,11 @@ async function jumpAndLand({ floor, ceiling }) {
 try {
   await openRoom('A103');
   await expect(page.locator('#tour-room-name')).toHaveText('Phòng A103');
-  expect((await position()).x).toBeCloseTo(4.15, 3);
+  expect((await position()).x).toBeCloseTo(a103X(.55), 3);
   expect((await position()).z).toBeCloseTo(2.4, 3);
   await page.screenshot({ path: `${output}/a103-entry.png` });
+  await switchView('first-person');
+  await page.screenshot({ path: `${output}/a103-first-person-entry.png` });
   await page.locator('#tour-media').click();
   const gallery = page.locator('[data-room-media="A103"]');
   await expect(gallery).toBeVisible();
@@ -104,7 +122,13 @@ try {
   await expect(gallery.locator('video')).toHaveCount(1);
   await expect(page.locator('[data-room-media="A101"]')).toBeHidden();
   await expect.poll(() => gallery.locator('img').evaluateAll(images => images.every(image => image.complete && image.naturalWidth > 0)), { timeout: 15000 }).toBe(true);
+  const pausedAtGallery = await position();
+  await page.keyboard.press('v');
+  await holdFrames('w', 5);
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'first-person');
+  expect(await position()).toEqual(pausedAtGallery);
   await page.locator('#tour-media-dialog [data-close-dialog]').click();
+  await expect(page.locator('#tour-canvas')).toBeFocused();
   await jumpAndLand({ floor: 0, ceiling: 4.1 });
   await moveUntil('w', state => state.z < -.48);
   await expect(page.locator('#tour-position')).toHaveText('Bên trong phòng A103');
@@ -116,28 +140,31 @@ try {
   await page.screenshot({ path: `${output}/a103-overview.png` });
   // Approach the actual stair foot from the doorway, passing the wardrobe.
   // Go around the open door leaf first, then back toward the stair foot.
-  await moveUntil('a', state => state.x < 3.2);
+  await moveUntil('a', state => state.x < a103X(-.4));
   await moveUntil('s', state => state.z > -.5);
-  await moveUntil('a', state => state.x < 2.42);
+  await moveUntil('a', state => state.x < a103X(-1.18));
   await moveUntil('w', state => state.level === 'loft', 60000);
   expect((await position()).y).toBeCloseTo(2.36, 2);
   await expect(page.locator('#tour-position')).toHaveText('Gác lửng · Phòng A103');
   await moveUntil('w', state => state.z < -3.3);
-  await moveUntil('d', state => state.x > 3.7);
+  await moveUntil('d', state => state.x > a103X(.1));
   await page.screenshot({ path: `${output}/a103-loft.png` });
+  await switchView('third-person', true);
+  await page.screenshot({ path: `${output}/a103-third-person-loft.png` });
+  await switchView('first-person', true);
   await jumpAndLand({ floor: 2.36, ceiling: 4.4 });
   await moveUntil('s', state => state.z > -3.12);
   await holdFrames('s');
   expect((await position()).z).toBeLessThanOrEqual(-3.0);
   expect((await position()).level).toBe('loft');
   expect((await position()).y).toBeCloseTo(2.36, 2);
-  await moveUntil('a', state => state.x < 2.42);
+  await moveUntil('a', state => state.x < a103X(-1.18));
   await moveUntil('s', state => state.level === 'ground', 60000);
   expect((await position()).y).toBe(0);
   expect((await position()).z).toBeGreaterThanOrEqual(-.50);
-  await moveUntil('d', state => state.x > 3.14);
+  await moveUntil('d', state => state.x > a103X(-.46));
   await moveUntil('w', state => state.z < -1.45);
-  await moveUntil('d', state => state.x > 4.10);
+  await moveUntil('d', state => state.x > a103X(.50));
   await moveUntil('w', state => state.z < -3.4);
   expect((await position()).level).toBe('ground');
   expect((await position()).y).toBe(0);
@@ -145,28 +172,90 @@ try {
   // The photographed bathroom is accessible past the wardrobe, including the
   // wall-mounted heater and fittings; it must not be just a visible backdrop.
   await moveUntil('w', state => state.z < -4.55);
-  await moveUntil('a', state => state.x < 2.54);
+  await moveUntil('a', state => state.x < a103X(-1.06));
   await moveUntil('w', state => state.z < -5.42);
   expect((await position()).level).toBe('ground');
   expect((await position()).y).toBe(0);
   await page.screenshot({ path: `${output}/a103-bathroom.png` });
+  const beforeLook = await position();
+  const beforeDirection = await page.locator('#map-player').getAttribute('transform');
+  await page.mouse.move(640, 340);
+  await page.mouse.down();
+  await page.mouse.move(790, 385, { steps: 8 });
+  await page.mouse.up();
+  await expect(page.locator('#map-player')).not.toHaveAttribute('transform', beforeDirection);
+  expect(await position()).toEqual(beforeLook);
+  await page.screenshot({ path: `${output}/a103-first-person-look.png` });
   await page.keyboard.press('r');
-  await expect.poll(position).toMatchObject({ x: 4.15, y: 0, z: 2.4, room: 'A103', level: 'ground' });
+  await expect.poll(position).toMatchObject({ x: a103X(.55), y: 0, z: 2.4, room: 'A103', level: 'ground' });
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'first-person');
 
-  // The corridor links A101 and A103 without navigating to another page.
-  await openRoom('A101');
+  // A103 is immediately to the left of A102 in the same corridor. Walking to
+  // either doorway must not navigate or change the current camera mode.
+  await openRoom('A102');
+  await switchView('first-person');
   const sharedUrl = page.url();
-  await moveUntil('d', state => state.x > 4.10);
+  await moveUntil('a', state => state.x < a103X(.60));
   await moveUntil('w', state => state.z < -.65);
   await expect(page.locator('#tour-position')).toHaveText('Bên trong phòng A103');
   expect(page.url()).toBe(sharedUrl);
   await moveUntil('s', state => state.z > 1.5);
-  await moveUntil('a', state => state.x < .60);
+  await moveUntil('d', state => state.x > -3.10);
+  await moveUntil('w', state => state.z < -.65);
+  await expect(page.locator('#tour-position')).toHaveText('Bên trong phòng A102');
+  expect(page.url()).toBe(sharedUrl);
+  await moveUntil('s', state => state.z > 1.5);
+  await moveUntil('d', state => state.x > .50);
   await moveUntil('w', state => state.z < -.65);
   await expect(page.locator('#tour-position')).toHaveText('Bên trong phòng A101');
   expect(page.url()).toBe(sharedUrl);
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'first-person');
+  await switchView('third-person');
+  await page.locator('#tour-help').click();
+  const pausedAtHelp = await position();
+  await page.keyboard.press('v');
+  await holdFrames('w', 5);
+  await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'third-person');
+  expect(await position()).toEqual(pausedAtHelp);
+  await page.locator('#tour-help-dialog [data-close-dialog]').click();
+
+  for (const [orientation, viewport] of [
+    ['portrait', { width: 390, height: 844 }],
+    ['landscape', { width: 667, height: 320 }],
+  ]) {
+    const touchContext = await browser.newContext({ viewport, hasTouch: true, storageState: await context.storageState() });
+    try {
+      const mobile = await touchContext.newPage();
+      mobile.on('pageerror', error => errors.push(error.message));
+      await mobile.goto(`${origin}/phong/${roomIds.A103}/tham-quan/`);
+      await expect(mobile.locator('#tour-start')).toBeEnabled({ timeout: 45000 });
+      await mobile.locator('#tour-start').click();
+      const view = mobile.locator('#tour-view');
+      await expect(view).toBeVisible();
+      const box = await view.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.y).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(viewport.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(viewport.height);
+      // Wrapped portrait actions stay below the heading, not halfway down a
+      // stretched full-height flex header where they cover the room itself.
+      if (orientation === 'portrait') expect(box.y + box.height).toBeLessThan(180);
+      expect(await view.evaluate(button => {
+        const rect = button.getBoundingClientRect();
+        return button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2));
+      })).toBe(true);
+      await view.click();
+      await expect(mobile.locator('#room-tour')).toHaveAttribute('data-view-mode', 'first-person');
+      expect(await mobile.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+      await mobile.screenshot({ path: `${output}/a103-first-person-mobile-${orientation}.png` });
+      await view.click();
+      await expect(mobile.locator('#room-tour')).toHaveAttribute('data-view-mode', 'third-person');
+    } finally {
+      await touchContext.close();
+    }
+  }
   expect(errors).toEqual([]);
-  console.log('A103 direct entry, image/video gallery, Space, WASD, stair approach/ascent/descent, loft headroom/rail, ground separation, bathroom entry, reset, and A101/A103 corridor round trip passed.');
+  console.log('A103 moved next to A102: direct entry, gallery, first/third-person button and V, Space, WASD, stairs, loft headroom/rail, bathroom, camera drag, reset, dialog pause, A103/A102/A101 corridor traversal and mobile view controls passed.');
 } catch (error) {
   await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
   console.error('A103 position at failure:', await position().catch(() => null), 'page errors:', errors);

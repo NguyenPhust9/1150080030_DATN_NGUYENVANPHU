@@ -1,5 +1,5 @@
 /* A103: reconstructed from its two room photos and the supplied 10-second tour. */
-export function buildA103World(THREE, scene, { offsetX = 3.6 } = {}) {
+export function buildA103World(THREE, scene, { offsetX = -7.2 } = {}) {
     const group = new THREE.Group();
     group.name = 'a103-room-world';
     group.position.x = offsetX;
