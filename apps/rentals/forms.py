@@ -114,6 +114,13 @@ class RoomForm(StyledModelForm):
 
 
 class TenantForm(StyledModelForm):
+    identity_front = forms.FileField(label="Mặt trước CCCD", required=False,
+                                    widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}))
+    identity_back = forms.FileField(label="Mặt sau CCCD", required=False,
+                                   widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}))
+    remove_identity_front = forms.BooleanField(label="Xóa ảnh mặt trước", required=False)
+    remove_identity_back = forms.BooleanField(label="Xóa ảnh mặt sau", required=False)
+
     class Meta:
         model = Tenant
         fields = (
@@ -125,23 +132,54 @@ class TenantForm(StyledModelForm):
             "identity_number",
             "identity_issued_date",
             "permanent_address",
+            "occupation",
             "emergency_contact",
             "user",
             "is_active",
         )
         widgets = {
-            "date_of_birth": forms.DateInput(attrs={"type": "date"}),
-            "identity_issued_date": forms.DateInput(attrs={"type": "date"}),
+            "date_of_birth": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+            "identity_issued_date": forms.DateInput(format="%Y-%m-%d", attrs={"type": "date"}),
+            "permanent_address": forms.TextInput(attrs={"placeholder": "Nhập quê quán"}),
         }
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, user=user, **kwargs)
+        self.fields["permanent_address"].label = "Quê quán / địa chỉ thường trú"
+        for name, placeholder in {"full_name": "Nhập họ tên", "phone": "Nhập số điện thoại",
+                                  "email": "Nhập email", "identity_number": "Nhập CCCD",
+                                  "occupation": "Nhập nghề nghiệp"}.items():
+            self.fields[name].widget.attrs["placeholder"] = placeholder
         self.fields["user"].required = False
         self.fields["user"].label = "Tài khoản khách thuê liên kết"
         linked_filter = Q(tenant_profile__isnull=True)
         if self.instance and self.instance.pk and self.instance.user_id:
             linked_filter |= Q(pk=self.instance.user_id)
         self.fields["user"].queryset = User.objects.filter(role="tenant").filter(linked_filter)
+
+    def clean_identity_number(self):
+        return self.cleaned_data.get("identity_number") or None
+
+    def clean(self):
+        cleaned = super().clean()
+        from .chat_media import prepare_chat_images
+
+        self.prepared_identity_images = {}
+        for side in ("front", "back"):
+            field = f"identity_{side}"
+            image = cleaned.get(field)
+            if image:
+                if cleaned.get(f"remove_identity_{side}"):
+                    self.add_error(field, "Chọn tải ảnh mới hoặc xóa ảnh cũ, không chọn cả hai.")
+                    continue
+                if image.size > 5 * 1024 * 1024:
+                    self.add_error(field, "Mỗi ảnh CCCD tối đa 5 MB.")
+                    continue
+                try:
+                    self.prepared_identity_images[side] = prepare_chat_images([image])[0]
+                except forms.ValidationError as exc:
+                    self.add_error(field, exc)
+        return cleaned
 
     def save(self, commit=True):
         obj = super().save(commit=False)

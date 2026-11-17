@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import indoor_map, price_views, views
+from . import indoor_map, price_views, tenant_views, views
 
 urlpatterns = [
     path("", views.public_home, name="public-home"),
@@ -21,9 +21,10 @@ urlpatterns = [
     path("ban-do-trong-nha/<uuid:map_id>/", indoor_map.indoor_map, name="indoor-map"),
     path("ban-do-trong-nha/<uuid:map_id>/vung/<uuid:zone_id>/mo-phong/", indoor_map.toggle_hazard_simulation, name="indoor-map-toggle-hazard"),
     path("khach-thue/", views.object_list, {"resource": "tenants"}, name="tenants"),
-    path("khach-thue/them/", views.object_create, {"resource": "tenants"}, name="tenant-create"),
+    path("khach-thue/them/", tenant_views.tenant_form, name="tenant-create"),
     path("khach-thue/<uuid:tenant_id>/", views.tenant_detail, name="tenant-detail"),
-    path("khach-thue/<uuid:object_id>/sua/", views.object_update, {"resource": "tenants"}, name="tenant-update"),
+    path("khach-thue/<uuid:object_id>/sua/", tenant_views.tenant_form, name="tenant-update"),
+    path("khach-thue/<uuid:tenant_id>/cccd/<str:side>/", tenant_views.tenant_identity_image, name="tenant-identity-image"),
     path("khach-thue/<uuid:tenant_id>/trang-thai/", views.tenant_toggle_active, name="tenant-toggle-active"),
     path("khach-thue/<uuid:tenant_id>/lien-ket-tai-khoan/", views.tenant_link_user, name="tenant-link-user"),
     path("hop-dong/", views.object_list, {"resource": "contracts"}, name="contracts"),

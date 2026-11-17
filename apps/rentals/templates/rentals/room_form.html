@@ -1,5 +1,5 @@
 {% extends "base.html" %}{% load static %}
-{% block title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_subtitle %}Cập nhật thông tin và tải ảnh/video phòng lên Cloudinary{% endblock %}
+{% block title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_title %}{% if editing %}Sửa phòng {{ form.instance.number }}{% else %}Thêm phòng mới{% endif %}{% endblock %}{% block page_subtitle %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{% static 'css/room-form.css' %}">
 <section class="room-form-panel">

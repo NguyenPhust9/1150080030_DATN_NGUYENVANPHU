@@ -170,13 +170,14 @@ class Tenant(UUIDTimeStampedModel):
         verbose_name="chủ nhà quản lý",
     )
     full_name = models.CharField("họ và tên", max_length=150)
-    phone = models.CharField("số điện thoại", max_length=20, db_index=True)
+    phone = models.CharField("số điện thoại", max_length=20, db_index=True, blank=True)
     email = models.EmailField("email", blank=True)
     date_of_birth = models.DateField("ngày sinh", null=True, blank=True)
     gender = models.CharField("giới tính", max_length=10, choices=Gender.choices, blank=True)
-    identity_number = models.CharField("số CCCD/hộ chiếu", max_length=30, unique=True)
+    identity_number = models.CharField("số CCCD/hộ chiếu", max_length=30, unique=True, blank=True, null=True)
     identity_issued_date = models.DateField("ngày cấp", null=True, blank=True)
     permanent_address = models.TextField("địa chỉ thường trú", blank=True)
+    occupation = models.CharField("nghề nghiệp", max_length=150, blank=True)
     emergency_contact = models.CharField("liên hệ khẩn cấp", max_length=150, blank=True)
     is_active = models.BooleanField("đang hoạt động", default=True)
 
@@ -187,6 +188,20 @@ class Tenant(UUIDTimeStampedModel):
 
     def __str__(self):
         return self.full_name
+
+
+class TenantIdentityImage(UUIDTimeStampedModel):
+    class Side(models.TextChoices):
+        FRONT = "front", "Mặt trước CCCD"
+        BACK = "back", "Mặt sau CCCD"
+
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name="identity_images")
+    side = models.CharField(max_length=5, choices=Side.choices)
+    public_id = models.CharField(max_length=255)
+    format = models.CharField(max_length=10, default="jpg")
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=("tenant", "side"), name="unique_tenant_identity_side")]
 
 
 class Contract(UUIDTimeStampedModel):

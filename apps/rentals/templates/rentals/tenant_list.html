@@ -35,9 +35,9 @@
         <tr>
           <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
           <td><a href="{% url 'tenant-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.full_name }}</a></td>
-          <td>{{ x.phone }}</td>
+          <td>{{ x.phone|default:"—" }}</td>
           <td>{{ x.email|default:"—" }}</td>
-          <td>{{ x.identity_number }}</td>
+          <td>{{ x.identity_number|default:"—" }}</td>
           <td>{% if x.user %}<span class="badge">{{ x.user.username }}</span>{% else %}<span class="muted">Chưa liên kết</span>{% endif %}</td>
           <td>
             <span class="status-pill {% if x.is_active %}active{% else %}inactive{% endif %}">

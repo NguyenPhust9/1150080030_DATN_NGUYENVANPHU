@@ -1,0 +1,74 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}{% if editing %}Sửa khách thuê{% else %}Thêm khách thuê mới{% endif %}{% endblock %}
+{% block page_title %}Khách thuê{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/tenant-form.css' %}">{% endblock %}
+{% block content %}
+<div class="tenant-backdrop">
+  <section class="tenant-dialog" role="dialog" aria-modal="true" aria-labelledby="tenant-form-title">
+    <header class="tenant-dialog-heading">
+      <h2 id="tenant-form-title">{% if editing %}Sửa thông tin khách thuê{% else %}Thêm khách thuê mới{% endif %}</h2>
+      <a class="tenant-close" href="{% url 'tenants' %}" aria-label="Đóng">×</a>
+      <p>{% if editing %}Cập nhật hồ sơ và ảnh CCCD của khách thuê{% else %}Nhập thông tin khách thuê mới{% endif %}</p>
+    </header>
+    <form method="post" enctype="multipart/form-data" id="tenant-form">
+      {% csrf_token %}
+      <div class="tenant-tabs" role="tablist" aria-label="Hồ sơ khách thuê">
+        <button type="button" id="tenant-info-tab" role="tab" aria-controls="tenant-info" aria-selected="true" data-tenant-tab="tenant-info"><i data-lucide="info"></i>Thông tin</button>
+        <button type="button" id="tenant-images-tab" role="tab" aria-controls="tenant-images" aria-selected="false" tabindex="-1" data-tenant-tab="tenant-images"><i data-lucide="credit-card"></i>Ảnh CCCD</button>
+      </div>
+      {% if form.errors %}<div class="tenant-errors" role="alert">Chưa lưu được hồ sơ. Vui lòng kiểm tra các mục bên dưới.{{ form.non_field_errors }}{% if form.identity_front.errors or form.identity_back.errors %}<p>Kiểm tra tab Ảnh CCCD và chọn lại ảnh cần tải lên.</p>{% endif %}</div>{% endif %}
+      <div class="tenant-tab-panel" id="tenant-info" role="tabpanel" aria-labelledby="tenant-info-tab">
+        <div class="tenant-field-grid">
+          <label for="{{ form.full_name.id_for_label }}">Họ tên <span class="tenant-required">*</span>{{ form.full_name }}{{ form.full_name.errors }}</label>
+          <label for="{{ form.phone.id_for_label }}">Số điện thoại{{ form.phone }}{{ form.phone.errors }}</label>
+          <label for="{{ form.email.id_for_label }}">Email{{ form.email }}{{ form.email.errors }}</label>
+          <label for="{{ form.identity_number.id_for_label }}">CCCD{{ form.identity_number }}{{ form.identity_number.errors }}</label>
+          <label for="{{ form.date_of_birth.id_for_label }}">Ngày sinh{{ form.date_of_birth }}{{ form.date_of_birth.errors }}</label>
+          <label for="{{ form.gender.id_for_label }}">Giới tính{{ form.gender }}{{ form.gender.errors }}</label>
+          <label class="tenant-full" for="{{ form.permanent_address.id_for_label }}">Quê quán / địa chỉ thường trú{{ form.permanent_address }}{{ form.permanent_address.errors }}</label>
+          <label class="tenant-full" for="{{ form.occupation.id_for_label }}">Nghề nghiệp{{ form.occupation }}{{ form.occupation.errors }}</label>
+        </div>
+        <p class="tenant-hint">Chỉ họ tên là bắt buộc. Có thể bổ sung thông tin liên hệ và CCCD sau.</p>
+        <details class="tenant-extra" {% if form.user.errors or form.identity_issued_date.errors or form.emergency_contact.errors %}open{% endif %}>
+          <summary>Thông tin bổ sung và tài khoản</summary>
+          <div class="tenant-field-grid">
+            <label for="{{ form.identity_issued_date.id_for_label }}">Ngày cấp CCCD{{ form.identity_issued_date }}{{ form.identity_issued_date.errors }}</label>
+            <label for="{{ form.emergency_contact.id_for_label }}">Liên hệ khẩn cấp{{ form.emergency_contact }}{{ form.emergency_contact.errors }}</label>
+            <label class="tenant-full" for="{{ form.user.id_for_label }}">Tài khoản đăng nhập liên kết{{ form.user }}{{ form.user.errors }}</label>
+          </div>
+        </details>
+        <label class="tenant-active">{{ form.is_active }} Đang hoạt động</label>
+      </div>
+      <div class="tenant-tab-panel" id="tenant-images" role="tabpanel" aria-labelledby="tenant-images-tab">
+        <h3><i data-lucide="credit-card"></i>Ảnh CCCD</h3>
+        <div class="tenant-image-grid">
+          <div class="tenant-image-card" data-side="front" data-existing="{% if front_image %}true{% else %}false{% endif %}">
+            <div class="tenant-upload-heading"><strong>Mặt trước CCCD</strong><label class="tenant-upload-button" for="{{ form.identity_front.id_for_label }}"><i data-lucide="upload"></i>Upload</label></div>
+            {{ form.identity_front }}{{ form.identity_front.errors }}
+            <div class="tenant-image-preview">
+              <img {% if front_image %}src="{% url 'tenant-identity-image' tenant.id 'front' %}"{% else %}hidden{% endif %} alt="Ảnh CCCD mặt trước" referrerpolicy="no-referrer">
+              <span {% if front_image %}hidden{% endif %}><i data-lucide="image"></i>Chưa có ảnh CCCD mặt trước</span>
+            </div>
+            <button class="tenant-clear-selection" type="button" hidden>Bỏ ảnh vừa chọn</button>
+            {% if front_image %}<label class="tenant-remove">{{ form.remove_identity_front }} Xóa ảnh mặt trước đã lưu</label>{% endif %}
+          </div>
+          <div class="tenant-image-card" data-side="back" data-existing="{% if back_image %}true{% else %}false{% endif %}">
+            <div class="tenant-upload-heading"><strong>Mặt sau CCCD</strong><label class="tenant-upload-button" for="{{ form.identity_back.id_for_label }}"><i data-lucide="upload"></i>Upload</label></div>
+            {{ form.identity_back }}{{ form.identity_back.errors }}
+            <div class="tenant-image-preview">
+              <img {% if back_image %}src="{% url 'tenant-identity-image' tenant.id 'back' %}"{% else %}hidden{% endif %} alt="Ảnh CCCD mặt sau" referrerpolicy="no-referrer">
+              <span {% if back_image %}hidden{% endif %}><i data-lucide="image"></i>Chưa có ảnh CCCD mặt sau</span>
+            </div>
+            <button class="tenant-clear-selection" type="button" hidden>Bỏ ảnh vừa chọn</button>
+            {% if back_image %}<label class="tenant-remove">{{ form.remove_identity_back }} Xóa ảnh mặt sau đã lưu</label>{% endif %}
+          </div>
+        </div>
+        <p class="tenant-image-status" role="status">Ảnh CCCD không bắt buộc</p>
+        <p class="tenant-hint">JPG, PNG hoặc WebP · Tối đa 5 MB mỗi ảnh. Ảnh được lưu riêng tư và chỉ người quản lý có quyền mới xem được.</p>
+      </div>
+      <footer class="tenant-form-footer"><a class="tenant-cancel" href="{% url 'tenants' %}">Hủy</a><button class="tenant-submit" type="submit">{% if editing %}Lưu thay đổi{% else %}Thêm mới{% endif %}</button></footer>
+    </form>
+  </section>
+</div>
+<script src="{% static 'js/tenant-form.js' %}"></script>
+{% endblock %}

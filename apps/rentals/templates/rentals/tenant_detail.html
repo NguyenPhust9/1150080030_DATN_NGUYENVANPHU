@@ -24,11 +24,12 @@
     </div>
     <div class="detail-grid">
       <div><span>Họ và tên</span><strong>{{ tenant.full_name }}</strong></div>
-      <div><span>Số điện thoại</span><strong>{{ tenant.phone }}</strong></div>
+      <div><span>Số điện thoại</span><strong>{{ tenant.phone|default:"—" }}</strong></div>
       <div><span>Email</span><strong>{{ tenant.email|default:"—" }}</strong></div>
       <div><span>Ngày sinh</span><strong>{% if tenant.date_of_birth %}{{ tenant.date_of_birth|date:"d/m/Y" }}{% else %}—{% endif %}</strong></div>
       <div><span>Giới tính</span><strong>{{ tenant.get_gender_display|default:"—" }}</strong></div>
-      <div><span>CCCD/Hộ chiếu</span><strong>{{ tenant.identity_number }}</strong></div>
+      <div><span>CCCD/Hộ chiếu</span><strong>{{ tenant.identity_number|default:"—" }}</strong></div>
+      <div><span>Nghề nghiệp</span><strong>{{ tenant.occupation|default:"—" }}</strong></div>
       <div><span>Ngày cấp</span><strong>{% if tenant.identity_issued_date %}{{ tenant.identity_issued_date|date:"d/m/Y" }}{% else %}—{% endif %}</strong></div>
       <div><span>Liên hệ khẩn cấp</span><strong>{{ tenant.emergency_contact|default:"—" }}</strong></div>
       <div><span>Địa chỉ thường trú</span><strong>{{ tenant.permanent_address|default:"—" }}</strong></div>
@@ -67,6 +68,18 @@
     </table>
     {% endif %}
   </article>
+</section>
+
+<section class="panel" style="margin-bottom:20px;">
+  <div class="panel-heading"><h2>Ảnh CCCD</h2><a class="btn compact" href="{% url 'tenant-update' tenant.id %}">Cập nhật ảnh</a></div>
+  <div style="display:flex;flex-wrap:wrap;gap:20px;">
+    {% for image in tenant.identity_images.all %}
+    <figure style="margin:0;flex:1;min-width:200px;max-width:380px;">
+      <figcaption>{{ image.get_side_display }}</figcaption>
+      <a href="{% url 'tenant-identity-image' tenant.id image.side %}" target="_blank" rel="noopener noreferrer"><img src="{% url 'tenant-identity-image' tenant.id image.side %}" alt="{{ image.get_side_display }}" loading="lazy" referrerpolicy="no-referrer" style="width:100%;height:220px;object-fit:contain;border:1px solid #e5e7eb;border-radius:12px;margin-top:10px;"></a>
+    </figure>
+    {% empty %}<p class="muted">Chưa có ảnh CCCD. Có thể bổ sung sau.</p>{% endfor %}
+  </div>
 </section>
 
 <section class="panel" style="margin-bottom:20px;">

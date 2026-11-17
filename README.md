@@ -48,6 +48,25 @@ Mô hình Random Forest dùng giá niêm yết của ít nhất 8 phòng **khác
 
 Đây chỉ là giá tham khảo nội bộ: dữ liệu demo, giá tự niêm yết và thiếu vị trí GPS, khoảng cách đến trường, thời điểm giao dịch hoặc giá thuê thực tế đều có thể làm dự đoán sai. Để đánh giá giá thị trường, cần tập dữ liệu giao dịch độc lập, đủ lớn và có nguồn rõ ràng.
 
+## Hồ sơ và ảnh CCCD khách thuê
+
+Form thêm/sửa khách thuê có hai tab Thông tin và Ảnh CCCD. Chỉ họ tên bắt buộc;
+số điện thoại, email, số CCCD và ảnh mặt trước/mặt sau đều có thể bổ sung sau.
+Số CCCD có nhập vẫn phải duy nhất. Ảnh nhận JPG/PNG/WebP tối đa 5 MB mỗi mặt,
+được kiểm tra và mã hóa lại để loại metadata trước khi tải lên Cloudinary với
+`type=authenticated`. Chạy `python manage.py migrate` để cập nhật schema.
+
+Ảnh không có URL công khai trong hồ sơ. Endpoint xem ảnh kiểm tra quyền quản lý
+khách thuê rồi tạo URL ký có thời hạn ngắn. Thay/xóa ảnh trong form sẽ dọn ảnh
+cũ sau khi database lưu thành công; upload dở dang được dọn nếu lưu thất bại.
+Trên PostgreSQL, bảng metadata ảnh mới bật RLS; tài khoản database của Django
+cần quyền sở hữu bảng như cấu hình migration hiện tại.
+
+Kiểm thử backend dùng mock Cloudinary:
+`python manage.py test tests.test_tenant_identity --settings=config.test_indoor_settings --noinput`.
+Để kiểm tra giao diện với database tạm, chạy `tests/serve_indoor_preview.py`
+rồi `node tests/tenant_form_browser.mjs`.
+
 ## Lệnh kiểm tra
 
 ```bash
