@@ -22,6 +22,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 from .chat_presence import offline_presence, presence_for_users
 from .chat_media import prepare_chat_images, upload_chat_images, remove_chat_uploads, chat_image_url, ChatUploadError
@@ -721,13 +722,12 @@ def object_create(request, resource):
     return render(request, template, {"form": form, "title": f"Thêm {title.lower()}"})
 
 
+@never_cache
 @login_required
 @require_POST
 def cloudinary_upload_signature(request):
     _require_operator(request.user)
     cloudinary_url = os.getenv("CLOUDINARY_URL", "")
-    if not cloudinary_url:
-        return JsonResponse({"error": "Cloudinary chưa được cấu hình."}, status=503)
     parsed = urlparse(cloudinary_url)
     cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME") or parsed.hostname
     api_key = os.getenv("CLOUDINARY_API_KEY") or unquote(parsed.username or "")
