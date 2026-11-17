@@ -5,6 +5,15 @@
   const find = id => root.querySelector('#' + id);
   const video = find('browser-camera'), overlay = find('detection-overlay');
   const start = find('start-camera'), stop = find('stop-camera');
+  const switchCamera = find('switch-camera');
+  // Desktop touchscreens must still use the explicitly named webcam.
+  const mobileCamera = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let facingMode = 'environment';
+  if (mobileCamera) {
+    find('camera-device').textContent = 'Camera sau';
+    switchCamera.hidden = false;
+  }
   const probe = document.createElement('canvas'); probe.width = 32; probe.height = 24;
   const probeContext = probe.getContext('2d', { willReadFrequently: true });
   const csrf = root.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -29,6 +38,7 @@
     find('camera-placeholder-text').textContent = message || 'Bấm “Bắt đầu giám sát” và cho phép sử dụng camera.';
     start.disabled = starting || running;
     stop.disabled = !starting && !running;
+    switchCamera.disabled = starting || !running;
     root.setAttribute('aria-busy', String(starting));
     if (value !== 'alert' && value !== 'recent_alert') wasAlert = false;
   }
@@ -59,11 +69,15 @@
     const deadline = Date.now() + 8000;
     while (version === generation && !disposed && Date.now() < deadline) {
       const track = stream?.getVideoTracks()[0];
-      if (!track || track.readyState !== 'live') throw new Error('Camera HD User Facing đã ngắt kết nối. Hãy kiểm tra webcam và bật giám sát lại.');
+      if (!track || track.readyState !== 'live') throw new Error(mobileCamera
+        ? 'Camera điện thoại đã ngắt kết nối. Hãy bật giám sát lại.'
+        : 'Camera HD User Facing đã ngắt kết nối. Hãy kiểm tra webcam và bật giám sát lại.');
       if (!track.muted && video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return;
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    throw new Error('Camera HD User Facing chưa trả về hình ảnh. Hãy đóng ứng dụng khác đang dùng camera rồi bật giám sát lại.');
+    throw new Error(mobileCamera
+      ? 'Camera điện thoại chưa trả về hình ảnh. Hãy đóng ứng dụng khác đang dùng camera rồi bật giám sát lại.'
+      : 'Camera HD User Facing chưa trả về hình ảnh. Hãy đóng ứng dụng khác đang dùng camera rồi bật giám sát lại.');
   }
   function beep() {
     try {
@@ -154,7 +168,9 @@
         find('detection-count').textContent = '—'; find('fps-label').textContent = '—';
         find('frame-freshness').textContent = 'Chưa có hình ảnh hợp lệ';
         if (blackFrames >= 3) {
-          const text = 'Camera HD User Facing đang gửi hình đen. Hãy kiểm tra nắp che, ánh sáng và đóng ứng dụng Camera Windows.';
+          const text = mobileCamera
+            ? 'Camera điện thoại đang gửi hình đen. Hãy kiểm tra ống kính và ánh sáng.'
+            : 'Camera HD User Facing đang gửi hình đen. Hãy kiểm tra nắp che, ánh sáng và đóng ứng dụng Camera Windows.';
           state('camera_issue', text); message(text);
         } else state('starting', 'Đang chờ hình ảnh từ camera…');
         timer = setTimeout(() => frame(version), 750);
@@ -203,37 +219,48 @@
     if (oldId) return request(root.dataset.stopUrl, { body: body({ run_id: oldId }) }).catch(() => {});
     return Promise.resolve();
   }
-  async function startCamera() {
+  async function startCamera(exactFacing = false) {
     if (starting || running || disposed) return;
     starting = true; const version = ++generation; state('starting'); message();
     let acquired = null;
     try {
       if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) throw new Error('Cần trình duyệt hỗ trợ camera và địa chỉ HTTPS hoặc localhost.');
-      const devices = await refreshCameras(version);
-      if (version !== generation || disposed) return;
-      let preferred = preferredCamera(devices);
-      const missingCamera = 'Không tìm thấy camera HD User Facing. Hãy kiểm tra webcam trong Windows và cấp quyền camera cho trình duyệt.';
-      if (!preferred) {
-        // Request permission only when device names are still hidden. This
-        // temporary stream is never previewed or sent for fire detection.
-        if (devices.some(device => device.label)) throw new Error(missingCamera);
-        acquired = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
-        stream = acquired;
-        const available = await refreshCameras(version);
-        if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
-        preferred = preferredCamera(available);
-        acquired.getTracks().forEach(track => track.stop()); stream = null;
-        if (!preferred) throw new Error(missingCamera);
+      if (mobileCamera) {
+        acquired = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: exactFacing ? { exact: facingMode } : { ideal: facingMode } }, audio: false,
+        });
+      } else {
+        const devices = await refreshCameras(version);
+        if (version !== generation || disposed) return;
+        let preferred = preferredCamera(devices);
+        const missingCamera = 'Không tìm thấy camera HD User Facing. Hãy kiểm tra webcam trong Windows và cấp quyền camera cho trình duyệt.';
+        if (!preferred) {
+          // Request permission only when device names are still hidden. This
+          // temporary stream is never previewed or sent for fire detection.
+          if (devices.some(device => device.label)) throw new Error(missingCamera);
+          acquired = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
+          stream = acquired;
+          const available = await refreshCameras(version);
+          if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
+          preferred = preferredCamera(available);
+          acquired.getTracks().forEach(track => track.stop()); stream = null;
+          if (!preferred) throw new Error(missingCamera);
+        }
+        acquired = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: preferred.deviceId } }, audio: false });
       }
-      acquired = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: preferred.deviceId } }, audio: false });
       if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
       stream = acquired;
       video.muted = true; video.srcObject = stream; await video.play(); video.classList.add('active');
       await waitForVideoFrame(version);
       if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
       const track = stream.getVideoTracks()[0];
-      find('camera-source').textContent = (track.label || 'HD User Facing') + ' · ' + video.videoWidth + '×' + video.videoHeight;
+      if (mobileCamera) {
+        const actualFacing = track.getSettings?.().facingMode;
+        if (actualFacing === 'user' || actualFacing === 'environment') facingMode = actualFacing;
+        find('camera-device').textContent = facingMode === 'user' ? 'Camera trước' : 'Camera sau';
+      }
+      find('camera-source').textContent = (track.label || (mobileCamera ? 'Camera điện thoại' : 'HD User Facing')) + ' · ' + video.videoWidth + '×' + video.videoHeight;
       const data = await request(root.dataset.startUrl, { body: new FormData() });
       if (version !== generation || disposed) { acquired.getTracks().forEach(track => track.stop()); return; }
       runId = data.run_id; sequence = 0; failures = 0; blackFrames = 0; starting = false; running = true; lastResult = 0;
@@ -244,13 +271,22 @@
       if (version !== generation || disposed) return;
       stopCamera();
       const text = error.name === 'NotAllowedError' ? 'Bạn chưa cho phép camera. Hãy cấp quyền camera cho website trong trình duyệt.'
-        : error.name === 'NotFoundError' ? 'Không tìm thấy camera HD User Facing trên thiết bị.'
+        : error.name === 'NotFoundError' ? (mobileCamera ? 'Không tìm thấy camera điện thoại đã chọn.' : 'Không tìm thấy camera HD User Facing trên thiết bị.')
         : error.name === 'NotReadableError' ? 'Không mở được camera. Hãy đóng ứng dụng khác đang sử dụng camera.'
-        : error.name === 'OverconstrainedError' ? 'Camera HD User Facing không còn khả dụng. Hãy kiểm tra webcam và bật giám sát lại.' : error.message;
+        : error.name === 'OverconstrainedError' ? (mobileCamera ? 'Thiết bị không có camera trước/sau đã chọn. Hãy bấm Bắt đầu giám sát để mở camera khả dụng.' : 'Camera HD User Facing không còn khả dụng. Hãy kiểm tra webcam và bật giám sát lại.') : error.message;
       state('error', text); message(text);
     }
   }
-  start.addEventListener('click', startCamera); stop.addEventListener('click', () => { stopCamera(); message(); });
+  start.addEventListener('click', () => { void startCamera(); }); stop.addEventListener('click', () => { stopCamera(); message(); });
+  switchCamera.addEventListener('click', async () => {
+    if (!mobileCamera || !running || starting || disposed) return;
+    const previousFacing = facingMode;
+    const stopped = stopCamera(), version = generation;
+    facingMode = previousFacing === 'environment' ? 'user' : 'environment';
+    await stopped;
+    if (version !== generation || disposed) return;
+    await startCamera(true);
+  });
   const freshness = setInterval(() => {
     if (!running || !lastResult) return;
     const age = (Date.now() - lastResult) / 1000;

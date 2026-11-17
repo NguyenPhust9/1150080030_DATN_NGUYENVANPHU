@@ -11,6 +11,7 @@
 .fire-actions { display: flex; gap: 10px; }
 .fire-actions .button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .fire-actions .button:disabled { opacity: .5; cursor: not-allowed; }
+.fire-actions [hidden] { display: none; }
 .fire-grid { display: grid; grid-template-columns: minmax(0,2.2fr) minmax(290px,.8fr); gap: 18px; align-items: start; }
 .camera-card { overflow: hidden; min-width: 0; }
 .camera-screen { position: relative; aspect-ratio: 16/9; background: #0b1220; display: grid; place-items: center; }

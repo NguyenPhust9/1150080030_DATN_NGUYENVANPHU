@@ -89,6 +89,8 @@ await context.route('**/camera/canh-bao/*/gui/', async route => {
 async function verifyHDOnly({ hidden = false, preferred = true, cancel = false }) {
   const fixture = await browser.newContext({ permissions: ['camera'] });
   await fixture.addInitScript(({ hidden, preferred, cancel }) => {
+    // A touch-enabled Windows laptop must keep the desktop HD-only rule.
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 5 });
     let permitted = !hidden;
     window.cameraConstraints = []; window.cameraTracks = [];
     const cameras = [
@@ -127,6 +129,7 @@ async function verifyHDOnly({ hidden = false, preferred = true, cancel = false }
   try {
     await cameraPage.goto(origin);
     await expect(cameraPage.locator('#camera-device')).toHaveText('HD User Facing');
+    await expect(cameraPage.locator('#switch-camera')).toBeHidden();
     await expect(cameraPage.locator('select#camera-device, #camera-device option')).toHaveCount(0);
     await expect(cameraPage.locator('.fire-monitor')).not.toContainText(/EShare|OBS/);
     expect(await cameraPage.evaluate(() => window.cameraConstraints)).toEqual([]);
@@ -159,6 +162,88 @@ async function verifyHDOnly({ hidden = false, preferred = true, cancel = false }
     await expect(cameraPage.locator('#camera-source')).toContainText('HD User Facing');
     await cameraPage.locator('#stop-camera').click();
     await expect.poll(() => cameraPage.evaluate(() => window.cameraTracks.every(track => track.readyState === 'ended'))).toBe(true);
+  } finally {
+    await fixture.close();
+  }
+}
+async function verifyMobileCamera(profile) {
+  const fixture = await browser.newContext({ permissions: ['camera'], userAgent: profile.userAgent, viewport: { width: 390, height: 844 } });
+  await fixture.addInitScript(({ platform }) => {
+    Object.defineProperty(navigator, 'platform', { value: platform });
+    Object.defineProperty(navigator, 'maxTouchPoints', { value: 5 });
+    window.mobileRequests = []; window.mobileTracks = [];
+    window.rejectCamera = false; window.holdCamera = false;
+    navigator.mediaDevices.enumerateDevices = async () => { throw new Error('Mobile should select by facingMode'); };
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = async constraints => {
+      window.mobileRequests.push(constraints);
+      if (window.rejectCamera) throw new DOMException('Missing facing mode', 'OverconstrainedError');
+      if (window.holdCamera) await new Promise(resolve => { window.releaseMobileCamera = resolve; });
+      if (window.mobileTracks.some(track => track.readyState === 'live')) throw new Error('Previous camera was not stopped');
+      const stream = await original({ video: true, audio: false });
+      const track = stream.getVideoTracks()[0];
+      const facing = constraints.video.facingMode.exact || constraints.video.facingMode.ideal;
+      Object.defineProperty(track, 'label', { value: facing === 'user' ? 'Front camera' : 'Back camera' });
+      track.getSettings = () => ({ facingMode: facing });
+      window.mobileTracks.push(track);
+      return stream;
+    };
+  }, profile);
+  let frameCount = 0, starts = 0;
+  await fixture.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === '/api/config') return route.fulfill({ json: { model_source: 'fixture', image_size: 512, fire_confidence: .25, smoke_confidence: .55, confirm_frames: 2, confirmation_window: 5, events: [] } });
+    if (path === '/api/start') { starts++; return route.fulfill({ json: { run_id: 'mobile-' + starts } }); }
+    if (path === '/api/stop') return route.fulfill({ json: { ok: true } });
+    if (path === '/api/frame') {
+      frameCount++;
+      return route.fulfill({ json: { state: 'monitoring', detections: [], width: 640, height: 480, inference_ms: 10 } });
+    }
+    throw new Error('Unexpected mobile route: ' + path);
+  });
+  const cameraPage = await fixture.newPage();
+  const mobileErrors = [];
+  cameraPage.on('pageerror', error => mobileErrors.push(error.message));
+  try {
+    await cameraPage.goto(origin);
+    await expect(cameraPage.locator('#camera-device')).toHaveText('Camera sau');
+    await expect(cameraPage.locator('#switch-camera')).toBeVisible();
+    await expect(cameraPage.locator('#switch-camera')).toBeDisabled();
+    expect(await cameraPage.evaluate(() => window.mobileRequests)).toEqual([]);
+    await cameraPage.locator('#start-camera').click();
+    await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'monitoring');
+    expect(await cameraPage.evaluate(() => window.mobileRequests[0])).toEqual({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+    await expect(cameraPage.locator('#camera-source')).toContainText('Back camera');
+    await cameraPage.locator('#switch-camera').click();
+    await expect(cameraPage.locator('#camera-device')).toHaveText('Camera trước');
+    await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'monitoring');
+    expect(await cameraPage.evaluate(() => window.mobileRequests.at(-1).video)).toEqual({ facingMode: { exact: 'user' } });
+    expect(await cameraPage.evaluate(() => window.mobileTracks[0].readyState)).toBe('ended');
+    await expect(cameraPage.locator('#camera-source')).toContainText('Front camera');
+    await cameraPage.locator('#switch-camera').click();
+    await expect(cameraPage.locator('#camera-device')).toHaveText('Camera sau');
+    await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'monitoring');
+    expect(await cameraPage.evaluate(() => window.mobileRequests.at(-1).video)).toEqual({ facingMode: { exact: 'environment' } });
+    expect(starts).toBe(3);
+    // A phone without the requested alternate camera must report the failure.
+    await cameraPage.evaluate(() => { window.rejectCamera = true; });
+    await cameraPage.locator('#switch-camera').click();
+    await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'error');
+    await expect(cameraPage.locator('#monitor-message')).toContainText('Thiết bị không có camera trước/sau đã chọn');
+    expect(starts).toBe(3);
+    expect(await cameraPage.evaluate(() => window.mobileTracks.every(track => track.readyState === 'ended'))).toBe(true);
+    // Stop during camera acquisition must prevent AI start and release the late stream.
+    await cameraPage.evaluate(() => { window.rejectCamera = false; window.holdCamera = true; });
+    await cameraPage.locator('#start-camera').click();
+    await expect.poll(() => cameraPage.evaluate(() => Boolean(window.releaseMobileCamera))).toBe(true);
+    await cameraPage.locator('#stop-camera').click();
+    const before = frameCount;
+    await cameraPage.evaluate(() => window.releaseMobileCamera());
+    await expect.poll(() => cameraPage.evaluate(() => window.mobileTracks.length)).toBe(4);
+    await expect.poll(() => cameraPage.evaluate(() => window.mobileTracks.every(track => track.readyState === 'ended'))).toBe(true);
+    expect(starts).toBe(3); expect(frameCount).toBe(before);
+    await expect(cameraPage.locator('.fire-monitor')).toHaveAttribute('data-state', 'stopped');
+    expect(mobileErrors).toEqual([]);
   } finally {
     await fixture.close();
   }
@@ -235,6 +320,10 @@ try {
   await verifyHDOnly({ preferred: false });
   await verifyHDOnly({ hidden: true, preferred: false });
   await verifyHDOnly({ hidden: true, cancel: true });
+  await verifyMobileCamera({ userAgent: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/130.0.0.0 Mobile Safari/537.36', platform: 'Linux armv8l' });
+  await verifyMobileCamera({ userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1', platform: 'iPhone' });
+  await verifyMobileCamera({ userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15) AppleWebKit/605.1.15 Version/18.0 Safari/605.1.15', platform: 'MacIntel' });
+  console.log('PASS: Android/iPhone/iPad rear camera preference, front/back switching, release before reopen, unsupported camera and startup cancellation; touch desktop remains HD-only');
   console.log('PASS: HD User Facing only, hidden-name permission bootstrap and cleanup, missing-HD errors before/after permission, startup cancellation, recent-alert display, capture-to-response age, prompt serial sampling after delayed response, black-stream rejection, webhook independence, cleanup and permission denial');
 } finally {
   releaseFrame?.(); releaseDelivery?.();
