@@ -1,27 +1,44 @@
 {% extends "base.html" %}
+{% load static %}
 {% block page_title %}Hóa đơn{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/financial-lists.css' %}?v=1">{% endblock %}
 {% block content %}
-<div class="page-actions room-toolbar">
-  <form method="get" class="room-filters">
-    <input name="q" value="{{ q }}" placeholder="Tìm mã HĐơn, mã hợp đồng, khách thuê...">
-    <select name="building">
-      <option value="">Tất cả tòa nhà</option>
-      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
-    </select>
-    <select name="status">
-      <option value="">Tất cả trạng thái</option>
-      {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <button class="btn" type="submit">Lọc dữ liệu</button>
-    {% if q or selected_building or status %}<a class="btn" href="{% url 'invoices' %}">Xóa lọc</a>{% endif %}
-  </form>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;">
-    <a class="btn primary" href="{% url 'invoice-create' %}">+ Tạo hóa đơn</a>
+<div class="financial-heading">
+  <p>Theo dõi hóa đơn, công nợ và số tiền đã thu.</p>
+  <div class="financial-actions">
+    <a class="btn primary" href="{% url 'invoice-create' %}"><i data-lucide="plus" aria-hidden="true"></i>Tạo hóa đơn</a>
     <a class="btn" href="{% url 'invoice-bulk-create' %}">Lập hóa đơn hàng loạt</a>
   </div>
 </div>
+{% include 'includes/financial_metrics.html' with kind='invoices' %}
+<p class="financial-filter-note">Chỉ số tính trên toàn bộ kết quả theo bộ lọc. Chưa thanh toán gồm cả hóa đơn trả một phần; công nợ không tính hóa đơn nháp hoặc đã hủy.</p>
 <section class="panel">
   <div class="list-summary"><span>Danh sách hóa đơn</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
+  <form method="get" class="financial-filters" aria-label="Lọc hóa đơn">
+    <label class="financial-filter-field financial-filter-search">Tìm kiếm
+      <input name="q" value="{{ q }}" placeholder="Mã hóa đơn, hợp đồng, phòng, khách thuê...">
+    </label>
+    <label class="financial-filter-field">Tòa nhà<select name="building">
+      <option value="">Tất cả tòa nhà</option>
+      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+    </select></label>
+    <label class="financial-filter-field">Trạng thái<select name="status">
+      <option value="">Tất cả trạng thái</option>
+      {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <label class="financial-filter-field financial-filter-period">Năm hóa đơn<select name="year">
+      <option value="">Tất cả năm</option>
+      {% for year in year_choices %}<option value="{{ year }}" {% if selected_year == year|stringformat:'s' %}selected{% endif %}>{{ year }}</option>{% endfor %}
+    </select></label>
+    <label class="financial-filter-field financial-filter-period">Tháng hóa đơn<select name="month">
+      <option value="">Tất cả tháng</option>
+      {% for number, label in month_choices %}<option value="{{ number }}" {% if selected_month == number|stringformat:'s' %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <div class="financial-filter-actions">
+      <button class="btn" type="submit"><i data-lucide="list-filter" aria-hidden="true"></i>Lọc</button>
+      {% if q or selected_building or status or selected_year or selected_month %}<a class="btn" href="{% url 'invoices' %}">Xóa lọc</a>{% endif %}
+    </div>
+  </form>
   <div class="table-wrap">
     <table>
       <thead>
@@ -71,9 +88,9 @@
 </section>
 {% if page_obj.has_other_pages %}
 <nav class="pagination" aria-label="Phân trang hóa đơn">
-  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
-  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
-  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}&year={{ selected_year }}&month={{ selected_month }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}&year={{ selected_year }}&month={{ selected_month }}">{{ page_number }}</a>{% endif %}{% endfor %}
+  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}&year={{ selected_year }}&month={{ selected_month }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
 </nav>
 {% endif %}
 {% endblock %}

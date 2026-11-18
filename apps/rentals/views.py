@@ -26,6 +26,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_http_methods, require_POST
 from .chat_presence import offline_presence, presence_for_users
 from .chat_media import prepare_chat_images, upload_chat_images, remove_chat_uploads, chat_image_url, ChatUploadError
+from .list_metrics import building_filter_value, financial_period_filters, invoice_metrics, payment_metrics
 
 from .forms import (
     BuildingForm,
@@ -424,7 +425,8 @@ LIST_CONFIG = {
 def object_list(request, resource):
     _require_operator(request.user)
     _, template = LIST_CONFIG[resource]
-    queryset = get_accessible_queryset(request.user, resource)
+    accessible_queryset = get_accessible_queryset(request.user, resource)
+    queryset = accessible_queryset
     q = request.GET.get("q", "").strip()
     if q:
         search_map = {
@@ -433,8 +435,8 @@ def object_list(request, resource):
             "tenants": Q(full_name__icontains=q) | Q(phone__icontains=q) | Q(identity_number__icontains=q),
             "contracts": Q(code__icontains=q) | Q(representative__full_name__icontains=q),
             "services": Q(name__icontains=q),
-            "invoices": Q(code__icontains=q) | Q(contract__code__icontains=q) | Q(contract__representative__full_name__icontains=q),
-            "payments": Q(invoice__code__icontains=q) | Q(reference__icontains=q),
+            "invoices": Q(code__icontains=q) | Q(contract__code__icontains=q) | Q(contract__representative__full_name__icontains=q) | Q(contract__room__number__icontains=q),
+            "payments": Q(invoice__code__icontains=q) | Q(reference__icontains=q) | Q(invoice__contract__room__number__icontains=q) | Q(invoice__contract__representative__full_name__icontains=q),
             "meters": Q(room__number__icontains=q) | Q(room__building__name__icontains=q),
             "incidents": Q(title__icontains=q) | Q(room__number__icontains=q) | Q(reported_by__full_name__icontains=q),
             "notifications": Q(title__icontains=q) | Q(content__icontains=q) | Q(recipient__username__icontains=q),
@@ -539,7 +541,7 @@ def object_list(request, resource):
         })
     if resource == "invoices":
         status = request.GET.get("status", "").strip()
-        building_id = request.GET.get("building", "").strip()
+        building_id = building_filter_value(request.GET.get("building", "").strip())
         valid_statuses = {choice for choice, _ in Invoice.Status.choices}
         if status in valid_statuses:
             queryset = queryset.filter(status=status)
@@ -557,6 +559,7 @@ def object_list(request, resource):
     if resource == "payments":
         method = request.GET.get("method", "").strip()
         void_filter = request.GET.get("void", "").strip()
+        building_id = building_filter_value(request.GET.get("building", "").strip())
         valid_methods = {choice for choice, _ in Payment.Method.choices}
         if method in valid_methods:
             queryset = queryset.filter(method=method)
@@ -566,11 +569,17 @@ def object_list(request, resource):
             queryset = queryset.filter(is_void=False)
         elif void_filter == "void":
             queryset = queryset.filter(is_void=True)
+        else:
+            void_filter = ""
+        if building_id:
+            queryset = queryset.filter(invoice__contract__room__building_id=building_id)
         queryset = queryset.select_related("invoice__contract__room__building", "received_by")
         context.update({
             "method": method,
             "method_choices": Payment.Method.choices,
             "void_filter": void_filter,
+            "buildings": get_accessible_buildings(request.user).order_by("name"),
+            "selected_building": building_id,
         })
     if resource == "incidents":
         status = request.GET.get("status", "").strip()
@@ -612,6 +621,15 @@ def object_list(request, resource):
             "buildings": get_accessible_buildings(request.user).order_by("name"),
             "selected_building": building_id,
         })
+    if resource in {"invoices", "payments"}:
+        queryset, period_context = financial_period_filters(
+            queryset, accessible_queryset, request.GET,
+            "period" if resource == "invoices" else "paid_at",
+        )
+        context.update(period_context)
+        context["financial_metrics"] = (
+            invoice_metrics(queryset) if resource == "invoices" else payment_metrics(queryset)
+        )
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
     if resource == "buildings":

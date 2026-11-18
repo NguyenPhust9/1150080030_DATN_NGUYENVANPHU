@@ -1,0 +1,130 @@
+.management-app main.content .financial-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.management-app main.content .financial-heading p {
+  margin: 0;
+  color: var(--admin-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.management-app main.content .financial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.management-app main.content .financial-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 24px;
+}
+.management-app main.content .financial-metric {
+  --metric-color: #315fa5;
+  --metric-tint: #eef4fc;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+}
+.management-app main.content .financial-metric--red { --metric-color: #b94040; --metric-tint: #fff0f0; }
+.management-app main.content .financial-metric--amber { --metric-color: #98601a; --metric-tint: #fff5e7; }
+.management-app main.content .financial-metric--green { --metric-color: #287257; --metric-tint: #edf7f1; }
+.management-app main.content .financial-metric dt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  color: var(--metric-color);
+  font-size: 13px;
+  font-weight: 500;
+}
+.management-app main.content .financial-metric-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--metric-tint);
+}
+.management-app main.content .financial-metric-icon svg { width: 18px; height: 18px; stroke-width: 1.7; }
+.management-app main.content .financial-metric dd {
+  margin: 12px 0 0;
+  font-size: 30px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--admin-text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.management-app main.content .financial-metric dd.financial-metric-money { font-size: clamp(20px, 1.65vw, 27px); }
+.management-app main.content .financial-metric-money > span { font-size: .72em; font-weight: 500; }
+.management-app main.content .financial-metric dd small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--admin-muted);
+}
+.management-app main.content .financial-metric dd small b { font-weight: 500; }
+.management-app main.content .financial-filter-note {
+  margin: -12px 0 20px;
+  color: var(--admin-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.management-app main.content .financial-filters {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--admin-line);
+}
+.management-app main.content .financial-filter-field {
+  display: grid;
+  gap: 6px;
+  flex: 1 1 145px;
+  min-width: 0;
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+.management-app main.content .financial-filter-search { flex: 2 1 220px; }
+.management-app main.content .financial-filter-period { flex: 0 1 120px; }
+.management-app main.content .financial-filters :is(input, select) {
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+}
+.management-app main.content .financial-filter-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 1280px) {
+  .management-app main.content .financial-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-app main.content .financial-metric dd.financial-metric-money { font-size: 26px; }
+}
+@media (max-width: 600px) {
+  .management-app main.content .financial-heading { align-items: stretch; }
+  .management-app main.content .financial-metrics { gap: 12px; }
+  .management-app main.content .financial-metric { padding: 16px; }
+  .management-app main.content .financial-metric dd.financial-metric-money { font-size: 20px; }
+  .management-app main.content .financial-filter-search { flex-basis: 100%; }
+  .management-app main.content .financial-filter-period { flex: 1 1 100px; }
+  .management-app main.content .financial-filter-actions { width: 100%; }
+  .management-app main.content .financial-filter-actions .btn { flex: 1; }
+}
+@media (max-width: 420px) {
+  .management-app main.content .financial-metrics { grid-template-columns: minmax(0, 1fr); }
+  .management-app main.content .financial-metric dd.financial-metric-money { font-size: 26px; }
+}

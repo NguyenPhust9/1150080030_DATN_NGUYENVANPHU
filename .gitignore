@@ -17,6 +17,8 @@ node_modules/
 datasets/
 test-results/
 tmp/indoor-map-backups/
+tmp/contract-backups/
+tmp/financial-ui-check/
 runs/fire_detection/dfire_smallfire_*/
 runs/fire_detection/evaluations/
 tmp/fire-clip-*/

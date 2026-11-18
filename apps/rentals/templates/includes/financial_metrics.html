@@ -1,0 +1,39 @@
+{% if kind == 'invoices' %}
+<dl class="financial-metrics" aria-label="Chỉ số hóa đơn">
+  <div class="financial-metric financial-metric--blue">
+    <dt>Tổng hóa đơn<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="receipt-text"></i></span></dt>
+    <dd>{{ financial_metrics.total_count }}<small>{{ financial_metrics.paid_count }} hóa đơn đã thanh toán đủ</small></dd>
+  </div>
+  <div class="financial-metric financial-metric--red">
+    <dt>Chưa thanh toán<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="wallet"></i></span></dt>
+    <dd>{{ financial_metrics.unpaid_count }}<small>Còn nợ <b>{{ financial_metrics.unpaid_amount|vnd }} đ</b></small></dd>
+  </div>
+  <div class="financial-metric financial-metric--amber">
+    <dt>Quá hạn<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="clock-alert"></i></span></dt>
+    <dd>{{ financial_metrics.overdue_count }}<small>Còn nợ <b>{{ financial_metrics.overdue_amount|vnd }} đ</b></small></dd>
+  </div>
+  <div class="financial-metric financial-metric--green">
+    <dt>Đã thu<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="badge-check"></i></span></dt>
+    <dd class="financial-metric-money">{{ financial_metrics.collected_amount|vnd }} <span>đ</span><small>Tiền đã thu của các hóa đơn đang lọc</small></dd>
+  </div>
+</dl>
+{% else %}
+<dl class="financial-metrics" aria-label="Chỉ số thanh toán">
+  <div class="financial-metric financial-metric--blue">
+    <dt>Tổng giao dịch<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="arrow-left-right"></i></span></dt>
+    <dd>{{ financial_metrics.total_count }}<small>{{ financial_metrics.valid_count }} hợp lệ · {{ financial_metrics.void_count }} đã hủy</small></dd>
+  </div>
+  <div class="financial-metric financial-metric--green">
+    <dt>Thực thu<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="wallet-cards"></i></span></dt>
+    <dd class="financial-metric-money">{{ financial_metrics.collected_amount|vnd }} <span>đ</span><small>Phương thức khác: <b>{{ financial_metrics.other_amount|vnd }} đ</b></small></dd>
+  </div>
+  <div class="financial-metric financial-metric--amber">
+    <dt>Tiền mặt<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="banknote"></i></span></dt>
+    <dd class="financial-metric-money">{{ financial_metrics.cash_amount|vnd }} <span>đ</span><small>Tổng thu tiền mặt hợp lệ</small></dd>
+  </div>
+  <div class="financial-metric financial-metric--blue">
+    <dt>Chuyển khoản<span class="financial-metric-icon" aria-hidden="true"><i data-lucide="landmark"></i></span></dt>
+    <dd class="financial-metric-money">{{ financial_metrics.transfer_amount|vnd }} <span>đ</span><small>Tổng thu chuyển khoản hợp lệ</small></dd>
+  </div>
+</dl>
+{% endif %}
