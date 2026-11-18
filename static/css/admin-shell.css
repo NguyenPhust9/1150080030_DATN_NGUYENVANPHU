@@ -1,16 +1,22 @@
 /* Management interface. Unslop craft guidance by Damir Sokolovsky (@heydamir), CC BY 4.0. */
 .management-app {
-  --admin-bg: #f7f7f5;
+  --admin-bg: #f5f9ff;
   --admin-surface: #fff;
-  --admin-text: #252522;
-  --admin-muted: #666661;
-  --admin-line: #deded8;
-  --admin-accent: #c2410c;
-  --admin-soft: #fff1e8;
+  --admin-text: #111111;
+  --admin-muted: #365477;
+  --admin-line: #d5e3f5;
+  --admin-line-strong: #93b9ee;
+  --admin-accent: #1d4ed8;
+  --admin-soft: #eff6ff;
+  --admin-sidebar: #111111;
+  --admin-sidebar-text: #ffffff;
+  --admin-sidebar-muted: #bfdbfe;
+  --admin-sidebar-hover: #172c4d;
+  --admin-sidebar-line: #29405e;
   --admin-blue: var(--admin-accent);
   --admin-navy: var(--admin-text);
   --primary: var(--admin-accent);
-  --primary-hover: #9a3412;
+  --primary-hover: #1e40af;
   --ink: var(--admin-text);
   --navy: var(--admin-text);
   --muted: var(--admin-muted);
@@ -38,47 +44,49 @@
   position: fixed; inset: 0 auto 0 0; width: 248px;
   height: 100vh; height: 100dvh; padding: 20px 12px 12px;
   display: flex; flex-direction: column; gap: 0;
-  background: #fff; border-right: 1px solid var(--admin-line);
+  background: var(--admin-sidebar); border-right: 1px solid var(--admin-sidebar-line);
   box-shadow: none; overflow: hidden; z-index: 60;
 }
+.management-app .sidebar :focus-visible { outline-color: #60a5fa; }
 .management-app .admin-sidebar-heading { display: flex; align-items: center; gap: 8px; padding: 0 8px 20px; }
-.management-app .admin-brand { display: flex; align-items: center; gap: 12px; color: var(--admin-text); text-decoration: none; min-width: 0; }
-.management-app .admin-brand > svg { width: 24px; height: 24px; flex: 0 0 24px; color: var(--admin-accent); stroke-width: 1.5; }
+.management-app .admin-brand { display: flex; align-items: center; gap: 12px; color: var(--admin-sidebar-text); text-decoration: none; min-width: 0; }
+.management-app .admin-brand > svg { width: 24px; height: 24px; flex: 0 0 24px; color: #60a5fa; stroke-width: 1.5; }
 .management-app .admin-brand > span { font-size: 15px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
-.management-app .admin-brand small { display: block; color: var(--admin-muted); font-size: 12px; font-weight: 400; margin-top: 4px; }
-.management-app .sidebar nav { display: block; overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: #ccccc5 transparent; padding-right: 4px; }
+.management-app .admin-brand small { display: block; color: var(--admin-sidebar-muted); font-size: 12px; font-weight: 400; margin-top: 4px; }
+.management-app .sidebar nav { display: block; overflow-y: auto; overflow-x: hidden; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: #426da5 transparent; padding-right: 4px; }
 .management-app .sidebar nav a {
   display: flex; align-items: center; justify-content: flex-start; gap: 12px;
   min-height: 36px; padding: 8px 12px; margin: 2px 0;
-  border: 0; border-radius: 6px; color: #53534f; background: transparent;
+  border: 0; border-radius: 6px; color: var(--admin-sidebar-text); background: transparent;
   font-size: 13px; font-weight: 400; line-height: 20px;
   text-decoration: none; box-shadow: none; transform: none;
   transition: color 160ms var(--admin-ease), background-color 160ms var(--admin-ease);
 }
-.management-app .sidebar nav a svg, .management-app .nav-group-toggle > svg { width: 18px; height: 18px; flex: 0 0 18px; stroke-width: 1.5; color: #73736d; }
-.management-app .sidebar nav a:hover { background: #f5f5f2; color: var(--admin-text); transform: none; }
+.management-app .sidebar nav a svg, .management-app .nav-group-toggle > svg { width: 18px; height: 18px; flex: 0 0 18px; stroke-width: 1.5; color: var(--admin-sidebar-muted); }
+.management-app .sidebar nav a:hover { background: var(--admin-sidebar-hover); color: var(--admin-sidebar-text); transform: none; }
+.management-app .sidebar nav a:hover svg { color: var(--admin-sidebar-text); }
 .management-app .sidebar nav a.active {
-  background: var(--admin-soft) !important; color: #a7370b !important;
-  box-shadow: inset 2px 0 #c2410c !important; font-weight: 500; transform: none;
+  background: var(--admin-accent) !important; color: var(--admin-sidebar-text) !important;
+  box-shadow: inset 2px 0 #93c5fd !important; font-weight: 500; transform: none;
 }
-.management-app .sidebar nav a.active svg { color: #a7370b !important; }
+.management-app .sidebar nav a.active svg { color: var(--admin-sidebar-text) !important; }
 .management-app .nav-group { margin: 0 0 8px; }
 .management-app .nav-group-toggle {
   display: flex; align-items: center; gap: 12px; min-height: 36px;
-  padding: 8px 12px; border-radius: 6px; color: var(--admin-text);
+  padding: 8px 12px; border-radius: 6px; color: var(--admin-sidebar-text);
   font-size: 13px; line-height: 20px; font-weight: 500;
   transition: background-color 160ms var(--admin-ease);
 }
-.management-app .nav-group-toggle:hover { background: #f5f5f2; color: var(--admin-text); }
+.management-app .nav-group-toggle:hover { background: var(--admin-sidebar-hover); color: var(--admin-sidebar-text); }
 .management-app .nav-group-toggle svg:last-child { width: 14px; height: 14px; flex-basis: 14px; }
-.management-app .nav-group-links { margin: 0 0 8px 20px; padding: 0 0 0 16px; border-left: 1px solid #e8e8e3; gap: 0; }
+.management-app .nav-group-links { margin: 0 0 8px 20px; padding: 0 0 0 16px; border-left: 1px solid var(--admin-sidebar-line); gap: 0; }
 .management-app .sidebar nav .nav-group-links a { padding: 6px 12px; min-height: 32px; border-radius: 6px; font-size: 13px; font-weight: 400; }
 .management-app .sidebar nav .nav-group-links a.active { font-weight: 500; }
-.management-app .nav-extra { display: grid; gap: 0; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e8e8e3; }
-.management-app .admin-public-link { display: flex; align-items: center; gap: 12px; padding: 12px; margin-top: 12px; border-top: 1px solid var(--admin-line); color: var(--admin-muted); font-size: 13px; text-decoration: none; }
+.management-app .nav-extra { display: grid; gap: 0; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--admin-sidebar-line); }
+.management-app .admin-public-link { display: flex; align-items: center; gap: 12px; padding: 12px; margin-top: 12px; border-top: 1px solid var(--admin-sidebar-line); color: var(--admin-sidebar-muted); font-size: 13px; text-decoration: none; }
 .management-app .admin-public-link svg { width: 18px; height: 18px; stroke-width: 1.5; }
-.management-app .admin-public-link:hover { color: var(--admin-accent); }
-.management-app .sidebar-version { display: block; margin: 0; padding: 0 12px; border: 0; color: #73736d; font-size: 11px; }
+.management-app .admin-public-link:hover { color: var(--admin-sidebar-text); }
+.management-app .sidebar-version { display: block; margin: 0; padding: 0 12px; border: 0; color: var(--admin-sidebar-muted); font-size: 11px; }
 .management-app .content { width: calc(100% - 248px); max-width: 1664px; margin-left: 248px; padding: 0 32px 40px; min-width: 0; min-height: 100vh; }
 .management-app .content:focus { outline: none; }
 .management-app .topbar { display: flex; align-items: center; gap: 20px; min-height: 88px; padding: 20px 0; margin: 0 0 24px; border-bottom: 1px solid var(--admin-line); font-size: 14px; font-weight: 400; }
@@ -95,24 +103,25 @@
 .management-app .user-popover-trigger { gap: 8px; border-radius: 8px; padding: 4px 8px; transition: background-color 160ms var(--admin-ease), border-color 160ms var(--admin-ease); }
 .management-app .user-popover-trigger:hover, .management-app .user-popover-trigger[aria-expanded="true"] { border-color: var(--admin-line); background: #fff; box-shadow: none; }
 .management-app .user-avatar-circle { width: 32px; height: 32px; border: 1px solid var(--admin-line); box-shadow: none; }
-.management-app .user-avatar-initial, .management-app .avatar-lg-initial { background: #f0eee8; color: #685b46; font-weight: 500; }
+.management-app .user-avatar-initial, .management-app .avatar-lg-initial { background: #dbeafe; color: var(--primary-hover); font-weight: 500; }
 .management-app .user-trigger-text strong { max-width: 184px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--admin-text); font-size: 13px; font-weight: 500; }
 .management-app .user-trigger-text small { font-size: 12px; color: var(--admin-muted); font-weight: 400; }
-.management-app .user-trigger-chevron { width: 14px; height: 14px; }
-.management-app .user-popover-card { top: calc(100% + 8px); right: 0; width: 296px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 100px); overflow-y: auto; padding: 16px; border: 1px solid var(--admin-line); border-radius: 12px; box-shadow: 0 12px 32px #2525221a; animation: none; }
+.management-app .user-trigger-chevron { width: 14px; height: 14px; color: var(--admin-muted) !important; }
+.management-app .user-popover-card { top: calc(100% + 8px); right: 0; width: 296px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 100px); overflow-y: auto; padding: 16px; border: 1px solid var(--admin-line); border-radius: 12px; box-shadow: 0 12px 32px #1111111a; animation: none; }
 .management-app .user-popover-arrow { display: none; }
 .management-app .user-popover-profile { display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; align-items: center; text-align: left; margin: 0 0 16px; }
 .management-app .user-popover-avatar-lg { width: 40px; height: 40px; grid-row: 1 / 3; margin: 0; border: 1px solid var(--admin-line); box-shadow: none; }
 .management-app .user-popover-name { font-size: 14px; font-weight: 500; color: var(--admin-text); overflow-wrap: anywhere; }
 .management-app .user-popover-email { margin: 4px 0 0; font-size: 12px; color: var(--admin-muted); overflow-wrap: anywhere; }
-.management-app .user-popover-org-pill { padding: 8px 12px; border: 0; background: #f5f5f2; color: var(--admin-muted); font-size: 12px; font-weight: 400; border-radius: 6px; margin-bottom: 8px; }
+.management-app .user-popover-org-pill { padding: 8px 12px; border: 0; background: var(--admin-soft); color: var(--admin-muted); font-size: 12px; font-weight: 400; border-radius: 6px; margin-bottom: 8px; }
 .management-app .user-popover-org-pill svg { color: var(--admin-muted); width: 16px; height: 16px; stroke-width: 1.5; }
-.management-app .user-popover-link { padding: 8px 12px; min-height: 36px; gap: 12px; font-size: 13px; font-weight: 400; border-radius: 6px; transition: color 160ms var(--admin-ease), background-color 160ms var(--admin-ease); }
+.management-app .user-popover-link { padding: 8px 12px; min-height: 36px; gap: 12px; font-size: 13px; font-weight: 400; border-radius: 6px; color: var(--admin-text); transition: color 160ms var(--admin-ease), background-color 160ms var(--admin-ease); }
 .management-app .user-popover-link svg { width: 18px; height: 18px; stroke-width: 1.5; color: var(--admin-muted); }
-.management-app .user-popover-link:hover { background: #f5f5f2; color: var(--admin-text); }
+.management-app .user-popover-link:hover { background: var(--admin-soft); color: var(--admin-accent); }
 .management-app .user-popover-divider { background: var(--admin-line); margin: 8px 0; }
-.management-app .user-popover-logout-btn { justify-content: flex-start; min-height: 36px; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; transition: color 160ms var(--admin-ease), background-color 160ms var(--admin-ease); }
-.management-app .user-popover-logout-btn svg { stroke-width: 1.5; }
+.management-app .user-popover-logout-btn { justify-content: flex-start; min-height: 36px; padding: 8px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--admin-text); transition: color 160ms var(--admin-ease), background-color 160ms var(--admin-ease); }
+.management-app .user-popover-logout-btn svg { stroke-width: 1.5; color: currentColor; }
+.management-app .user-popover-logout-btn:hover { background: var(--admin-soft); color: var(--admin-accent); }
 .management-app .breadcrumbs { flex-wrap: wrap; gap: 8px; margin: -8px 0 24px; font-size: 12px; color: var(--admin-muted); }
 .management-app .breadcrumbs span { color: var(--admin-text); font-weight: 500; }
 .management-app .breadcrumbs a:hover { color: var(--admin-accent); }
@@ -121,15 +130,15 @@
 .management-app .admin-menu-toggle, .management-app .admin-menu-close, .management-app .admin-nav-backdrop { display: none; }
 @media (max-width: 1250px) { .management-app .content { padding-inline: 24px; } .management-app .user-trigger-text { display: none; } }
 @media (max-width: 1100px) {
-  .management-app .sidebar { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--admin-line); }
+  .management-app .sidebar { position: static; width: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--admin-sidebar-line); }
   .management-app .content { width: 100%; margin-left: 0; }
-  .management-app.admin-enhanced .sidebar { position: fixed; width: min(304px, calc(100vw - 48px)); height: 100vh; height: 100dvh; border-right: 1px solid var(--admin-line); border-bottom: 0; transform: translateX(-100%); visibility: hidden; z-index: 100; transition: transform 200ms var(--admin-ease); }
+  .management-app.admin-enhanced .sidebar { position: fixed; width: min(304px, calc(100vw - 48px)); height: 100vh; height: 100dvh; border-right: 1px solid var(--admin-sidebar-line); border-bottom: 0; transform: translateX(-100%); visibility: hidden; z-index: 100; transition: transform 200ms var(--admin-ease); }
   .management-app.admin-nav-open { overflow: hidden; }
   .management-app.admin-nav-open .sidebar { transform: none; visibility: visible; }
   .management-app.admin-enhanced .admin-menu-toggle, .management-app.admin-enhanced .admin-menu-close { display: inline-flex; }
-  .management-app .admin-menu-close { margin-left: auto; border: 0; }
+  .management-app .admin-menu-close { margin-left: auto; border: 0; background: var(--admin-sidebar); color: var(--admin-sidebar-text); }
   .management-app .admin-sidebar-heading { padding-inline: 4px; }
-  .management-app .admin-nav-backdrop { display: block; position: fixed; inset: 0; z-index: 90; background: #20201f66; border: 0; padding: 0; cursor: pointer; }
+  .management-app .admin-nav-backdrop { display: block; position: fixed; inset: 0; z-index: 90; background: #11111166; border: 0; padding: 0; cursor: pointer; }
   .management-app .sidebar nav a, .management-app .nav-group-toggle, .management-app .sidebar nav .nav-group-links a { min-height: 44px; font-size: 14px; }
   .management-app .topbar { position: sticky; top: 0; z-index: 40; background: var(--admin-bg); min-height: 76px; padding-block: 16px; gap: 16px; }
   .management-app .page-heading h1 { font-size: 24px; }
