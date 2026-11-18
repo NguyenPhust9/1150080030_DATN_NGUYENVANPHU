@@ -1,69 +1,115 @@
 {% extends "base.html" %}
-{% block page_title %}Hợp đồng{% endblock %}
+{% load static l10n %}
+{% block page_title %}Quản lý hợp đồng{% endblock %}
+{% block page_subtitle %}Quản lý và theo dõi tất cả hợp đồng thuê phòng{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/contract-list.css' %}?v=1">
+{% endblock %}
 {% block content %}
-<div class="page-actions room-toolbar">
-  <form method="get" class="room-filters">
-    <input name="q" value="{{ q }}" placeholder="Tìm mã hợp đồng, tên khách thuê...">
-    <select name="building">
-      <option value="">Tất cả tòa nhà</option>
-      {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
-    </select>
-    <select name="status">
-      <option value="">Tất cả trạng thái</option>
-      {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select>
-    <button class="btn" type="submit">Lọc dữ liệu</button>
-    {% if q or status or selected_building %}<a class="btn" href="{% url 'contracts' %}">Xóa lọc</a>{% endif %}
-  </form>
-  <a class="btn primary" href="{% url 'contract-create' %}">Thêm hợp đồng</a>
-</div>
-<section class="panel">
-  <div class="list-summary"><span>Danh sách hợp đồng</span><span>Tổng số: <strong>{{ paginator.count }}</strong></span></div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th class="row-number">STT</th>
-          <th>Mã</th>
-          <th>Phòng</th>
-          <th>Đại diện</th>
-          <th>Thời hạn</th>
-          <th>Giá thuê</th>
-          <th>Trạng thái</th>
-          <th>Thao tác</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for x in objects %}
-        <tr>
-          <td class="row-number">{{ page_obj.start_index|add:forloop.counter0 }}</td>
-          <td><a href="{% url 'contract-detail' x.id %}" style="font-weight:600;color:var(--primary);text-decoration:none;">{{ x.code }}</a></td>
-          <td>{{ x.room }}</td>
-          <td><a href="{% url 'tenant-detail' x.representative.id %}" style="color:inherit;text-decoration:none;">{{ x.representative }}</a></td>
-          <td>{{ x.start_date|date:"d/m/Y" }} – {{ x.end_date|date:"d/m/Y" }}</td>
-          <td>{{ x.monthly_rent|vnd }} đ</td>
-          <td><span class="badge">{{ x.get_status_display }}</span></td>
-          <td>
-            <div style="display:flex;gap:6px;">
-              <a class="btn compact" href="{% url 'contract-detail' x.id %}">Chi tiết</a>
-              {% if x.status == 'draft' %}
-              <a class="btn compact" href="{% url 'contract-update' x.id %}">Sửa</a>
-              {% endif %}
-            </div>
-          </td>
-        </tr>
-        {% empty %}
-        <tr><td colspan="8">Chưa có dữ liệu hợp đồng phù hợp.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+<div class="contract-page">
+  <div class="contract-actions">
+    <a class="btn" href="?q={{ q|urlencode }}&building={{ selected_building|urlencode }}&status={{ status|urlencode }}&page={{ page_obj.number }}"><i data-lucide="refresh-cw" aria-hidden="true"></i>Tải mới</a>
+    <a class="btn primary" href="{% url 'contract-create' %}"><i data-lucide="plus" aria-hidden="true"></i>Thêm hợp đồng</a>
   </div>
-</section>
-{% if page_obj.has_other_pages %}
-<nav class="pagination" aria-label="Phân trang hợp đồng">
-  {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
-  {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">{{ page_number }}</a>{% endif %}{% endfor %}
-  {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building }}&status={{ status }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
-</nav>
-{% endif %}
+  <div class="contract-stats" aria-label="Thống kê hợp đồng">
+    <div class="contract-stat contract-tone-blue">
+      <div><span>Tổng hợp đồng</span><strong>{{ contract_metrics.total_count }}</strong></div>
+      <span class="contract-stat-icon"><i data-lucide="files" aria-hidden="true"></i></span>
+    </div>
+    <div class="contract-stat contract-tone-green">
+      <div><span>Hoạt động</span><strong>{{ contract_metrics.active_count }}</strong></div>
+      <span class="contract-stat-icon"><i data-lucide="file-check-2" aria-hidden="true"></i></span>
+    </div>
+    <div class="contract-stat contract-tone-amber">
+      <div><span>Sắp hết hạn</span><strong>{{ contract_metrics.expiring_count }}</strong></div>
+      <span class="contract-stat-icon"><i data-lucide="calendar-clock" aria-hidden="true"></i></span>
+    </div>
+    <div class="contract-stat contract-tone-red">
+      <div><span>Đã hết hạn</span><strong>{{ contract_metrics.expired_count }}</strong></div>
+      <span class="contract-stat-icon"><i data-lucide="calendar-x-2" aria-hidden="true"></i></span>
+    </div>
+  </div>
+  <p class="contract-stats-note">Thống kê theo bộ lọc hiện tại. Sắp hết hạn: hợp đồng đang hoạt động còn tối đa {{ expiring_days }} ngày.</p>
+  <section class="contract-list" aria-labelledby="contract-list-title">
+    <header class="contract-list-heading">
+      <div><h2 id="contract-list-title">Danh sách hợp đồng</h2><p><strong>{{ paginator.count }}</strong> hợp đồng được tìm thấy</p></div>
+      <span class="contract-date-note"><i data-lucide="calendar-days" aria-hidden="true"></i>Tính đến {{ today|date:"d/m/Y" }}</span>
+    </header>
+    <div class="contract-list-body">
+      <form method="get" class="contract-filters" role="search" aria-label="Tìm kiếm và lọc hợp đồng">
+        <div class="contract-filter-search">
+          <label for="contract-search">Tìm hợp đồng</label>
+          <div class="contract-search-input"><i data-lucide="search" aria-hidden="true"></i><input id="contract-search" name="q" value="{{ q }}" placeholder="Mã hợp đồng, số phòng, khách thuê…" type="search"></div>
+        </div>
+        <div class="contract-filter-field">
+          <label for="contract-building">Tòa nhà</label>
+          <select id="contract-building" name="building">
+            <option value="">Tất cả tòa nhà</option>
+            {% for building in buildings %}<option value="{{ building.id }}" {% if selected_building == building.id|stringformat:'s' %}selected{% endif %}>{{ building.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="contract-filter-field">
+          <label for="contract-status">Trạng thái</label>
+          <select id="contract-status" name="status">
+            <option value="">Tất cả trạng thái</option>
+            {% for code, label in status_choices %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="contract-filter-actions">
+          <button class="btn" type="submit"><i data-lucide="sliders-horizontal" aria-hidden="true"></i>Lọc dữ liệu</button>
+          {% if q or status or selected_building %}<a class="btn" href="{% url 'contracts' %}">Xóa lọc</a>{% endif %}
+        </div>
+      </form>
+      <div class="contract-grid">
+        {% for x in objects %}
+        <article class="contract-card contract-tone-{{ x.listing.tone }}" aria-labelledby="contract-code-{{ x.id }}" data-status="{{ x.listing.status_key }}">
+          <div class="contract-card-heading">
+            <h3 id="contract-code-{{ x.id }}"><a href="{% url 'contract-detail' x.id %}">{{ x.code }}</a></h3>
+            <details class="contract-card-menu">
+              <summary aria-label="Thao tác hợp đồng {{ x.code }}"><i data-lucide="ellipsis-vertical" aria-hidden="true"></i></summary>
+              <div class="contract-menu-items">
+                <a href="{% url 'contract-detail' x.id %}"><i data-lucide="file-text" aria-hidden="true"></i>Xem chi tiết</a>
+                <a href="{% url 'tenant-detail' x.representative.id %}"><i data-lucide="user-round" aria-hidden="true"></i>Hồ sơ khách thuê</a>
+                {% if x.status == 'draft' %}<a href="{% url 'contract-update' x.id %}"><i data-lucide="pencil" aria-hidden="true"></i>Sửa hợp đồng</a>{% endif %}
+              </div>
+            </details>
+          </div>
+          <div class="contract-card-status">
+            <span class="contract-status"><i data-lucide="{% if x.listing.status_key == 'active' %}circle-check{% elif x.listing.status_key == 'expiring' %}clock{% elif x.listing.status_key == 'expired' or x.listing.status_key == 'cancelled' %}circle-x{% else %}file-clock{% endif %}" aria-hidden="true"></i>{{ x.listing.status_label }}</span>
+            <span class="contract-order">#{{ page_obj.start_index|add:forloop.counter0 }}</span>
+          </div>
+          <div class="contract-card-parties">
+            <div class="contract-room"><i data-lucide="building-2" aria-hidden="true"></i><div><strong>Phòng {{ x.room.number }}</strong><span>{{ x.room.building.name }}</span></div></div>
+            <div class="contract-tenant"><i data-lucide="user-round" aria-hidden="true"></i><a href="{% url 'tenant-detail' x.representative.id %}">{{ x.representative }}</a></div>
+          </div>
+          <div class="contract-term">
+            <div class="contract-term-heading">
+              <span><i data-lucide="clock-3" aria-hidden="true"></i>{{ x.listing.time_label }}</span>
+              {% if x.listing.show_progress %}<span class="contract-days"><strong>{{ x.listing.remaining_days }}</strong> / {{ x.listing.total_days }} ngày</span>{% endif %}
+            </div>
+            {% if x.listing.show_progress %}<progress max="100" value="{{ x.listing.remaining_percent|unlocalize }}" aria-label="Thời hạn còn lại của hợp đồng {{ x.code }}">{{ x.listing.remaining_percent }}%</progress>{% else %}<p>{{ x.listing.time_detail }}</p>{% endif %}
+          </div>
+          <div class="contract-dates"><i data-lucide="calendar-range" aria-hidden="true"></i><span><span class="contract-sr-only">Thời hạn: </span>{{ x.start_date|date:"d/m/Y" }} – {{ x.end_date|date:"d/m/Y" }}</span></div>
+          <div class="contract-rent"><span>Giá thuê / tháng</span><strong>{{ x.monthly_rent|vnd }} đ</strong></div>
+          <a class="contract-detail-link" href="{% url 'contract-detail' x.id %}"><i data-lucide="file-text" aria-hidden="true"></i>Xem đầy đủ thông tin<i data-lucide="arrow-up-right" aria-hidden="true"></i></a>
+        </article>
+        {% empty %}
+        <div class="contract-empty">
+          <span class="contract-empty-icon"><i data-lucide="files" aria-hidden="true"></i></span>
+          <h3>{% if q or status or selected_building %}Không tìm thấy hợp đồng phù hợp{% else %}Chưa có hợp đồng{% endif %}</h3>
+          <p>{% if q or status or selected_building %}Thử thay đổi từ khóa, tòa nhà hoặc trạng thái để tìm hợp đồng.{% else %}Thêm hợp đồng để theo dõi phòng thuê và thời hạn thuê tại đây.{% endif %}</p>
+          {% if q or status or selected_building %}<a class="btn" href="{% url 'contracts' %}">Xóa bộ lọc</a>{% else %}<a class="btn primary" href="{% url 'contract-create' %}">Thêm hợp đồng</a>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% if page_obj.has_other_pages %}
+  <nav class="pagination" aria-label="Phân trang hợp đồng">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&q={{ q|urlencode }}&building={{ selected_building|urlencode }}&status={{ status|urlencode }}">← Trước</a>{% else %}<span class="disabled">← Trước</span>{% endif %}
+    {% for page_number in paginator.page_range %}{% if page_number == page_obj.number %}<span class="current" aria-current="page">{{ page_number }}</span>{% elif page_number >= page_obj.number|add:'-2' and page_number <= page_obj.number|add:'2' %}<a href="?page={{ page_number }}&q={{ q|urlencode }}&building={{ selected_building|urlencode }}&status={{ status|urlencode }}">{{ page_number }}</a>{% endif %}{% endfor %}
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&q={{ q|urlencode }}&building={{ selected_building|urlencode }}&status={{ status|urlencode }}">Sau →</a>{% else %}<span class="disabled">Sau →</span>{% endif %}
+  </nav>
+  {% endif %}
+</div>
 {% endblock %}

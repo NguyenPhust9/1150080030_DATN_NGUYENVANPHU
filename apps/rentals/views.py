@@ -27,6 +27,13 @@ from django.views.decorators.http import require_http_methods, require_POST
 from .chat_presence import offline_presence, presence_for_users
 from .chat_media import prepare_chat_images, upload_chat_images, remove_chat_uploads, chat_image_url, ChatUploadError
 from .list_metrics import building_filter_value, financial_period_filters, invoice_metrics, payment_metrics
+from .contract_listing import (
+    CONTRACT_STATUS_CHOICES,
+    EXPIRING_DAYS,
+    contract_metrics,
+    contract_presentation,
+    contract_status_filters,
+)
 
 from .forms import (
     BuildingForm,
@@ -433,7 +440,7 @@ def object_list(request, resource):
             "buildings": Q(name__icontains=q) | Q(address__icontains=q),
             "rooms": Q(number__icontains=q) | Q(building__name__icontains=q),
             "tenants": Q(full_name__icontains=q) | Q(phone__icontains=q) | Q(identity_number__icontains=q),
-            "contracts": Q(code__icontains=q) | Q(representative__full_name__icontains=q),
+            "contracts": Q(code__icontains=q) | Q(representative__full_name__icontains=q) | Q(room__number__icontains=q) | Q(room__building__name__icontains=q),
             "services": Q(name__icontains=q),
             "invoices": Q(code__icontains=q) | Q(contract__code__icontains=q) | Q(contract__representative__full_name__icontains=q) | Q(contract__room__number__icontains=q),
             "payments": Q(invoice__code__icontains=q) | Q(reference__icontains=q) | Q(invoice__contract__room__number__icontains=q) | Q(invoice__contract__representative__full_name__icontains=q),
@@ -488,21 +495,27 @@ def object_list(request, resource):
         queryset = queryset.select_related("user", "owner")
         context.update({"status": status})
     if resource == "contracts":
+        today = timezone.localdate()
         status = request.GET.get("status", "").strip()
-        building_id = request.GET.get("building", "").strip()
-        valid_statuses = {choice for choice, _ in Contract.Status.choices}
-        if status in valid_statuses:
-            queryset = queryset.filter(status=status)
+        building_id = building_filter_value(request.GET.get("building", "").strip())
+        status_filters = contract_status_filters(today)
+        if status in status_filters:
+            queryset = queryset.filter(status_filters[status])
         else:
             status = ""
         if building_id:
             queryset = queryset.filter(room__building_id=building_id)
-        queryset = queryset.select_related("room__building", "representative")
+        queryset = queryset.select_related("room__building", "representative").order_by(
+            "-start_date", "-created_at", "pk"
+        )
         context.update({
             "status": status,
-            "status_choices": Contract.Status.choices,
+            "status_choices": CONTRACT_STATUS_CHOICES,
             "buildings": get_accessible_buildings(request.user).order_by("name"),
             "selected_building": building_id,
+            "contract_metrics": contract_metrics(queryset, today),
+            "today": today,
+            "expiring_days": EXPIRING_DAYS,
         })
     if resource == "services":
         unit = request.GET.get("unit", "").strip()
@@ -632,6 +645,9 @@ def object_list(request, resource):
         )
     paginator = Paginator(queryset, 20)
     page_obj = paginator.get_page(request.GET.get("page"))
+    if resource == "contracts":
+        for contract in page_obj.object_list:
+            contract.listing = contract_presentation(contract, context["today"])
     if resource == "buildings":
         for building in page_obj.object_list:
             amenity_names = list(Amenity.objects.filter(rooms__building=building).values_list("name", flat=True).distinct())
