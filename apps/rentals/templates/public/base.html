@@ -21,10 +21,10 @@
     {% block header_identity %}{% endblock %}
     {% block header_menu %}{% endblock %}
     <nav id="public-nav" aria-label="Điều hướng chính">
-      <a class="{% if request.resolver_match.url_name == 'public-home' %}active{% endif %}" href="{% url 'public-home' %}"><i data-lucide="house"></i> Trang chủ</a>
-      <a class="{% if request.resolver_match.url_name == 'public-rooms' %}active{% endif %}" href="{% url 'public-rooms' %}"><i data-lucide="search"></i> Tìm phòng</a>
-      <a href="{% url 'public-home' %}#gioi-thieu"><i data-lucide="building-2"></i> Về chúng tôi</a>
-      <a href="#lien-he"><i data-lucide="phone"></i> Liên hệ</a>
+      <a class="{% if request.resolver_match.url_name == 'public-home' %}active{% endif %}" {% if request.resolver_match.url_name == 'public-home' %}aria-current="page"{% endif %} href="{% url 'public-home' %}"><i data-lucide="house"></i> Trang chủ</a>
+      <a class="{% if request.resolver_match.url_name == 'public-rooms' %}active{% endif %}" {% if request.resolver_match.url_name == 'public-rooms' %}aria-current="page"{% endif %} href="{% url 'public-rooms' %}"><i data-lucide="search"></i> Tìm phòng</a>
+      <a class="{% if request.resolver_match.url_name == 'public-about' %}active{% endif %}" {% if request.resolver_match.url_name == 'public-about' %}aria-current="page"{% endif %} href="{% url 'public-about' %}"><i data-lucide="building-2"></i> Về chúng tôi</a>
+      <a class="{% if request.resolver_match.url_name == 'public-contact' %}active{% endif %}" {% if request.resolver_match.url_name == 'public-contact' %}aria-current="page"{% endif %} href="{% url 'public-contact' %}"><i data-lucide="phone"></i> Liên hệ</a>
     </nav>
     <div class="header-actions">
       <a class="favorite-link" href="{% url 'public-rooms' %}?favorites=1" title="Xem phòng đã lưu" aria-label="Xem phòng yêu thích">
@@ -53,5 +53,6 @@
   <script>lucide.createIcons({attrs:{"stroke-width":2}});</script>
   <script src="{% static 'js/favorites.js' %}"></script>
   <script src="{% static 'js/loading.js' %}"></script>
+  {% block extra_js %}{% endblock %}
 </body>
 </html>

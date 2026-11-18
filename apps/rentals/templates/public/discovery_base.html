@@ -1,0 +1,7 @@
+{% extends "public/base.html" %}
+{% load static %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/home-discovery.css' %}?v=home-2">{% endblock %}
+{% block body_class %} home-discovery{% endblock %}
+{% block header_identity %}<a class="home-wordmark" href="{% url 'public-home' %}" aria-label="QL Phòng Cho Thuê — Trang chủ"><i data-lucide="house"></i><span>QL Phòng Cho Thuê</span></a>{% endblock %}
+{% block header_menu %}<button id="public-menu-toggle" class="home-menu-toggle" type="button" aria-controls="public-nav" aria-expanded="true" hidden><i data-lucide="menu"></i><span>Menu</span></button>{% endblock %}
+{% block extra_js %}<script src="{% static 'js/public-navigation.js' %}?v=info-1" defer></script>{% endblock %}

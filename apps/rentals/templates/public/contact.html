@@ -1,0 +1,38 @@
+{% extends "public/discovery_base.html" %}
+{% load static %}
+{% block title %}Liên hệ{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/public-information.css' %}?v=info-1">{% endblock %}
+{% block content %}
+<div class="information-page">
+  <nav class="info-breadcrumb" aria-label="Đường dẫn"><a href="{% url 'public-home' %}">Trang chủ</a><i data-lucide="chevron-right" aria-hidden="true"></i><span aria-current="page">Liên hệ</span></nav>
+  <section class="info-hero info-contact-hero" aria-labelledby="contact-title">
+    <div><p class="info-kicker">Liên hệ với chúng tôi</p><h1 id="contact-title">Bạn cần tìm phòng<br>hay hỗ trợ sử dụng?</h1><p class="info-lead">Trao đổi về phòng bạn quan tâm, nhu cầu thuê hoặc vấn đề gặp phải khi sử dụng QL Phòng Cho Thuê qua các kênh bên dưới.</p></div>
+    <aside class="info-contact-note"><i data-lucide="message-square" aria-hidden="true"></i><h2>Để dễ hỗ trợ bạn</h2><p>Khi hỏi về một phòng cụ thể, hãy gửi kèm <strong>mã phòng và tên tòa nhà</strong>. Nếu muốn xem phòng, bạn có thể đề xuất ngày và thời gian thuận tiện.</p></aside>
+  </section>
+
+  <section class="info-contact-methods" aria-label="Các cách liên hệ">
+    <article class="info-contact-card"><div class="info-method-heading"><i data-lucide="phone" aria-hidden="true"></i><h2>Gọi điện trực tiếp</h2></div><a class="info-contact-address" href="tel:0902966704">0902 966 704</a><p>Trao đổi về phòng đang cho thuê, thông tin tòa nhà và việc hẹn xem phòng.</p><a class="btn primary" href="tel:0902966704"><i data-lucide="phone" aria-hidden="true"></i> Gọi 0902 966 704</a></article>
+    <article class="info-contact-card"><div class="info-method-heading"><i data-lucide="mail" aria-hidden="true"></i><h2>Gửi email</h2></div><a class="info-contact-address info-email-address" href="mailto:1150080030@sv.hcmunre.edu.vn">1150080030@sv.hcmunre.edu.vn</a><p>Gửi nội dung cần hỗ trợ, câu hỏi chi tiết hoặc hình ảnh mô tả vấn đề bạn đang gặp.</p><a class="info-secondary-button" href="mailto:1150080030@sv.hcmunre.edu.vn"><i data-lucide="mail" aria-hidden="true"></i> Mở ứng dụng email</a></article>
+  </section>
+
+  <section class="info-section" aria-labelledby="contact-prepare">
+    <div class="info-section-heading"><p class="info-kicker">Chuẩn bị trước khi liên hệ</p><h2 id="contact-prepare">Bạn muốn trao đổi về việc gì?</h2></div>
+    <div class="info-help-grid">
+      <article><i data-lucide="search" aria-hidden="true"></i><h3>Tìm hoặc xem phòng</h3><p>Cho biết khu vực, khoảng giá, số người ở và thời điểm dự kiến chuyển vào. Nếu đã chọn được phòng, gửi thêm mã phòng và tên tòa nhà.</p><a class="info-text-link" href="{% url 'public-rooms' %}">Xem các phòng đang cho thuê <i data-lucide="arrow-right" aria-hidden="true"></i></a></article>
+      <article><i data-lucide="key-round" aria-hidden="true"></i><h3>Đang thuê phòng</h3><p>Nêu phòng đang thuê và nội dung cần hỗ trợ. Với sự cố trong phòng, mô tả hiện tượng và thời điểm xảy ra để người quản lý có thông tin xử lý.</p><a class="info-text-link" href="{% if user.is_authenticated %}{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">Vào tài khoản của bạn <i data-lucide="arrow-right" aria-hidden="true"></i></a></article>
+      <article><i data-lucide="monitor" aria-hidden="true"></i><h3>Hỗ trợ website</h3><p>Gửi tên trang hoặc chức năng gặp lỗi, các bước đã thực hiện và ảnh chụp màn hình nếu có. Cho biết bạn đang dùng điện thoại hay máy tính.</p><a class="info-text-link" href="mailto:1150080030@sv.hcmunre.edu.vn">Gửi nội dung cần hỗ trợ <i data-lucide="arrow-right" aria-hidden="true"></i></a></article>
+    </div>
+  </section>
+
+  <section class="info-section info-faq-section" aria-labelledby="contact-faq">
+    <div><p class="info-kicker">Thông tin thường cần</p><h2 id="contact-faq">Câu hỏi thường gặp</h2><p>Bạn có thể gọi điện hoặc gửi email nếu cần trao đổi thêm về trường hợp của mình.</p></div>
+    <div class="info-faq">
+      <details><summary>Tôi muốn hẹn xem phòng thì làm thế nào?<i data-lucide="plus" aria-hidden="true"></i></summary><p>Gọi điện hoặc gửi email kèm mã phòng, tên tòa nhà và thời gian bạn muốn đến xem. Thời gian hẹn cần được trao đổi và xác nhận trực tiếp qua kênh liên hệ.</p></details>
+      <details><summary>Giá hiển thị đã bao gồm điện, nước và dịch vụ chưa?<i data-lucide="plus" aria-hidden="true"></i></summary><p>Giá trên thẻ phòng là giá thuê theo tháng. Điện, nước và các dịch vụ có thể được tính riêng theo từng phòng hoặc hợp đồng. Khi liên hệ, hãy hỏi cụ thể các khoản phí và tiền đặt cọc để cân nhắc đầy đủ.</p></details>
+      <details><summary>Chưa tìm được phòng phù hợp thì có thể liên hệ không?<i data-lucide="plus" aria-hidden="true"></i></summary><p>Bạn có thể gửi khu vực mong muốn, mức giá dự kiến, số người ở và các tiện ích cần có để trao đổi về những phòng đang được đăng trên hệ thống.</p></details>
+      <details><summary>Tôi xem hợp đồng và hóa đơn của mình ở đâu?<i data-lucide="plus" aria-hidden="true"></i></summary><p>Đăng nhập bằng tài khoản người thuê đã được cấp và liên kết với thông tin thuê của bạn. Tại khu vực người thuê, chọn mục hợp đồng hoặc hóa đơn. Nếu chưa có tài khoản hoặc chưa thấy thông tin, hãy liên hệ người quản lý.</p></details>
+    </div>
+  </section>
+  <section class="info-callout"><div><h2>Bạn vẫn đang cân nhắc chỗ ở?</h2><p>Quay lại danh sách để xem thông tin và lưu các phòng bạn quan tâm.</p></div><a class="btn primary" href="{% url 'public-rooms' %}">Tiếp tục tìm phòng <i data-lucide="arrow-right" aria-hidden="true"></i></a></section>
+</div>
+{% endblock %}

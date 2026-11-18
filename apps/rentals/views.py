@@ -302,8 +302,11 @@ def public_room_detail(request, room_id):
 
 
 def public_about(request):
-    # Keep old shared links working with the local design's introduction section.
-    return redirect(reverse("public-home") + "#gioi-thieu")
+    return render(request, "public/about.html")
+
+
+def public_contact(request):
+    return render(request, "public/contact.html")
 
 
 @login_required

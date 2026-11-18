@@ -40,7 +40,8 @@ class LocalDesignTests(TestCase):
         self.assertContains(response, static("images/favicon.png"))
         self.assertContains(response, static("js/favorites.js"))
         self.assertContains(response, static("js/loading.js"))
-        self.assertContains(response, f'href="{reverse("public-home")}#gioi-thieu"')
+        self.assertContains(response, f'href="{reverse("public-about")}"')
+        self.assertContains(response, f'href="{reverse("public-contact")}"')
         self.assertContains(response, 'class="public-footer"')
         for obsolete in (
             "css/hero-banner.css",
@@ -70,13 +71,12 @@ class LocalDesignTests(TestCase):
         self.assertContains(response, self.available_room.number)
         self.assertNotContains(response, self.occupied_room.number)
 
-    def test_previous_about_url_redirects_to_local_home_section(self):
+    def test_about_url_renders_an_accessible_public_page(self):
         response = self.client.get(reverse("public-about"))
-        self.assertRedirects(
-            response,
-            f'{reverse("public-home")}#gioi-thieu',
-            fetch_redirect_response=False,
-        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "public/about.html")
+        self.assert_local_public_shell(response)
+        self.assertContains(response, "Về chúng tôi")
 
     def test_login_restores_local_brand_assets(self):
         response = self.client.get(reverse("login"))

@@ -1,0 +1,52 @@
+{% extends "public/discovery_base.html" %}
+{% load static %}
+{% block title %}Về chúng tôi{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/public-information.css' %}?v=info-1">{% endblock %}
+{% block content %}
+<div class="information-page">
+  <nav class="info-breadcrumb" aria-label="Đường dẫn"><a href="{% url 'public-home' %}">Trang chủ</a><i data-lucide="chevron-right" aria-hidden="true"></i><span aria-current="page">Về chúng tôi</span></nav>
+  <section class="info-hero" aria-labelledby="about-title">
+    <div>
+      <p class="info-kicker">Về QL Phòng Cho Thuê</p>
+      <h1 id="about-title">Tìm phòng dễ hơn.<br>Quản lý rõ ràng hơn.</h1>
+      <p class="info-lead">Một nơi để tìm hiểu phòng trọ trước khi lựa chọn, và theo dõi các thông tin cần thiết trong suốt quá trình thuê.</p>
+      <p>QL Phòng Cho Thuê kết nối việc tìm phòng với quản lý tòa nhà, khách thuê, hợp đồng và hóa đơn. Chúng tôi tập trung đưa thông tin phòng về cùng một chỗ, để người thuê dễ cân nhắc và người quản lý thuận tiện cập nhật.</p>
+      <div class="info-actions"><a class="btn primary" href="{% url 'public-rooms' %}">Khám phá các phòng <i data-lucide="arrow-right" aria-hidden="true"></i></a><a class="info-text-link" href="{% url 'public-contact' %}">Liên hệ hỗ trợ</a></div>
+    </div>
+    <aside class="info-overview" aria-label="Hệ thống dành cho ai">
+      <div class="info-overview-heading"><i data-lucide="house" aria-hidden="true"></i><span>Cùng một nơi, nhiều nhu cầu</span></div>
+      <div><span class="info-step-number">01</span><div><h2>Đang tìm chỗ ở</h2><p>Xem phòng, đối chiếu mức giá và lưu những lựa chọn phù hợp.</p></div></div>
+      <div><span class="info-step-number">02</span><div><h2>Đã trở thành khách thuê</h2><p>Tra cứu thông tin thuê và theo dõi hóa đơn qua tài khoản được liên kết.</p></div></div>
+      <div><span class="info-step-number">03</span><div><h2>Đang quản lý phòng trọ</h2><p>Theo dõi tình trạng phòng và các công việc cho thuê trên cùng hệ thống.</p></div></div>
+    </aside>
+  </section>
+
+  <section class="info-section info-feature-section" aria-labelledby="about-features">
+    <div><p class="info-kicker">Trước khi chọn phòng</p><h2 id="about-features">Có thông tin,<br>dễ cân nhắc hơn</h2><p>Mỗi người có một ưu tiên về chỗ ở. Bắt đầu từ khu vực, ngân sách và những tiện ích bạn cần.</p></div>
+    <div class="info-feature-list">
+      <article><i data-lucide="sliders-horizontal" aria-hidden="true"></i><div><h3>Tìm theo nhu cầu của bạn</h3><p>Lọc phòng theo khu vực, tòa nhà, khoảng giá và tiện ích; sắp xếp giá để đối chiếu các lựa chọn.</p></div></article>
+      <article><i data-lucide="images" aria-hidden="true"></i><div><h3>Xem kỹ từng căn phòng</h3><p>Đọc địa chỉ, giá thuê, diện tích, số người ở và tiện ích. Ảnh, video được hiển thị khi phòng đã có tư liệu cập nhật.</p></div></article>
+      <article><i data-lucide="heart" aria-hidden="true"></i><div><h3>Lưu lại để xem sau</h3><p>Đánh dấu phòng yêu thích để quay lại tham khảo. Danh sách được lưu trên trình duyệt và thiết bị bạn đang sử dụng.</p></div></article>
+    </div>
+  </section>
+
+  <section class="info-section" aria-labelledby="about-rental">
+    <div class="info-section-heading"><p class="info-kicker">Trong quá trình thuê</p><h2 id="about-rental">Những thông tin cần thiết, ở cùng một nơi</h2></div>
+    <div class="info-audience-grid">
+      <article class="info-panel"><i data-lucide="key-round" aria-hidden="true"></i><h3>Dành cho người thuê</h3><p>Khi được cấp và liên kết tài khoản, bạn có thể xem phòng đang thuê, hợp đồng, hóa đơn, lịch sử thanh toán và các thông báo liên quan.</p><p>Nếu có vấn đề trong quá trình sử dụng phòng, bạn có thể gửi phản ánh qua chức năng báo sự cố trong tài khoản người thuê.</p></article>
+      <article class="info-panel"><i data-lucide="building-2" aria-hidden="true"></i><h3>Dành cho người quản lý</h3><p>Tập trung thông tin tòa nhà, phòng, khách thuê và hợp đồng; theo dõi chỉ số điện nước, hóa đơn và thanh toán theo quyền được phân công.</p><p>Hệ thống hỗ trợ cập nhật thông tin phòng và tiếp nhận sự cố để việc quản lý có căn cứ theo dõi.</p></article>
+    </div>
+  </section>
+
+  <section class="info-section" aria-labelledby="about-start">
+    <div class="info-section-heading"><p class="info-kicker">Bắt đầu từ nhu cầu của bạn</p><h2 id="about-start">Từ tìm kiếm đến xem phòng</h2></div>
+    <ol class="info-steps">
+      <li><span class="info-step-number">01</span><h3>Chọn khu vực và mức giá</h3><p>Dùng bộ lọc để thu hẹp danh sách phòng theo nhu cầu sinh hoạt và ngân sách của bạn.</p></li>
+      <li><span class="info-step-number">02</span><h3>Xem và lưu phòng phù hợp</h3><p>Đọc thông tin, xem tư liệu của từng phòng và lưu những phòng bạn muốn tìm hiểu thêm.</p></li>
+      <li><span class="info-step-number">03</span><h3>Liên hệ để trao đổi</h3><p>Gửi mã phòng, tên tòa nhà và thời gian bạn muốn xem để trao đổi về tình trạng phòng và các chi phí cụ thể.</p></li>
+    </ol>
+  </section>
+
+  <section class="info-callout"><div><h2>Phòng phù hợp bắt đầu từ nhu cầu của bạn</h2><p>Xem danh sách phòng đang cho thuê hoặc liên hệ để trao đổi thêm.</p></div><a class="btn primary" href="{% url 'public-rooms' %}">Tìm phòng <i data-lucide="arrow-right" aria-hidden="true"></i></a></section>
+</div>
+{% endblock %}

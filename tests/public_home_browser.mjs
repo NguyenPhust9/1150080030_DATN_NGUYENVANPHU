@@ -46,8 +46,8 @@ try {
   const nav = page.locator('#public-nav');
   await expect(nav.locator('a[href="/"]')).toBeVisible();
   await expect(nav.locator('a[href="/phong-cho-thue/"]')).toBeVisible();
-  await expect(nav.locator('a[href="/#gioi-thieu"]')).toBeVisible();
-  await expect(nav.locator('a[href="#lien-he"]')).toBeVisible();
+  await expect(nav.locator('a[href="/ve-chung-toi/"]')).toBeVisible();
+  await expect(nav.locator('a[href="/lien-he/"]')).toBeVisible();
   await expect(page.locator('.login-cta')).toBeVisible();
   await expect(page.locator('.public-footer a[href^="tel:"]')).toHaveAttribute('href', 'tel:0902966704');
   await expect(page.locator('.public-footer a[href^="mailto:"]')).toHaveAttribute('href', 'mailto:1150080030@sv.hcmunre.edu.vn');

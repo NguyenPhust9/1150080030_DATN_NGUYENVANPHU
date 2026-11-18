@@ -135,7 +135,7 @@ class PublicHomeTests(TestCase):
         links = {attrs.get("href") for attrs in elements.attributes("a")}
         self.assertTrue({
             reverse("public-home"), reverse("public-rooms"),
-            f'{reverse("public-home")}#gioi-thieu', "#lien-he",
+            reverse("public-about"), reverse("public-contact"),
             f'{reverse("public-rooms")}?favorites=1', reverse("login"),
             "tel:0902966704", "mailto:1150080030@sv.hcmunre.edu.vn",
         }.issubset(links))
@@ -167,3 +167,57 @@ class PublicHomeTests(TestCase):
         self.client.force_login(tenant)
         response = self.client.get(reverse("public-home"))
         self.assertContains(response, f'href="{reverse("tenant-portal")}"')
+
+
+class PublicInformationPageTests(TestCase):
+    pages = (
+        ("public-about", "public/about.html", "Về chúng tôi"),
+        ("public-contact", "public/contact.html", "Liên hệ"),
+    )
+
+    def test_guests_can_read_pages_and_reach_search_favorites_and_login(self):
+        for route, template, label in self.pages:
+            with self.subTest(route=route):
+                response = self.client.get(reverse(route))
+                self.assertEqual(response.status_code, 200)
+                self.assertTemplateUsed(response, template)
+                self.assertContains(response, label)
+                elements = HomepageElements(response.content.decode())
+                self.assertEqual(len(elements.attributes("h1")), 1)
+                links = {attrs.get("href") for attrs in elements.attributes("a")}
+                self.assertTrue({
+                    reverse("public-home"), reverse("public-rooms"),
+                    reverse("public-about"), reverse("public-contact"),
+                    f'{reverse("public-rooms")}?favorites=1', reverse("login"),
+                }.issubset(links))
+                active_links = [attrs.get("href") for attrs in elements.attributes("a")
+                                if attrs.get("aria-current") == "page"]
+                self.assertEqual(active_links, [reverse(route)])
+
+    def test_contact_page_links_to_existing_phone_and_email(self):
+        response = self.client.get(reverse("public-contact"))
+        elements = HomepageElements(response.content.decode())
+        links = {attrs.get("href") for attrs in elements.attributes("a")}
+        self.assertIn("tel:0902966704", links)
+        self.assertTrue(any(
+            href and href.split("?", 1)[0] == "mailto:1150080030@sv.hcmunre.edu.vn"
+            for href in links
+        ))
+        # A contact page must not offer an unimplemented form submission.
+        self.assertFalse(any(
+            attrs.get("method", "get").lower() == "post"
+            for attrs in elements.attributes("form")
+        ))
+
+    def test_signed_in_users_keep_their_role_specific_system_links(self):
+        for role, destination in (("owner", "dashboard"), ("tenant", "tenant-portal")):
+            user = get_user_model().objects.create_user(
+                username=f"information-{role}", password="test-only", role=role
+            )
+            self.client.force_login(user)
+            for route, template, label in self.pages:
+                with self.subTest(role=role, route=route):
+                    response = self.client.get(reverse(route))
+                    self.assertEqual(response.status_code, 200)
+                    self.assertContains(response, f'href="{reverse(destination)}"')
+            self.client.logout()

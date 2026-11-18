@@ -7,6 +7,7 @@ urlpatterns = [
     path("phong-cho-thue/", views.public_rooms, name="public-rooms"),
     path("phong-cho-thue/<uuid:room_id>/", views.public_room_detail, name="public-room-detail"),
     path("ve-chung-toi/", views.public_about, name="public-about"),
+    path("lien-he/", views.public_contact, name="public-contact"),
     path("quan-ly/", views.dashboard, name="dashboard"),
     path("toa-nha/", views.object_list, {"resource": "buildings"}, name="buildings"),
     path("toa-nha/them/", views.object_create, {"resource": "buildings"}, name="building-create"),
