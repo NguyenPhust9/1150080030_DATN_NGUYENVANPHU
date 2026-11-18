@@ -27,8 +27,9 @@ def main():
         call_command("migrate", verbosity=0)
         owner = get_user_model().objects.create_user("indoor-preview", password="local-preview-only", role="owner")
         building = Building.objects.create(name="Tòa nhà mẫu", address="Dữ liệu kiểm thử", owner=owner)
-        for number in ("A01", "F1-01", "F1-02", "F1-03", "F1-04"):
-            Room.objects.create(building=building, number=number, floor=1, monthly_rent=3200000)
+        for floor in range(1, 6):
+            for slot in range(1, 6):
+                Room.objects.create(building=building, number=f"A{floor}0{slot}", floor=floor, monthly_rent=3200000)
         call_command("seed_indoor_map", building_id=str(building.id))
         indoor = IndoorMap.objects.get(building=building)
         call_command("build_demo_floorplan", map_id=str(indoor.id), backup_dir=directory)

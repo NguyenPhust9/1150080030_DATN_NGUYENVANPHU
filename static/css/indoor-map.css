@@ -1,4 +1,4 @@
-.indoor-workspace{--im-blue:#5265df;--im-line:#e6eaf0;--im-muted:#7a8493;color:#29364a;min-width:0;font-size:13px}
+.indoor-workspace{--im-blue:#b84d20;--im-line:#e6e7df;--im-muted:#7a8493;color:#29364a;min-width:0;font-size:13px}
 .indoor-workspace *{box-sizing:border-box}.indoor-workspace [hidden]{display:none!important}
 .indoor-workspace button,.indoor-workspace input,.indoor-workspace select{font:inherit}.indoor-workspace button{cursor:pointer}.indoor-workspace button:disabled{opacity:.5;cursor:wait}
 .indoor-workspace svg{width:17px;height:17px;flex-shrink:0}.indoor-workspace :is(button,a,input,select,summary):focus-visible{outline:3px solid #aab5ff;outline-offset:3px}

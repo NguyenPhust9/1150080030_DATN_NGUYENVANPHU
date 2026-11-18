@@ -154,10 +154,14 @@ def scene_for_map(indoor, start_id="", end_id=""):
 
 @login_required
 def indoor_map_list(request):
-    maps = IndoorMap.objects.select_related("building").filter(
-        building__in=get_accessible_buildings(request.user)
-    ).order_by("building__name", "floor")
-    return render(request, "rentals/indoor_map_list.html", {"maps": maps})
+    from .permissions import get_accessible_rooms
+    buildings = list(get_accessible_buildings(request.user).order_by("name"))
+    rooms = list(get_accessible_rooms(request.user).values("building_id", "floor"))
+    for building in buildings:
+        visible = [room for room in rooms if room["building_id"] == building.id]
+        building.map_floor_count = len({room["floor"] for room in visible})
+        building.map_room_count = len(visible)
+    return render(request, "rentals/indoor_map_list.html", {"buildings": buildings})
 
 
 @login_required
@@ -166,41 +170,23 @@ def indoor_map(request, map_id):
         IndoorMap.objects.select_related("building").filter(building__in=get_accessible_buildings(request.user)),
         pk=map_id,
     )
-    scene = scene_for_map(indoor, request.GET.get("start", ""), request.GET.get("end", ""))
+    # Legacy JSON clients retain saved coordinates; HTML uses the new geometry.
     if request.GET.get("format") == "json":
-        return JsonResponse(scene)
-    nodes = list(indoor.nodes.select_related("room"))
-    edges = list(indoor.edges.select_related("start", "end"))
-    zones = list(indoor.zones.select_related("room"))
-    hazards = list(indoor.hazards.filter(is_active=True).select_related("zone", "camera"))
-    blocked_zones = [hazard.zone for hazard in hazards]
-    for zone in zones:
-        zone.is_hazardous = any(hazard.zone_id == zone.id for hazard in hazards)
-        zone.has_simulation = any(hazard.zone_id == zone.id and hazard.is_simulation for hazard in hazards)
-    for node in nodes:
-        node.is_hazardous = any(point_in_zone(node.x, node.y, zone) for zone in blocked_zones)
-    for edge in edges:
-        edge.is_hazardous = any(segment_intersects_zone(edge.start, edge.end, zone) for zone in blocked_zones)
-    start_id = request.GET.get("start", "")
-    path_ids = [point["id"] for point in scene["route"]["points"]]
-    by_id = {str(node.id): node for node in nodes}
-    route_points = " ".join(f"{by_id[node_id].x},{by_id[node_id].y}" for node_id in path_ids)
-    return render(request, "rentals/indoor_map.html", {
-        "indoor_map": indoor,
-        "nodes": nodes,
-        "edges": edges,
-        "zones": zones,
-        "hazards": hazards,
-        "safety_devices": indoor.safety_devices.all(),
-        "cameras": indoor.cameras.select_related("zone").all(),
-        "can_simulate": is_admin(request.user) or is_owner(request.user),
-        "start_id": start_id,
-        "route_points": route_points,
-        "route_found": bool(path_ids),
-        "scene_data": scene,
-        "end_id": request.GET.get("end", ""),
-        "floor_maps": IndoorMap.objects.filter(building=indoor.building).order_by("floor"),
-    })
+        return JsonResponse(scene_for_map(indoor, request.GET.get("start", ""), request.GET.get("end", "")))
+    from .building_map import building_scene
+    params = request.GET.copy()
+    params.setdefault("floor", str(indoor.floor))
+    for key in ("start", "end"):
+        try:
+            legacy = indoor.nodes.filter(pk=uuid.UUID(params.get(key, ""))).first()
+        except (ValueError, AttributeError):
+            legacy = None
+        if legacy and legacy.room_id:
+            params[key] = f"room:{legacy.room_id}"
+        elif legacy:
+            params[key] = ""
+    scene = building_scene(indoor.building, request.user, params)
+    return render(request, "rentals/indoor_map.html", {"scene_data": scene, "building": indoor.building})
 
 
 @login_required

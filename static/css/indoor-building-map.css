@@ -1,0 +1,40 @@
+.indoor-map-stage { background: #eeeee7; }
+.indoor-workspace .indoor-floor-switcher button { display:flex;align-items:center;gap:5px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:#647362;font-size:11px;white-space:nowrap; }
+.indoor-workspace .indoor-floor-switcher .is-active,
+.indoor-workspace .indoor-view-switcher .is-active { background:#f4e9dc;color:#a44b24; }
+.indoor-workspace .indoor-floor-switcher button:first-child { border-right:1px solid #e5e4da;border-radius:6px 0 0 6px; }
+.indoor-floor-switcher { max-width:calc(100% - 130px); }
+.indoor-workspace .indoor-floor-switcher svg { width:14px;height:14px; }
+.indoor-map-context { position:absolute;top:76px;left:20px;right:20px;color:#7f887b;font-size:11px;pointer-events:none;line-height:1.5; }
+.indoor-workspace .map-poi-label { font-size:11px;color:#405343;background:#fffdf6f2;border-color:#d8d5c6; }
+.indoor-workspace .map-poi-label.is-floor { font-size:11px;border-left:3px solid #789780;padding:8px 10px; }
+.indoor-workspace .map-poi-label.is-lift { color:#386950;background:#eaf4edf5;border-color:#b9cfbf; }
+.indoor-workspace .map-poi-label.is-selected { background:#a8542d;color:white;border-color:#a8542d; }
+.indoor-workspace .map-poi-label.is-hazard { background:#ffe3d8;color:#a6472a;border-color:#d6836b; }
+.indoor-map-legend .legend-lift { background:#8caa9a; }
+.indoor-workspace .indoor-directory-item > span:last-child { display:grid;gap:4px; }
+.indoor-directory-item strong { font-size:12px;font-weight:500; }
+.indoor-directory-item small { color:#8a9387;font-size:10px; }
+.indoor-place-icon { display:grid;place-items:center;width:30px;height:32px;flex-shrink:0;border-radius:7px;background:#f0f2eb;color:#6d826f;font-size:20px; }
+.indoor-directory-item.is-selected { background:#f5ebdc!important;border-color:#e9d5b9!important; }
+.indoor-workspace .indoor-primary-button:hover { background:#9e411c; }
+.indoor-route-summary strong { color:#8b4d29; }
+.indoor-workspace .indoor-route-step { padding:0;border:0;background:transparent;text-align:left;color:#63705e;font-size:11px;line-height:1.6; }
+.indoor-workspace .indoor-route-step:hover { text-decoration:underline; }
+.indoor-selection { background:#f7f7ef; }
+.indoor-selection-actions, .indoor-lift-floors { display:flex;flex-wrap:wrap;gap:6px; }
+.indoor-selection button { border-color:#d9dccb;color:#607257; }
+.indoor-hazard-row { display:flex;align-items:center;justify-content:space-between;gap:8px;margin:10px 0; }
+.indoor-map-warnings { padding:12px 16px;border-left:3px solid #bd774d;background:#fbf0e5;color:#845b3a;font-size:12px;line-height:1.6; }
+@media (max-width:500px) { .indoor-map-navigation { display:flex;flex-direction:row; }.indoor-map-navigation [data-map-action="rotate"]:disabled { display:none; } }
+#map-fallback { background:#eeeee7;padding:90px 45px 70px 20px;overflow:auto; }
+#map-fallback .indoor-plan-svg { display:block;width:100%;height:100%;min-height:0; }
+#map-fallback.is-overview { display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-content:start; }
+.indoor-plan-card { background:#faf9f1;border:1px solid #dcddcf;border-radius:10px;padding:10px;min-width:0; }
+.indoor-workspace .indoor-plan-card > button { border:0;background:transparent;color:#526448;font-size:12px;font-weight:600;padding:3px 6px; }
+#map-fallback .indoor-plan-card .indoor-plan-svg { height:190px; }
+.indoor-workspace [role="button"]:focus-visible { outline:2px solid #b55c30;outline-offset:2px; }
+@media (min-width:1200px) { .indoor-layout { grid-template-columns:280px minmax(0,1fr); } }
+@media (max-width:1200px) and (min-width:801px) { .indoor-map-topbar { flex-wrap:wrap; }.indoor-floor-switcher { max-width:100%; }.indoor-map-context { top:112px; } }
+@media (max-width:800px) { .indoor-map-stage { min-height:530px; }.indoor-map-topbar { gap:8px; }.indoor-floor-switcher { max-width:calc(100% - 105px); }.indoor-workspace .indoor-floor-switcher button { padding:7px 8px; } }
+@media (max-width:500px) { .indoor-map-stage { min-height:460px; }.indoor-map-topbar { flex-wrap:wrap; }.indoor-floor-switcher { max-width:100%;width:100%;flex-wrap:nowrap;overflow-x:auto; }.indoor-workspace .indoor-floor-switcher button { padding:8px; }.indoor-view-switcher { margin-left:auto; }.indoor-map-context { top:104px;left:14px;right:14px;font-size:10px; }#map-fallback { padding:128px 15px 60px; }#map-fallback.is-overview { grid-template-columns:1fr; }.indoor-map-legend { left:10px;bottom:10px; }.indoor-map-navigation { right:10px;bottom:65px; } }
