@@ -24,9 +24,9 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }, { createBuildingNavigation }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=landscape-1"),
+    import("./room-tour-world.js?v=enclosed-entry-1"),
     import("./walkthrough-avatar.js?v=a105-tour-1"),
-    import("./walkthrough-motion.js?v=building-tour-1"),
+    import("./walkthrough-motion.js?v=enclosed-entry-1"),
     import("./building-tour-navigation.js?v=building-tour-1"),
   ]);
   const scene = new THREE.Scene();
@@ -91,6 +91,8 @@ try {
   const tour = document.getElementById("room-tour");
   let mapScaleX = 186 / (world.bounds.maxX - world.bounds.minX + .6);
   const mapX = x => 110 + (x - corridorCenterX) * mapScaleX;
+  const mapZ = z => !world.entrance ? 134 + z * 18
+    : z <= 3.7 ? 104 + z * 13 : 152.1 + (z - 3.7) * 1.5;
   tour.dataset.viewMode = "third-person";
   tour.dataset.floor = activeFloor;
   const roomDetails = new Map(config.roomDetails.map(room => [room.number, room]));
@@ -355,14 +357,20 @@ try {
     const room = world.nearestRoom(player.position.x, player.position.z);
     const inside = !!world.roomAt(player.position.x, player.position.z) && player.position.z < -0.2;
     const atElevator = nearElevator();
+    const outside = !!world.entrance && player.position.z > 3.8;
+    const atEntrance = !!world.entrance && !outside && player.position.z > .3
+      && Math.abs(player.position.x - world.entrance.x) < 1.5;
     const level = motion.state.level;
     const zone = level === "stairs" ? `Cầu thang · Phòng ${room.number}`
       : level === "loft" ? `Gác lửng · Phòng ${room.number}`
+      : outside ? 'Lối đi ngoài sân · Cổng chính' : atEntrance ? 'Sảnh vào tòa nhà'
       : atElevator ? `Thang máy · Tầng ${activeFloor}` : inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
     const nearStairs = inside && !!room.stairs && level === "ground" && Math.hypot(player.position.x - (room.stairs.minX + room.stairs.maxX) / 2, player.position.z - room.stairs.bottomZ) < 1.25;
     const hint = level === "stairs" ? "Giữ W để lên · S để xuống · Space nhảy"
       : level === "loft" ? "Gác lửng · Về đầu cầu thang để xuống"
       : nearStairs ? "Tới chân cầu thang · Giữ W để lên gác"
+      : outside ? 'Theo lối đi có mái che để vào sảnh tòa nhà'
+      : atEntrance ? 'Vào hành lang để tới phòng · Lối ra sân ở phía cửa chính'
       : atElevator ? "Nhấn F hoặc nút thang máy để chọn tầng"
       : inside ? "WASD di chuyển · Space để nhảy" : `Đi tới cửa ${room.number} để vào phòng`;
     if (zone !== lastZone) {
@@ -381,11 +389,12 @@ try {
         : 'Phỏng dựng từ ảnh và video · Kích thước ước lượng';
     const noteElement = document.getElementById('tour-model-note');
     if (noteElement.textContent !== modelNote) noteElement.textContent = modelNote;
-    const heading = atElevator ? `Thang máy · Tầng ${activeFloor}` : `Phòng ${currentRoom}`;
+    const heading = outside ? 'Sân tòa nhà' : atEntrance ? 'Sảnh tòa nhà'
+      : atElevator ? `Thang máy · Tầng ${activeFloor}` : `Phòng ${currentRoom}`;
     if (document.getElementById('tour-room-name').textContent !== heading) document.getElementById('tour-room-name').textContent = heading;
     navigation.update({ floor: activeFloor, room: currentRoom, inside, nearElevator: atElevator && !traveling });
     const x = mapX(player.position.x);
-    const y = 134 + player.position.z * 18;
+    const y = mapZ(player.position.z);
     mapPlayer.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-yaw * 180 / Math.PI).toFixed(1)})`);
     // Position data also makes the accessible mini-map inspectable without reading WebGL internals.
     mapPlayer.dataset.x = player.position.x.toFixed(3);
@@ -395,6 +404,7 @@ try {
     mapPlayer.dataset.level = level;
     mapPlayer.dataset.room = currentRoom;
     mapPlayer.dataset.floor = activeFloor;
+    mapPlayer.dataset.zone = outside ? 'outside' : atEntrance ? 'entrance' : inside ? 'room' : atElevator ? 'elevator' : 'corridor';
   }
 
   function frame(now) {
@@ -438,24 +448,31 @@ try {
   resize();
   function renderMiniMap(destination = navigation.destination) {
     const escapeXml = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
-    let markup = '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="190">Hành lang</text>';
+    const hallTop = mapZ(0), hallBottom = mapZ(3.7);
+    let markup = `<rect x="${mapX(world.corridorBounds.minX)}" y="${hallTop}" width="${(world.corridorBounds.maxX - world.corridorBounds.minX) * mapScaleX}" height="${hallBottom - hallTop}" rx="2" class="map-floor"/><text x="110" y="${hallBottom - 8}">Hành lang</text>`;
+    if (world.entrance) {
+      const { path, porch } = world.enclosure;
+      for (const area of [porch, path]) markup += `<rect x="${mapX(area.minX)}" y="${mapZ(area.minZ)}" width="${(area.maxX - area.minX) * mapScaleX}" height="${mapZ(area.maxZ) - mapZ(area.minZ)}" class="map-floor"/>`;
+      markup += `<text x="${mapX(world.entrance.x)}" y="${hallBottom + 12}">Lối vào</text><text x="${mapX(world.landscape.centerX)}" y="211">Cổng chính</text>`;
+      if (destination) markup += `<path d="M ${mapX(world.landscape.centerX)} ${mapZ(33)} V${mapZ(6.1)} H${mapX(world.entrance.x)} V${mapZ(2.4)} H${mapX(world.rooms.find(room => room.number === destination.number)?.doorX ?? world.elevator.x)}" class="map-route"/>`;
+    }
     markup += world.rooms.map(room => {
       const x = mapX(room.minX), width = (room.maxX - room.minX) * mapScaleX;
       const roomClass = destination?.number === room.number ? 'map-destination' : 'map-floor';
       let detail = '';
       if (room.loft && room.stairs) {
-        detail = `<path d="M ${x} ${134 + room.loft.maxZ * 18} h ${width}" class="map-line"/><rect x="${mapX(room.stairs.minX)}" y="${134 + room.stairs.topZ * 18}" width="${(room.stairs.maxX - room.stairs.minX) * mapScaleX}" height="${(room.stairs.bottomZ - room.stairs.topZ) * 18}" rx="2" class="map-furniture"/>`;
-      } else detail = `<rect x="${x + width * .14}" y="55" width="${width * .45}" height="40" rx="2" class="map-furniture"/>`;
-      return `<rect x="${x}" y="15" width="${width}" height="119" class="${roomClass}"/><text x="${x + width / 2}" y="35">${escapeXml(room.number)}</text>${detail}`;
+        detail = `<path d="M ${x} ${mapZ(room.loft.maxZ)} h ${width}" class="map-line"/><rect x="${mapX(room.stairs.minX)}" y="${mapZ(room.stairs.topZ)}" width="${(room.stairs.maxX - room.stairs.minX) * mapScaleX}" height="${mapZ(room.stairs.bottomZ) - mapZ(room.stairs.topZ)}" rx="2" class="map-furniture"/>`;
+      } else detail = `<rect x="${x + width * .14}" y="${mapZ(-4.4)}" width="${width * .45}" height="${mapZ(-2.2) - mapZ(-4.4)}" rx="2" class="map-furniture"/>`;
+      return `<rect x="${x}" y="${mapZ(-6.6)}" width="${width}" height="${hallTop - mapZ(-6.6)}" class="${roomClass}"/><text x="${x + width / 2}" y="${mapZ(-6.6) + 20}">${escapeXml(room.number)}</text>${detail}`;
     }).join('');
     if (world.elevator) {
       const lift = world.elevator;
-      markup += `<rect x="${mapX(lift.minX)}" y="${134 + lift.minZ * 18}" width="${(lift.maxX - lift.minX) * mapScaleX}" height="${(lift.maxZ - lift.minZ) * 18}" rx="2" class="map-elevator"/><text x="${mapX(lift.x)}" y="${130 + lift.z * 18}">⇅</text>`;
+      markup += `<rect x="${mapX(lift.minX)}" y="${mapZ(lift.minZ)}" width="${(lift.maxX - lift.minX) * mapScaleX}" height="${mapZ(lift.maxZ) - mapZ(lift.minZ)}" rx="2" class="map-elevator"/><text x="${mapX(lift.x)}" y="${mapZ(lift.z) - 4}">⇅</text>`;
       if (destination) {
         const targetRoom = world.rooms.find(room => room.number === destination.number);
         const x = targetRoom ? mapX(targetRoom.doorX) : mapX(player.position.x);
-        const liftX = mapX(lift.x), hallY = 172;
-        markup += `<path d="M ${x} ${targetRoom ? 122 : hallY} V${hallY} H${liftX}" class="map-route"/>`;
+        const liftX = mapX(lift.x), hallY = mapZ(2.4);
+        markup += `<path d="M ${x} ${targetRoom ? mapZ(-.72) : hallY} V${hallY} H${liftX}" class="map-route"/>`;
       }
     }
     document.getElementById('map-geometry').innerHTML = markup;

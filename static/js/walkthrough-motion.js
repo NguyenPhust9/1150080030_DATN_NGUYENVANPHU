@@ -26,6 +26,7 @@ export function createWalkthroughMotion(world, position, { radius = .2, bodyHeig
   }
   function canOccupy(x, z, y, level = state.level, activeStairs = stairRoom) {
     if (x < world.bounds.minX || x > world.bounds.maxX || z < world.bounds.minZ || z > world.bounds.maxZ) return false;
+    if (world.isWalkable && !world.isWalkable(x, z, radius)) return false;
     const room = world.roomAt(x, z);
     if (z < 0 && (!room || x < room.minX + radius || x > room.maxX - radius)) return false;
     if (level === 'loft' && (!room?.loft || z > room.loft.maxZ - radius || z < room.loft.minZ + radius)) return false;

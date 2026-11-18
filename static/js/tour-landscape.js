@@ -1,5 +1,5 @@
 // An illustrative courtyard and neighbourhood, not a survey of the real address.
-// Static instances share geometry/materials and stay outside the playable landing.
+// Static instances share geometry/materials; the central walk connects to the entrance.
 export function buildTourLandscape(THREE, parent, { activeFloor = 1, lowestFloor = 1, centerX = -7.2 } = {}) {
   const group = new THREE.Group();
   group.name = 'tour-landscape';
@@ -119,8 +119,8 @@ export function buildTourLandscape(THREE, parent, { activeFloor = 1, lowestFloor
       box('metal', x, 2.98, z, .4, .06, .4);
     }
   }
-  // Low boundary wall and an open central gate; the play area still ends at the
-  // existing landing railing, so none of these need navigation/collision meshes.
+  // The walkable central path passes through this open gate. Planting, lamps and
+  // boundary walls remain outside that path and need no extra collision meshes.
   for (const side of [-1, 1]) {
     const x = centerX + side * 18.5;
     box('plaster', x, .43, 29.45, 29, .86, .32);

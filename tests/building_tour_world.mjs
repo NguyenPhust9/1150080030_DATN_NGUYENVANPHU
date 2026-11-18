@@ -193,7 +193,7 @@ test('landscape never enters the walkable corridor or takes over the follow came
     });
     const outdoorBounds = new THREE.Box3().setFromObject(world.landscape.group);
     assert.ok(!outdoorBounds.isEmpty());
-    assert.ok(outdoorBounds.min.z > world.bounds.maxZ, 'trees and buildings stay outside the playable corridor');
+    assert.ok(outdoorBounds.min.z > world.corridorBounds.maxZ, 'trees and buildings stay outside the enclosed corridor');
     assert.ok(!world.cameraObstacles.some(item => landscapeObjects.has(item)), 'distant scenery cannot force the camera into the avatar');
     const position = { ...world.rooms[0].spawn };
     const motion = createWalkthroughMotion(world, position);
@@ -278,5 +278,96 @@ test('additional room codes cannot overlap preserved A101–A105 slots', () => {
   const { world } = fixture({ rooms: mixed.map(room => room.number), roomDetails: mixed, entryRoom: 'A103' });
   assert.deepEqual(world.rooms.map(room => room.offsetX), [-7.2, -14.4, -18]);
   for (let i = 1; i < world.rooms.length; i++) assert.ok(world.rooms[i].maxX < world.rooms[i - 1].minX);
+  world.dispose();
+});
+
+test('the front wall, windows, corridor ends and ceiling enclose every active floor', () => {
+  for (const floor of [1, 2, 5]) {
+    const { world } = fixture({ activeFloor: floor });
+    world.group.updateMatrixWorld(true);
+    const x = world.rooms[0].spawn.x;
+    // The same collision applies at standing and jumping height, including glazing.
+    for (const y of [0, .7]) {
+      const position = { x, y, z: 2.4 };
+      const motion = createWalkthroughMotion(world, position);
+      if (y) motion.requestJump();
+      for (let i = 0; i < 150; i++) motion.step(1 / 60, { forward: -1 });
+      assert.ok(position.z < 3.5, `floor ${floor}: the front enclosure cannot be crossed`);
+    }
+    for (const direction of [new THREE.Vector3(0, 0, 1), new THREE.Vector3(1, 0, 0), new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 1, 0)]) {
+      const ray = new THREE.Raycaster(new THREE.Vector3(x, 1.4, 2.4), direction, 0, 40);
+      assert.ok(ray.intersectObjects(world.enclosure.cameraObstacles).length, `floor ${floor}: the camera must stay inside the envelope`);
+    }
+    near(world.ceilingAt(x, 2.4), 4.36);
+    if (floor > 1) assert.equal(world.entrance, null);
+    world.dispose();
+  }
+});
+
+test('walk from the street through the main entrance to every original room and back', () => {
+  const { world } = fixture();
+  const position = { x: world.landscape.centerX, y: world.groundAt(world.landscape.centerX, 33), z: 33 };
+  const motion = createWalkthroughMotion(world, position);
+  const step = input => motion.step(1 / 60, input);
+  const reach = (axis, target) => {
+    for (let i = 0; i < 2400 && Math.abs(position[axis] - target) > .03; i++) {
+      const sign = Math.sign(target - position[axis]);
+      step(axis === 'x' ? { strafe: sign } : { forward: -sign });
+    }
+    assert.ok(Math.abs(position[axis] - target) <= .03, `${axis}: could not reach ${target}, stopped at ${position[axis]}`);
+  };
+  reach('z', 6.1); reach('x', world.entrance.x); reach('z', 2.4);
+  near(position.y, 0);
+  for (const room of world.rooms) {
+    room.door.rotation.y = Math.PI / 2;
+    reach('x', room.doorX); reach('z', -1.5);
+    assert.equal(world.roomAt(position.x, position.z), room);
+    reach('z', 2.4);
+  }
+  reach('x', world.entrance.x); reach('z', 6.1); reach('x', world.landscape.centerX); reach('z', 33);
+  assert.ok(position.y > 0 && position.y < .1);
+  for (let i = 0; i < 200; i++) step({ strafe: 1 });
+  assert.ok(position.x <= world.enclosure.path.maxX - .2, 'cannot walk off the paved route into scenery');
+  world.dispose();
+});
+
+test('outside destination routes pass through the entrance and remain above the pavement', () => {
+  const { world } = fixture();
+  for (const number of ['A105', 'A303']) {
+    assert.equal(world.setDestination(number, { x: world.landscape.centerX, z: 32 }), true);
+    const route = world.group.getObjectByName(`route-to-${number}`);
+    assert.ok(route.children.some(mesh => mesh.position.z > 25 && mesh.position.y > .1));
+    assert.ok(route.children.some(mesh => Math.abs(mesh.position.x - world.entrance.x) < .01 && mesh.position.z > 3.7 && mesh.position.z < 6.1));
+    const marker = route.children.at(-1);
+    near(marker.position.x, number === 'A105' ? world.rooms[4].doorX : world.elevator.x);
+  }
+  world.dispose();
+});
+
+test('a sparse tenant tour has a connected entrance without exposing other rooms', () => {
+  const details = [roomDetails.find(room => room.number === 'A105')];
+  const { world } = fixture({ rooms: ['A105'], roomDetails: details, entryRoom: 'A105' });
+  const position = { x: world.entrance.x, y: 0, z: 2.4 };
+  const motion = createWalkthroughMotion(world, position);
+  for (let i = 0; i < 250; i++) motion.step(1 / 60, { forward: -1 });
+  assert.ok(position.z > 8, 'the single-room entrance is traversable');
+  assert.equal(world.setDestination('A104', position), false);
+  assert.deepEqual(world.rooms.map(room => room.number), ['A105']);
+  world.dispose();
+});
+
+test('the porch cannot be used to walk or jump through glass beside the entrance', () => {
+  const { world } = fixture();
+  for (const side of [-1, 1]) {
+    for (const outside of [false, true]) {
+      const position = { x: world.entrance.x + side * 1.8, y: 0, z: outside ? 5 : 2.4 };
+      const motion = createWalkthroughMotion(world, position);
+      for (let tick = 0; tick < 160; tick++) {
+        if (tick % 45 === 0) motion.requestJump();
+        motion.step(1 / 60, { forward: outside ? 1 : -1 });
+      }
+      assert.ok(outside ? position.z > 3.9 : position.z < 3.5, 'glazing is solid from both sides, including during a jump');
+    }
+  }
   world.dispose();
 });

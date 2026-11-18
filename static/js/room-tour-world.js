@@ -5,6 +5,7 @@ import { buildA104World } from './a104-world.js?v=a105-tour-1';
 import { buildA105World } from './a105-world.js?v=a105-tour-1';
 import { buildGenericRoomWorld } from './generic-room-world.js?v=building-tour-1';
 import { buildTourLandscape } from './tour-landscape.js?v=landscape-1';
+import { buildTourBuildingEnvelope } from './tour-building-envelope.js?v=enclosed-entry-1';
 
 // All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -94,7 +95,6 @@ export function buildRoomTourWorld(THREE, scene, config) {
   }
   box(landingMaxX - .3, 2.25, 0, .6, 4.5, .22, cream, true);
   box(landingCenterX, 4.5, .13, landingWidth, .17, .65, trim);
-  box(landingCenterX, .12, 3.61, landingWidth, .24, .14, cream, true);
   for (const x of [roomMinX + .15, landingMaxX - .15]) box(x, 1.95, .17, .15, 3.9, .5, trim, true);
   const metal = new THREE.MeshStandardMaterial({ color: '#6d7b76', metalness: .5, roughness: .4 });
   const chrome = new THREE.MeshStandardMaterial({ color: '#b6c1bd', metalness: .75, roughness: .25 });
@@ -130,15 +130,9 @@ export function buildRoomTourWorld(THREE, scene, config) {
   const cabLight = new THREE.PointLight(0xfff6df, 8, 5, 2); cabLight.position.set(elevatorX, 2.9, 1.85); scene.add(cabLight);
   const elevator = { x: elevatorX, z: 2.4, minX: elevatorX - 1.05, maxX: openX - .06,
     minZ: .55, maxZ: 3.12, spawn: { x: elevatorX, y: 0, z: 2.4 } };
-  if (floor > 1) {
-    const railMin = openX + .15, railMax = landingMaxX - .2;
-    box((railMin + railMax) / 2, 1.08, 3.56, railMax - railMin, .055, .055, metal, true);
-    for (let x = railMin; x <= railMax; x += 1.15) box(x, .65, 3.56, .04, .9, .04, metal);
-    obstacles.push({ minX: railMin, maxX: railMax, minZ: 3.51, maxZ: 3.61, minY: .2, maxY: 1.1 });
-  }
   // Only cheap exterior slabs and doors represent the other levels; interiors
   // are constructed when the lift arrives there, then disposed on departure.
-  const allFloors = [...new Set(details.map(room => Number(room.floor)))].sort((a, b) => a - b);
+  const allFloors = [...new Set(details.filter(room => allowed.has(room.number)).map(room => Number(room.floor)))].sort((a, b) => a - b);
   const windowMaterial = new THREE.MeshStandardMaterial({ color: '#bbcdc5', roughness: .5 });
   for (const otherFloor of allFloors) {
     if (otherFloor === floor) continue;
@@ -169,6 +163,19 @@ export function buildRoomTourWorld(THREE, scene, config) {
     activeFloor: floor, lowestFloor: Math.min(1, ...allFloors),
     centerX: (Math.min(...landscapeOffsets) + Math.max(...landscapeOffsets)) / 2,
   });
+  const enclosure = buildTourBuildingEnvelope(THREE, owned, {
+    minX: landingMinX, maxX: landingMaxX, liftEdgeX: openX, floor, floors: allFloors,
+    groundFloor: landscape.lowestFloor, pathX: landscape.centerX,
+  });
+  obstacles.push(...enclosure.obstacles);
+  cameraObstacles.push(...enclosure.cameraObstacles);
+  const entrance = enclosure.entrance;
+  if (entrance) {
+    label('LỐI VÀO', 'SẢNH TÒA NHÀ', entrance.x, 3.72, 3.86, 2.3, .72);
+    const exitSign = label('LỐI RA', 'SÂN · CỔNG CHÍNH', entrance.x, 3.72, 3.54, 2.3, .72);
+    exitSign.rotation.y = Math.PI;
+  }
+  const corridorBounds = { minX: landingMinX + .3, maxX: landingMaxX - .3, minZ: -6.4, maxZ: 3.35 };
   // A small planter beside A101 preserves the sunny landing's visual cue.
   if (rooms.some(room => room.number === 'A101')) {
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(.23, .17, .43, 14), trim);
@@ -221,7 +228,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
     function arrow(x, atZ, heading) {
       const shape = new THREE.Shape(); shape.moveTo(-.17, -.19); shape.lineTo(.17, 0); shape.lineTo(-.17, .19); shape.closePath();
       const item = new THREE.Mesh(new THREE.ShapeGeometry(shape), blue);
-      item.rotation.x = -Math.PI / 2; item.rotation.z = heading; item.position.set(x, .055, atZ); route.add(item);
+      item.rotation.x = -Math.PI / 2; item.rotation.z = heading; item.position.set(x, atZ > 3.7 ? .155 : .055, atZ); route.add(item);
     }
     let points;
     if (destination) {
@@ -233,13 +240,25 @@ export function buildRoomTourWorld(THREE, scene, config) {
       points = origin?.z < 0 ? [{ x: startX, z: -.72 }, { x: startX, z: 2.4 }] : [{ x: startX, z: 2.4 }];
       points.push({ x: elevator.x, z: 2.4 });
     }
+    if (entrance && origin?.z > 3.8) {
+      // Outside routes pass through the actual opening, then follow the hallway.
+      const hallwayX = destination?.doorX ?? elevator.x;
+      points = [{ x: origin.x, z: origin.z }];
+      // Turn on the broad apron, clear of both doorway jambs even when starting
+      // immediately outside a window or beside the entrance.
+      points.push({ x: origin.x, z: 6.1 }, { x: entrance.x, z: 6.1 },
+        { x: entrance.x, z: 2.4 }, { x: hallwayX, z: 2.4 });
+      if (destination) points.push({ x: destination.doorX, z: -.72 });
+    }
     for (let i = 1; i < points.length; i++) {
       const from = points[i - 1], to = points[i], dx = to.x - from.x, dz = to.z - from.z;
       const distance = Math.hypot(dx, dz);
       if (distance < .01) continue;
       const centerX = (from.x + to.x) / 2, centerZ = (from.z + to.z) / 2;
-      strip(centerX, centerZ, Math.abs(dx) || .21, Math.abs(dz) || .21, white, .034);
-      strip(centerX, centerZ, Math.abs(dx) || .13, Math.abs(dz) || .13, blue, .041);
+      // Keep route markings above the raised courtyard paving.
+      const height = centerZ > 3.7 ? .1 : 0;
+      strip(centerX, centerZ, Math.abs(dx) || .21, Math.abs(dz) || .21, white, height + .034);
+      strip(centerX, centerZ, Math.abs(dx) || .13, Math.abs(dz) || .13, blue, height + .041);
       for (let step = Math.min(.8, distance / 2); step < distance - .2; step += 2.1) {
         arrow(from.x + dx * step / distance, from.z + dz * step / distance, Math.atan2(-dz, dx));
       }
@@ -253,14 +272,17 @@ export function buildRoomTourWorld(THREE, scene, config) {
   if (!entry) throw new Error('No accessible walkthrough room');
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
   return {
-    group: owned, floor, rooms, obstacles, cameraObstacles, elevator, landscape, spawn: entry.spawn, setDestination,
-    bounds: { minX: landingMinX + .3, maxX: landingMaxX - .3, minZ: -6.4, maxZ: 3.35 },
+    group: owned, floor, rooms, obstacles, cameraObstacles, elevator, landscape, enclosure, entrance, corridorBounds, spawn: entry.spawn, setDestination,
+    bounds: entrance ? { ...corridorBounds, minX: Math.min(corridorBounds.minX, enclosure.porch.minX + .2),
+      maxX: Math.max(corridorBounds.maxX, enclosure.porch.maxX - .2), maxZ: enclosure.path.maxZ - .2 } : corridorBounds,
+    isWalkable: (x, z, radius) => enclosure.contains(x, z, radius),
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),
-    groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : 0,
+    groundAt: (x, z) => roomAt(x, z)?.number === 'A101' && z < -5.1 ? .15 : enclosure.groundAt(z),
     ceilingAt: (x, z, level = 'ground') => {
       const room = roomAt(x, z);
       if (x >= elevator.minX && x <= elevator.maxX && z >= elevator.minZ && z <= elevator.maxZ) return 3.25;
+      if (!room) return enclosure.ceilingAt(x, z);
       if (room && !room.loft) return room.ceiling.roomHeight;
       if (room && level !== 'ground') return room.loft.ceilingY;
       // A102's bathroom lintel is lower than its mezzanine beams. Include the
