@@ -171,11 +171,6 @@
 .home-discovery .empty-state { border-color: var(--home-line); padding: 40px 24px; background: #fff; color: var(--home-secondary); }
 .home-discovery .empty-state h3 { color: var(--home-ink); font-weight: 500; }
 .home-discovery .empty-state a { color: var(--home-orange); }
-.home-discovery .public-footer { align-items: flex-start; gap: 32px; padding: 32px max(32px, calc((100vw - 1440px) / 2 + 32px)); border-top: 1px solid var(--home-line); background: #eeece6; color: var(--home-ink); scroll-margin-top: 88px; }
-.home-discovery .public-footer strong { color: var(--home-ink); font-weight: 500; }
-.home-discovery .public-footer p, .home-discovery .public-footer span { color: var(--home-secondary) !important; line-height: 1.7; font-size: 13px; }
-.home-discovery .public-footer span { max-width: 440px; overflow-wrap: anywhere; }
-.home-discovery .public-footer a { text-underline-offset: 4px; }
 
 @media (max-width: 1440px) {
   .home-discovery .benefit-strip { margin-inline: 32px; }
@@ -226,7 +221,6 @@
   .home-building-marker { width: 40px; height: 40px; font-size: 18px; }
   .home-discovery .building-info h3 { font-size: 20px; }
   .home-discovery .building-info > div span:nth-child(3) { display: inline-flex; }
-  .home-discovery .public-footer { padding: 24px 20px; display: grid; gap: 16px; }
 }
 @media (max-width: 600px) {
   .home-discovery .public-header { gap: 8px; padding: 12px 16px; }
@@ -273,7 +267,6 @@
   .home-discovery .room-carousel-controls > span { gap: 4px; }
   .home-discovery .room-carousel-buttons { gap: 4px; }
   .home-discovery .room-carousel-buttons button { width: 44px; height: 44px; }
-  .home-discovery .public-footer { padding-inline: 16px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .home-discovery *, .home-discovery *::before, .home-discovery *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }

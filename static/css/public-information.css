@@ -1,4 +1,5 @@
 .information-page { max-width: 1328px; margin: 0 auto; padding: 32px 32px 64px; }
+.information-page [id] { scroll-margin-top: 104px; }
 .information-page :is(h1, h2, h3, p) { margin-top: 0; }
 .information-page p { color: var(--home-secondary); line-height: 1.75; margin-bottom: 16px; }
 .information-page h1 { margin-bottom: 24px; font-size: clamp(36px, 3.8vw, 52px); line-height: 1.16; letter-spacing: -.025em; font-weight: 500; }

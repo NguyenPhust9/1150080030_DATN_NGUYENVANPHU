@@ -1,0 +1,45 @@
+<footer id="lien-he" class="public-footer">
+  <div class="footer-inner">
+    <div class="footer-columns">
+      <div class="footer-brand">
+        <a class="footer-wordmark" href="{% url 'public-home' %}"><i data-lucide="house" aria-hidden="true"></i><strong>QL Phòng Cho Thuê</strong></a>
+        <p>Tìm phòng theo tòa nhà, mức giá và tiện ích. Lưu những lựa chọn phù hợp và theo dõi thông tin trong suốt quá trình thuê.</p>
+        <a class="footer-explore" href="{% url 'public-rooms' %}">Tìm phòng phù hợp <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+      </div>
+
+      <nav class="footer-links" aria-labelledby="footer-discover-title">
+        <h2 id="footer-discover-title">Khám phá</h2>
+        <ul>
+          <li><a href="{% url 'public-home' %}">Trang chủ</a></li>
+          <li><a href="{% url 'public-rooms' %}">Phòng đang cho thuê</a></li>
+          <li><a href="{% url 'public-rooms' %}?favorites=1">Phòng yêu thích</a></li>
+          <li><a href="{% url 'public-about' %}">Về chúng tôi</a></li>
+        </ul>
+      </nav>
+
+      <nav class="footer-links" aria-labelledby="footer-support-title">
+        <h2 id="footer-support-title">Hỗ trợ bạn</h2>
+        <ul>
+          <li><a href="{% url 'public-about' %}#about-start">Hướng dẫn tìm phòng</a></li>
+          <li><a href="{% url 'public-contact' %}#contact-faq">Câu hỏi thường gặp</a></li>
+          <li><a href="{% url 'public-contact' %}">Liên hệ hỗ trợ</a></li>
+          <li><a href="{% if user.is_authenticated %}{% if user.role == 'tenant' %}{% url 'tenant-portal' %}{% else %}{% url 'dashboard' %}{% endif %}{% else %}{% url 'login' %}{% endif %}">Tài khoản của bạn</a></li>
+        </ul>
+      </nav>
+
+      <section class="footer-contact" aria-labelledby="footer-contact-title">
+        <h2 id="footer-contact-title">Kết nối với chúng tôi</h2>
+        <address>
+          <div class="footer-contact-row"><i data-lucide="phone" aria-hidden="true"></i><div><small>Điện thoại hỗ trợ</small><a class="footer-phone" href="tel:0902966704">0902 966 704</a></div></div>
+          <div class="footer-contact-row"><i data-lucide="mail" aria-hidden="true"></i><div><small>Email</small><a class="footer-email" href="mailto:1150080030@sv.hcmunre.edu.vn">1150080030@sv.hcmunre.edu.vn</a></div></div>
+        </address>
+        <p>Khi hỏi về phòng, hãy gửi kèm mã phòng và tên tòa nhà để dễ trao đổi.</p>
+      </section>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© {% now "Y" %} QL Phòng Cho Thuê. Bảo lưu mọi quyền.</p>
+      <a class="footer-top" href="#dau-trang">Lên đầu trang <i data-lucide="arrow-up" aria-hidden="true"></i></a>
+    </div>
+  </div>
+</footer>

@@ -8,14 +8,15 @@
   <link rel="icon" type="image/png" href="{% static 'images/favicon.png' %}">
   <link rel="stylesheet" href="{% static 'css/loading.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
-  <link rel="stylesheet" href="{% static 'css/public-home.css' %}?v=home-1">
+  <link rel="stylesheet" href="{% static 'css/public-home.css' %}?v=home-2">
   <link rel="stylesheet" href="{% static 'css/lucide.css' %}">
   <link rel="stylesheet" href="{% static 'css/room-detail.css' %}">
   <link rel="stylesheet" href="{% static 'css/pagination.css' %}">
   {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/public-footer.css' %}?v=footer-1">
   <noscript><style>.site-loading{display:none!important}</style></noscript>
 </head>
-<body class="public-page{% block body_class %}{% endblock %}">
+<body id="dau-trang" class="public-page{% block body_class %}{% endblock %}">
   {% include 'includes/loading.html' %}
   <header class="public-header">
     {% block header_identity %}{% endblock %}
@@ -42,13 +43,7 @@
     </div>
   </header>
   <main>{% block content %}{% endblock %}</main>
-  <footer id="lien-he" class="public-footer">
-    <div>
-      <strong>QL Phòng Cho Thuê</strong>
-      <p style="margin:4px 0 0;font-size:13px;color:#fed7aa;">Hệ thống tìm kiếm và quản lý phòng trọ minh bạch, tiện nghi, an tâm dài lâu.</p>
-    </div>
-    <span>Hotline hỗ trợ: <a href="tel:0902966704">0902966704</a> · Email: <a href="mailto:1150080030@sv.hcmunre.edu.vn">1150080030@sv.hcmunre.edu.vn</a></span>
-  </footer>
+  {% include 'includes/public_footer.html' %}
   <script src="{% static 'lucide.min.js' %}"></script>
   <script>lucide.createIcons({attrs:{"stroke-width":2}});</script>
   <script src="{% static 'js/favorites.js' %}"></script>

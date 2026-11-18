@@ -1,0 +1,61 @@
+/* Shared by every public page, including rental search and room details. */
+.public-page .public-footer {
+  --footer-ink: #292723;
+  --footer-secondary: #595650;
+  --footer-muted: #706c64;
+  --footer-line: #e5e2dc;
+  --footer-accent: #bf460b;
+  display: block;
+  padding: 0;
+  border-top: 1px solid var(--footer-line);
+  background: #fff;
+  color: var(--footer-ink);
+  font: 400 14px/1.7 "Segoe UI", system-ui, sans-serif;
+  scroll-margin-top: 88px;
+}
+.public-footer .footer-inner { max-width: 1440px; margin: 0 auto; padding: 0 32px; }
+.public-footer .footer-columns { display: grid; grid-template-columns: 1.15fr .8fr .85fr 1.2fr; gap: 48px; padding: 56px 0 40px; }
+.public-footer .footer-columns > * { min-width: 0; }
+.public-footer h2 { margin: 0 0 16px; color: var(--footer-ink); font-size: 16px; line-height: 1.5; font-weight: 600; }
+.public-footer a { color: var(--footer-secondary); text-decoration: none; text-underline-offset: 4px; }
+.public-footer a:hover { color: var(--footer-accent); text-decoration: underline; }
+.public-footer a:focus-visible { outline: 2px solid var(--footer-accent); outline-offset: 4px; border-radius: 2px; }
+.public-footer svg { width: 18px; height: 18px; flex-shrink: 0; stroke-width: 1.5; }
+.public-footer p { margin: 0; color: var(--footer-secondary); }
+.public-footer .footer-wordmark { display: inline-flex; align-items: center; gap: 12px; min-height: 24px; color: var(--footer-ink); }
+.public-footer .footer-wordmark:hover { text-decoration: none; }
+.public-footer .footer-wordmark svg { width: 24px; height: 24px; color: var(--footer-accent); }
+.public-footer .footer-wordmark strong { color: var(--footer-ink); font-size: 20px; line-height: 1.4; font-weight: 600; }
+.public-footer .footer-brand p { max-width: 300px; margin: 20px 0 12px; }
+.public-footer .footer-explore { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--footer-accent); font-weight: 500; }
+.public-footer .footer-links ul { list-style: none; padding: 0; margin: 0; }
+.public-footer .footer-links a { display: inline-flex; align-items: center; min-height: 40px; padding: 4px 0; }
+.public-footer .footer-contact address { display: grid; gap: 16px; margin: 0; font-style: normal; }
+.public-footer .footer-contact-row { display: flex; align-items: flex-start; gap: 12px; }
+.public-footer .footer-contact-row > svg { margin-top: 4px; color: var(--footer-muted); }
+.public-footer .footer-contact-row > div { min-width: 0; }
+.public-footer .footer-contact-row small { display: block; color: var(--footer-muted); font-size: 13px; line-height: 1.6; }
+.public-footer .footer-phone { display: inline-flex; align-items: center; min-height: 40px; color: var(--footer-accent); font-size: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.public-footer .footer-email { display: inline-block; padding: 8px 0; line-height: 1.6; overflow-wrap: anywhere; }
+.public-footer .footer-contact p { margin-top: 12px; font-size: 13px; }
+.public-footer .footer-bottom { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--footer-line); }
+.public-footer .footer-bottom p { color: var(--footer-muted); font-size: 13px; }
+.public-footer .footer-top { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; flex-shrink: 0; font-size: 13px; }
+@media (max-width: 1100px) {
+  .public-footer .footer-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 48px; padding: 40px 0 32px; }
+  .public-footer .footer-brand p { max-width: 360px; }
+}
+@media (max-width: 600px) {
+  .public-footer .footer-inner { padding: 0 20px; }
+  .public-footer .footer-columns { gap: 32px 24px; padding-top: 32px; }
+  .public-footer .footer-brand, .public-footer .footer-contact { grid-column: 1 / -1; }
+  .public-footer .footer-brand p { max-width: none; margin-top: 16px; }
+  .public-footer .footer-contact { padding-top: 24px; border-top: 1px solid var(--footer-line); }
+  .public-footer .footer-contact address { gap: 12px; }
+  .public-footer .footer-links a { min-height: 44px; }
+  .public-footer .footer-bottom { align-items: flex-start; flex-direction: column; gap: 4px; padding: 20px 0; }
+}
+@media (max-width: 360px) {
+  .public-footer .footer-inner { padding-inline: 16px; }
+  .public-footer .footer-columns { column-gap: 16px; }
+}
