@@ -1,4 +1,4 @@
-"""Local A101/A102/A103/A104/A105 UI fixture; database data lives in process memory.
+"""Local five-floor, 25-room UI fixture; database data lives in process memory.
 
 Run: .venv/Scripts/python.exe tests/serve_room_walkthrough_preview.py
 Login: walkthrough-preview / local-preview-only
@@ -13,6 +13,7 @@ The configured application database is never opened or modified.
 """
 
 import argparse
+from datetime import date
 import os
 import sys
 from pathlib import Path
@@ -28,6 +29,11 @@ ROOM_IDS = {
     "A104": "a1040000-0000-4000-8000-000000000004",
     "A105": "a1050000-0000-4000-8000-000000000005",
 }
+ROOM_IDS.update({
+    f"A{floor}0{slot}": f"a{floor}0{slot}0000-0000-4000-8000-{floor * 100 + slot:012d}"
+    for floor in range(2, 6)
+    for slot in range(1, 6)
+})
 sys.path.insert(0, str(REPO_ROOT))
 os.environ["DJANGO_SETTINGS_MODULE"] = "config.test_indoor_settings"
 
@@ -71,7 +77,7 @@ def main():
 
     from django.contrib.auth import get_user_model
     from django.db import connections
-    from apps.rentals.models import Building, Room, RoomMedia
+    from apps.rentals.models import Building, Contract, Room, RoomMedia, Tenant
 
     try:
         call_command("migrate", verbosity=0)
@@ -81,10 +87,20 @@ def main():
         building = Building.objects.create(
             name="Tòa nhà An Tâm", address="Dữ liệu kiểm thử cục bộ", owner=owner,
         )
+        staff = get_user_model().objects.create_user(
+            "walkthrough-staff", password="local-preview-only", role="staff",
+        )
+        building.staff.add(staff)
+        other_owner = get_user_model().objects.create_user(
+            "walkthrough-other-owner", password="local-preview-only", role="owner",
+        )
+        other_building = Building.objects.create(name="Private fixture", address="Local only", owner=other_owner)
+        Room.objects.create(building=other_building, number="A303", floor=3, monthly_rent=4000000)
         for number, room_id in ROOM_IDS.items():
             room = Room.objects.create(
-                id=room_id, building=building, number=number, floor=1,
+                id=room_id, building=building, number=number, floor=int(number[1]),
                 area=25, monthly_rent=3200000,
+                status=Room.Status.OCCUPIED if number == "A101" else Room.Status.AVAILABLE,
             )
             reference_dir = reference_dirs[number]
             if not reference_dir.is_dir():
@@ -104,6 +120,15 @@ def main():
                     url=f"http://127.0.0.1:{args.port}/static/walkthrough-reference-{number}/{quote(source.name)}",
                     public_id=f"local-preview/{number}/{source.name}", format=suffix[1:],
                 )
+        tenant_user = get_user_model().objects.create_user(
+            "walkthrough-tenant", password="local-preview-only", role="tenant",
+        )
+        tenant = Tenant.objects.create(user=tenant_user, owner=owner, full_name="Local walkthrough tenant")
+        Contract.objects.create(
+            code="WALKTHROUGH-LOCAL", room_id=ROOM_ID, representative=tenant,
+            start_date=date(2026, 1, 1), end_date=date(2030, 12, 31),
+            monthly_rent=3200000, status=Contract.Status.ACTIVE,
+        )
         for number, room_id in ROOM_IDS.items():
             print(f"{number}: http://127.0.0.1:{args.port}/phong/{room_id}/tham-quan/", flush=True)
         print("Login: walkthrough-preview / local-preview-only", flush=True)

@@ -22,11 +22,12 @@ document.getElementById("tour-reload").addEventListener("click", () => location.
 
 try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
-  const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
+  const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }, { createBuildingNavigation }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=a105-tour-1"),
+    import("./room-tour-world.js?v=building-tour-1"),
     import("./walkthrough-avatar.js?v=a105-tour-1"),
-    import("./walkthrough-motion.js?v=a105-tour-1"),
+    import("./walkthrough-motion.js?v=building-tour-1"),
+    import("./building-tour-navigation.js?v=building-tour-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);
@@ -51,8 +52,12 @@ try {
   sun.shadow.bias = -0.0003;
   sun.shadow.normalBias = 0.025;
   scene.add(sun, sun.target);
-  const world = buildRoomTourWorld(THREE, scene, config);
-  const corridorCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
+  let activeFloor = config.entryFloor;
+  let traveling = false;
+  let worldGroup = new THREE.Group();
+  scene.add(worldGroup);
+  let world = buildRoomTourWorld(THREE, worldGroup, { ...config, activeFloor });
+  let corridorCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
   sun.position.x = corridorCenterX - 3;
   sun.target.position.x = corridorCenterX;
   const walker = createWalker(THREE);
@@ -60,7 +65,7 @@ try {
   player.position.set(world.spawn.x, 0, world.spawn.z);
   player.rotation.y = Math.PI;
   scene.add(player);
-  const motion = createWalkthroughMotion(world, player.position);
+  let motion = createWalkthroughMotion(world, player.position);
   let yaw = 0;
   let pitch = 0.25;
   let firstPerson = false;
@@ -80,12 +85,16 @@ try {
   const lookTarget = new THREE.Vector3();
   const touchButtons = [...document.querySelectorAll("[data-move]")];
   const dialogs = [...document.querySelectorAll("dialog")];
-  const isDialogOpen = () => dialogs.some(dialog => dialog.open);
+  const isDialogOpen = () => traveling || dialogs.some(dialog => dialog.open);
   const viewButton = document.getElementById("tour-view");
   const tour = document.getElementById("room-tour");
-  const mapScaleX = 186 / (world.bounds.maxX - world.bounds.minX + .6);
+  let mapScaleX = 186 / (world.bounds.maxX - world.bounds.minX + .6);
   const mapX = x => 110 + (x - corridorCenterX) * mapScaleX;
   tour.dataset.viewMode = "third-person";
+  tour.dataset.floor = activeFloor;
+  const roomDetails = new Map(config.roomDetails.map(room => [room.number, room]));
+  const nearElevator = () => motion.state.level === 'ground' && !motion.state.airborne && !!world.elevator
+    && Math.hypot(player.position.x - world.elevator.x, player.position.z - world.elevator.z) < 2;
 
   clearMovement = () => {
     keys.clear();
@@ -145,6 +154,8 @@ try {
     }
     if (event.code === "KeyR" && !event.repeat) { event.preventDefault(); reset(); }
     if (event.code === "KeyV" && !event.repeat) { event.preventDefault(); toggleView(); }
+    if (event.code === "KeyM" && !event.repeat) { event.preventDefault(); navigation.openMap(); }
+    if (event.code === "KeyF" && !event.repeat) { event.preventDefault(); navigation.openElevator(); }
   });
   window.addEventListener("keyup", event => keys.delete(event.code));
   window.addEventListener("blur", clearMovement);
@@ -200,6 +211,7 @@ try {
   document.getElementById("tour-jump").addEventListener("click", requestJump);
 
   function openDialog(id) {
+    if (traveling) return;
     clearMovement();
     document.getElementById(id).showModal();
   }
@@ -213,6 +225,73 @@ try {
       if (running) host.focus({ preventScroll: true });
     });
   });
+  const navigation = createBuildingNavigation({
+    config, openDialog,
+    onDestination: room => {
+      clearMovement();
+      world.setDestination(room?.number ?? null, { x: player.position.x, z: player.position.z });
+      renderMiniMap(room);
+    },
+    onFloor: floor => travelToFloor(floor),
+  });
+
+  async function travelToFloor(floor) {
+    if (traveling || floor === activeFloor || !nearElevator() || !config.floors.includes(floor)) return;
+    traveling = true;
+    clearMovement();
+    const transfer = document.getElementById('tour-transfer');
+    transfer.hidden = false;
+    document.getElementById('transfer-label').textContent = `Tầng ${activeFloor} → Tầng ${floor}`;
+    tour.dataset.traveling = 'true';
+    try {
+      await new Promise(resolve => setTimeout(resolve, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 100 : 750));
+      const destination = navigation.destination;
+      const floorEntry = destination?.floor === floor ? destination.number
+        : config.roomDetails.find(room => room.floor === floor).number;
+      const nextGroup = new THREE.Group();
+      let nextWorld;
+      try {
+        nextWorld = buildRoomTourWorld(THREE, nextGroup, { ...config, activeFloor: floor, entryRoom: floorEntry });
+      } catch (error) {
+        nextGroup.traverse(object => { object.geometry?.dispose(); });
+        throw error;
+      }
+      scene.remove(worldGroup);
+      world.dispose?.();
+      worldGroup = nextGroup;
+      world = nextWorld;
+      scene.add(worldGroup);
+      activeFloor = floor;
+      tour.dataset.floor = floor;
+      corridorCenterX = (world.bounds.minX + world.bounds.maxX) / 2;
+      mapScaleX = 186 / (world.bounds.maxX - world.bounds.minX + .6);
+      sun.position.x = corridorCenterX - 3;
+      sun.target.position.x = corridorCenterX;
+      motion = createWalkthroughMotion(world, player.position);
+      motion.reset();
+      player.position.set(world.elevator.spawn.x, world.elevator.spawn.y, world.elevator.spawn.z);
+      yaw = 0;
+      pitch = firstPerson ? 0 : .25;
+      player.rotation.y = Math.PI;
+      cameraReady = false;
+      currentRoom = null;
+      lastZone = '';
+      world.setDestination(destination?.number ?? null, { x: player.position.x, z: player.position.z });
+      renderMiniMap(destination);
+      updateConnections();
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      transfer.hidden = true;
+    } catch (error) {
+      console.error('Unable to change tour floor', error);
+      transfer.hidden = true;
+      showError('Chưa chuyển được tầng. Hãy tải lại để tiếp tục tham quan.');
+    } finally {
+      traveling = false;
+      tour.dataset.traveling = 'false';
+      lastTime = performance.now();
+      if (running && !failed) host.focus({ preventScroll: true });
+    }
+  }
   const fullscreen = document.getElementById("tour-fullscreen");
   if (!document.fullscreenEnabled) fullscreen.hidden = true;
   fullscreen.addEventListener("click", async () => {
@@ -273,15 +352,17 @@ try {
 
   function updateHud() {
     const room = world.nearestRoom(player.position.x, player.position.z);
-    const inside = player.position.z < -0.2;
+    const inside = !!world.roomAt(player.position.x, player.position.z) && player.position.z < -0.2;
+    const atElevator = nearElevator();
     const level = motion.state.level;
     const zone = level === "stairs" ? `Cầu thang · Phòng ${room.number}`
       : level === "loft" ? `Gác lửng · Phòng ${room.number}`
-      : inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
-    const nearStairs = inside && level === "ground" && Math.hypot(player.position.x - (room.stairs.minX + room.stairs.maxX) / 2, player.position.z - room.stairs.bottomZ) < 1.25;
+      : atElevator ? `Thang máy · Tầng ${activeFloor}` : inside ? `Bên trong phòng ${room.number}` : `Trước cửa phòng ${room.number}`;
+    const nearStairs = inside && !!room.stairs && level === "ground" && Math.hypot(player.position.x - (room.stairs.minX + room.stairs.maxX) / 2, player.position.z - room.stairs.bottomZ) < 1.25;
     const hint = level === "stairs" ? "Giữ W để lên · S để xuống · Space nhảy"
       : level === "loft" ? "Gác lửng · Về đầu cầu thang để xuống"
       : nearStairs ? "Tới chân cầu thang · Giữ W để lên gác"
+      : atElevator ? "Nhấn F hoặc nút thang máy để chọn tầng"
       : inside ? "WASD di chuyển · Space để nhảy" : `Đi tới cửa ${room.number} để vào phòng`;
     if (zone !== lastZone) {
       positionLabel.textContent = zone;
@@ -290,10 +371,15 @@ try {
     if (cue.textContent !== hint) cue.textContent = hint;
     if (currentRoom !== room.number) {
       currentRoom = room.number;
-      document.getElementById("tour-room-name").textContent = `Phòng ${currentRoom}`;
       document.querySelectorAll("[data-room-media]").forEach(panel => { panel.hidden = panel.dataset.roomMedia !== currentRoom; });
       document.getElementById("media-title").textContent = `Ảnh & video phòng ${currentRoom}`;
+      document.getElementById('tour-model-note').textContent = roomDetails.get(currentRoom)?.profile === 'generic'
+        ? 'Nội thất mô phỏng cơ bản · Chưa dựng theo tư liệu'
+        : 'Phỏng dựng từ ảnh và video · Kích thước ước lượng';
     }
+    const heading = atElevator ? `Thang máy · Tầng ${activeFloor}` : `Phòng ${currentRoom}`;
+    if (document.getElementById('tour-room-name').textContent !== heading) document.getElementById('tour-room-name').textContent = heading;
+    navigation.update({ floor: activeFloor, room: currentRoom, inside, nearElevator: atElevator && !traveling });
     const x = mapX(player.position.x);
     const y = 134 + player.position.z * 18;
     mapPlayer.setAttribute("transform", `translate(${x.toFixed(2)} ${y.toFixed(2)}) rotate(${(-yaw * 180 / Math.PI).toFixed(1)})`);
@@ -304,6 +390,7 @@ try {
     mapPlayer.dataset.airborne = String(motion.state.airborne);
     mapPlayer.dataset.level = level;
     mapPlayer.dataset.room = currentRoom;
+    mapPlayer.dataset.floor = activeFloor;
   }
 
   function frame(now) {
@@ -345,20 +432,36 @@ try {
   }
   new ResizeObserver(resize).observe(host);
   resize();
-  document.getElementById("map-geometry").innerHTML =
-    '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="184">Hành lang chung</text>' +
-    world.rooms.map(room => {
-      const x = mapX(room.minX);
-      const width = (room.maxX - room.minX) * mapScaleX;
-      const loftFront = 134 + room.loft.maxZ * 18;
-      const stairsX = mapX(room.stairs.minX);
-      const stairsY = 134 + room.stairs.topZ * 18;
-      const stairsWidth = (room.stairs.maxX - room.stairs.minX) * mapScaleX;
-      const stairsDepth = (room.stairs.bottomZ - room.stairs.topZ) * 18;
-      return `<rect x="${x}" y="15" width="${width}" height="119" class="map-floor"/><path d="M ${x} ${loftFront} h ${width}" class="map-line"/><text x="${x + width / 2}" y="35">${room.number}</text><rect x="${stairsX}" y="${stairsY}" width="${stairsWidth}" height="${stairsDepth}" rx="2" class="map-furniture"/>`;
-    }).join("");
-  const roomConnections = document.querySelector(".connected-rooms");
-  if (roomConnections) roomConnections.textContent = [...world.rooms].sort((a, b) => a.minX - b.minX).map(room => room.number).join(" ↔ ") + " · Cùng hành lang";
+  function renderMiniMap(destination = navigation.destination) {
+    const escapeXml = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[char]));
+    let markup = '<rect x="17" y="134" width="186" height="65" rx="2" class="map-floor"/><text x="110" y="190">Hành lang</text>';
+    markup += world.rooms.map(room => {
+      const x = mapX(room.minX), width = (room.maxX - room.minX) * mapScaleX;
+      const roomClass = destination?.number === room.number ? 'map-destination' : 'map-floor';
+      let detail = '';
+      if (room.loft && room.stairs) {
+        detail = `<path d="M ${x} ${134 + room.loft.maxZ * 18} h ${width}" class="map-line"/><rect x="${mapX(room.stairs.minX)}" y="${134 + room.stairs.topZ * 18}" width="${(room.stairs.maxX - room.stairs.minX) * mapScaleX}" height="${(room.stairs.bottomZ - room.stairs.topZ) * 18}" rx="2" class="map-furniture"/>`;
+      } else detail = `<rect x="${x + width * .14}" y="55" width="${width * .45}" height="40" rx="2" class="map-furniture"/>`;
+      return `<rect x="${x}" y="15" width="${width}" height="119" class="${roomClass}"/><text x="${x + width / 2}" y="35">${escapeXml(room.number)}</text>${detail}`;
+    }).join('');
+    if (world.elevator) {
+      const lift = world.elevator;
+      markup += `<rect x="${mapX(lift.minX)}" y="${134 + lift.minZ * 18}" width="${(lift.maxX - lift.minX) * mapScaleX}" height="${(lift.maxZ - lift.minZ) * 18}" rx="2" class="map-elevator"/><text x="${mapX(lift.x)}" y="${130 + lift.z * 18}">⇅</text>`;
+      if (destination) {
+        const targetRoom = world.rooms.find(room => room.number === destination.number);
+        const x = targetRoom ? mapX(targetRoom.doorX) : mapX(player.position.x);
+        const liftX = mapX(lift.x), hallY = 172;
+        markup += `<path d="M ${x} ${targetRoom ? 122 : hallY} V${hallY} H${liftX}" class="map-route"/>`;
+      }
+    }
+    document.getElementById('map-geometry').innerHTML = markup;
+  }
+  function updateConnections() {
+    const roomConnections = document.querySelector('.connected-rooms');
+    if (roomConnections) roomConnections.textContent = [...world.rooms].sort((a, b) => a.minX - b.minX).map(room => room.number).join(' ↔ ') + ' · Cùng hành lang';
+  }
+  renderMiniMap();
+  updateConnections();
   renderer.domElement.addEventListener("webglcontextlost", event => {
     event.preventDefault();
     cancelAnimationFrame(animationFrame);

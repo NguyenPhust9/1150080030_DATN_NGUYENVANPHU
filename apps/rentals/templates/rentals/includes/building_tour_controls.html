@@ -1,0 +1,19 @@
+<section id="tour-route" class="tour-route" aria-label="Chỉ đường tới phòng" hidden>
+  <div><i data-lucide="navigation"></i><strong id="route-destination"></strong><button id="route-clear" type="button" aria-label="Dừng chỉ đường"><i data-lucide="x"></i></button></div>
+  <p id="route-instruction" aria-live="polite"></p>
+</section>
+<button id="tour-elevator" type="button" class="elevator-action" hidden><i data-lucide="arrow-up-down"></i><span>Thang máy · Chọn tầng</span><kbd>F</kbd></button>
+<div id="tour-transfer" class="tour-transfer" role="status" aria-live="polite" hidden><i data-lucide="arrow-up-down"></i><strong id="transfer-label">Đang chuyển tầng</strong><span>Vui lòng chờ thang máy</span></div>
+<dialog id="tour-building-dialog" aria-labelledby="building-map-title" class="tour-dialog building-dialog">
+  <div class="dialog-heading"><div><span class="eyebrow">{{ room.building.name }}</span><h2 id="building-map-title">Sơ đồ di chuyển trong tòa nhà</h2><p>{{ tour_config.floors|length }} tầng · {{ tour_rooms|length }} phòng · Bố trí mô phỏng</p></div><button type="button" data-close-dialog aria-label="Đóng sơ đồ"><i data-lucide="x"></i></button></div>
+  <div class="building-map-layout">
+    <section class="building-section" aria-label="Các tầng và phòng trong tòa nhà"><div class="building-roof"><i data-lucide="building-2"></i>{{ room.building.name }}</div><div id="building-elevation"></div><div class="building-entrance"><i data-lucide="door-open"></i>Sảnh và thang máy<span id="building-location"></span></div></section>
+    <section class="building-selection" aria-label="Phòng đang chọn"><span class="selection-caption">Chọn phòng để xem đường đi</span><h3 id="selected-room-title"></h3><span id="selected-room-status" class="room-availability"></span><div id="selected-floor-plan" class="selected-floor-plan"></div><p id="selected-room-model"></p><ol id="selected-room-steps" class="route-steps"></ol><button id="building-route-start" type="button" class="route-start">Chỉ đường tới phòng</button></section>
+  </div>
+  <div class="building-legend"><span><i class="legend-available"></i>Còn trống</span><span><i class="legend-occupied"></i>Đang thuê / giữ chỗ</span><span><i class="legend-other"></i>Trạng thái khác</span><span><i class="legend-route"></i>Phòng đích / hướng đi</span></div>
+  <p class="building-map-note">Sơ đồ dùng để tham quan. Vị trí, nội thất và kích thước là mô phỏng; trạng thái phòng lấy từ hệ thống.</p>
+</dialog>
+<dialog id="tour-elevator-dialog" aria-labelledby="elevator-title" class="tour-dialog elevator-dialog">
+  <div class="dialog-heading"><div><span class="eyebrow">Thang máy</span><h2 id="elevator-title">Chọn tầng</h2></div><button type="button" data-close-dialog aria-label="Đóng thang máy"><i data-lucide="x"></i></button></div>
+  <p id="elevator-current"></p><div id="elevator-floors" class="elevator-floors"></div><p class="elevator-hint">Chọn tầng, ra khỏi thang máy rồi đi dọc hành lang để vào phòng.</p>
+</dialog>

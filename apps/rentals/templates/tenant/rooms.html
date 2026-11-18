@@ -85,6 +85,10 @@
 
       <!-- Thao tác nhanh -->
       <div style="display: flex; gap: 12px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 16px; flex-wrap: wrap;">
+        <a class="btn compact" href="{% url 'room-walkthrough' contract.room.id %}">
+          <i data-lucide="person-standing" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
+          Tham quan 3D
+        </a>
         <a class="btn primary compact" href="{% url 'tenant-incident-create' %}">
           <i data-lucide="triangle-alert" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle;"></i>
           Báo sự cố phòng này

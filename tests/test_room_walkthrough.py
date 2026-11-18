@@ -25,7 +25,7 @@ class RoomWalkthroughTests(TestCase):
         cls.third_room = Room.objects.create(building=cls.building, number="A103", monthly_rent=3600000)
         cls.fourth_room = Room.objects.create(building=cls.building, number="A104", monthly_rent=3700000)
         cls.fifth_room = Room.objects.create(building=cls.building, number="A105", monthly_rent=3800000)
-        cls.other_room = Room.objects.create(building=cls.building, number="A201", monthly_rent=3000000)
+        cls.other_room = Room.objects.create(building=cls.building, number="A201", floor=2, area="22.50", monthly_rent=3000000)
         other_building = Building.objects.create(name="Other", address="Test", owner=cls.other_owner)
         cls.private_room = Room.objects.create(building=other_building, number="A101", monthly_rent=3000000)
         cls.image = RoomMedia.objects.create(
@@ -80,6 +80,27 @@ class RoomWalkthroughTests(TestCase):
         )
         cls.url = reverse("room-walkthrough", args=[cls.room.id])
 
+    def assertTourConfig(self, response, entry_number, room_numbers):
+        config = response.context["tour_config"]
+        self.assertEqual(config["entryRoom"], entry_number)
+        self.assertEqual(config["rooms"], room_numbers)
+        entry_room = response.context["room"]
+        self.assertEqual(config["entryFloor"], entry_room.floor)
+        self.assertEqual(config["buildingName"], entry_room.building.name)
+        rooms = list(Room.objects.filter(
+            building=entry_room.building, number__in=room_numbers,
+        ).order_by("floor", "number"))
+        self.assertEqual(config["floors"], sorted({room.floor for room in rooms}))
+        self.assertEqual(config["roomDetails"], [{
+            "number": room.number,
+            "floor": room.floor,
+            "status": room.status,
+            "statusLabel": room.get_status_display(),
+            "area": float(room.area) if room.area is not None else None,
+            "profile": room.number if room.number in ("A101", "A102", "A103", "A104", "A105") else "generic",
+            "hasMedia": room.media.exists(),
+        } for room in rooms])
+
     def test_anonymous_user_is_sent_to_login(self):
         for room in (self.room, self.adjacent_room, self.third_room, self.fourth_room, self.fifth_room):
             with self.subTest(room=room.number):
@@ -96,13 +117,14 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.context["room"], self.room)
         self.assertEqual(response.context["room_images"], [self.image])
         self.assertEqual(response.context["room_videos"], [self.video])
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A101", "rooms": ["A101", "A102", "A103", "A104", "A105"]})
+        self.assertTourConfig(response, 'A101', ['A101', 'A102', 'A103', 'A104', 'A105', 'A201'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.image], "videos": [self.video]},
             {"number": "A102", "images": [self.adjacent_image], "videos": [self.adjacent_video]},
             {"number": "A103", "images": [self.third_image], "videos": [self.third_video]},
             {"number": "A104", "images": [self.fourth_image], "videos": [self.fourth_video]},
             {"number": "A105", "images": [self.fifth_image], "videos": [self.fifth_video]},
+            {"number": "A201", "images": [], "videos": []},
         ])
         self.assertEqual(response.context["return_url"], reverse("room-update", args=[self.room.id]))
         self.assertNotContains(response, self.private_image.url)
@@ -120,7 +142,7 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.context["room"], self.adjacent_room)
         self.assertEqual(response.context["room_images"], [self.adjacent_image])
         self.assertEqual(response.context["room_videos"], [self.adjacent_video])
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A102", "rooms": ["A101", "A102", "A103", "A104", "A105"]})
+        self.assertTourConfig(response, 'A102', ['A101', 'A102', 'A103', 'A104', 'A105', 'A201'])
         self.assertEqual(response.context["return_url"], reverse("room-update", args=[self.adjacent_room.id]))
 
     def test_a103_entry_uses_its_media_and_same_building_siblings(self):
@@ -130,7 +152,7 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.context["room"], self.third_room)
         self.assertEqual(response.context["room_images"], [self.third_image])
         self.assertEqual(response.context["room_videos"], [self.third_video])
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A103", "rooms": ["A101", "A102", "A103", "A104", "A105"]})
+        self.assertTourConfig(response, 'A103', ['A101', 'A102', 'A103', 'A104', 'A105', 'A201'])
         self.assertEqual(response.context["return_url"], reverse("room-update", args=[self.third_room.id]))
         self.assertContains(response, self.third_image.url)
         self.assertContains(response, self.third_video.url)
@@ -147,7 +169,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("room-walkthrough", args=[private_third.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A103", "rooms": ["A101", "A103"]})
+        self.assertTourConfig(response, 'A103', ['A101', 'A103'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.private_image], "videos": []},
             {"number": "A103", "images": [private_media], "videos": []},
@@ -162,9 +184,7 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.context["room"], self.fourth_room)
         self.assertEqual(response.context["room_images"], [self.fourth_image])
         self.assertEqual(response.context["room_videos"], [self.fourth_video])
-        self.assertEqual(response.context["tour_config"], {
-            "entryRoom": "A104", "rooms": ["A101", "A102", "A103", "A104", "A105"],
-        })
+        self.assertTourConfig(response, 'A104', ['A101', 'A102', 'A103', 'A104', 'A105', 'A201'])
         self.assertEqual(response.context["return_url"], reverse("room-update", args=[self.fourth_room.id]))
         self.assertContains(response, self.fourth_image.url)
         self.assertContains(response, self.fourth_video.url)
@@ -181,7 +201,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("room-walkthrough", args=[private_fourth.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A104", "rooms": ["A101", "A104"]})
+        self.assertTourConfig(response, 'A104', ['A101', 'A104'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.private_image], "videos": []},
             {"number": "A104", "images": [], "videos": [private_media]},
@@ -196,9 +216,7 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.context["room"], self.fifth_room)
         self.assertEqual(response.context["room_images"], [self.fifth_image])
         self.assertEqual(response.context["room_videos"], [self.fifth_video])
-        self.assertEqual(response.context["tour_config"], {
-            "entryRoom": "A105", "rooms": ["A101", "A102", "A103", "A104", "A105"],
-        })
+        self.assertTourConfig(response, 'A105', ['A101', 'A102', 'A103', 'A104', 'A105', 'A201'])
         self.assertEqual(response.context["return_url"], reverse("room-update", args=[self.fifth_room.id]))
         self.assertContains(response, self.fifth_image.url)
         self.assertContains(response, self.fifth_video.url)
@@ -215,7 +233,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("room-walkthrough", args=[private_fifth.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A105", "rooms": ["A101", "A105"]})
+        self.assertTourConfig(response, 'A105', ['A101', 'A105'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.private_image], "videos": []},
             {"number": "A105", "images": [], "videos": [private_media]},
@@ -228,7 +246,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("room-walkthrough", args=[self.private_room.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A101", "rooms": ["A101"]})
+        self.assertTourConfig(response, 'A101', ['A101'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.private_image], "videos": []},
         ])
@@ -247,7 +265,7 @@ class RoomWalkthroughTests(TestCase):
                 with self.subTest(role=user.role, room=room.number):
                     response = self.client.get(reverse("room-walkthrough", args=[room.id]))
                     self.assertEqual(response.status_code, 200)
-                    self.assertEqual(response.context["tour_config"]["rooms"], ["A101", "A102", "A103", "A104", "A105"])
+                    self.assertEqual(response.context["tour_config"]["rooms"], ["A101", "A102", "A103", "A104", "A105", "A201"])
 
     def test_unassigned_staff_and_unlinked_tenant_cannot_open_walkthrough(self):
         for user in (self.unassigned_staff, self.unlinked_tenant):
@@ -261,7 +279,7 @@ class RoomWalkthroughTests(TestCase):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["return_url"], reverse("tenant-rooms"))
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A101", "rooms": ["A101"]})
+        self.assertTourConfig(response, 'A101', ['A101'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A101", "images": [self.image], "videos": [self.video]},
         ])
@@ -284,7 +302,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.tenant_user)
         response = self.client.get(reverse("room-walkthrough", args=[self.adjacent_room.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A102", "rooms": ["A102"]})
+        self.assertTourConfig(response, 'A102', ['A102'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A102", "images": [self.adjacent_image], "videos": [self.adjacent_video]},
         ])
@@ -299,7 +317,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.tenant_user)
         response = self.client.get(reverse("room-walkthrough", args=[self.third_room.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A103", "rooms": ["A103"]})
+        self.assertTourConfig(response, 'A103', ['A103'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A103", "images": [self.third_image], "videos": [self.third_video]},
         ])
@@ -309,17 +327,24 @@ class RoomWalkthroughTests(TestCase):
         for room in (self.room, self.adjacent_room, self.fourth_room, self.fifth_room, self.private_room):
             self.assertEqual(self.client.get(reverse("room-walkthrough", args=[room.id])).status_code, 404)
 
-    def test_rooms_without_a_walkthrough_return_404(self):
+    def test_room_without_reference_media_uses_generic_profile(self):
         self.client.force_login(self.owner)
         response = self.client.get(reverse("room-walkthrough", args=[self.other_room.id]))
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 200)
+        self.assertTourConfig(response, "A201", ["A101", "A102", "A103", "A104", "A105", "A201"])
+        self.assertEqual(response.context["room_images"], [])
+        self.assertEqual(response.context["room_videos"], [])
+        self.assertEqual(response.context["tour_config"]["roomDetails"][-1], {
+            "number": "A201", "floor": 2, "status": "available", "statusLabel": "Còn trống",
+            "area": 22.5, "profile": "generic", "hasMedia": False,
+        })
 
     def test_a104_tenant_only_receives_their_room_and_media(self):
         Contract.objects.filter(representative__user=self.tenant_user).update(room=self.fourth_room)
         self.client.force_login(self.tenant_user)
         response = self.client.get(reverse("room-walkthrough", args=[self.fourth_room.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A104", "rooms": ["A104"]})
+        self.assertTourConfig(response, 'A104', ['A104'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A104", "images": [self.fourth_image], "videos": [self.fourth_video]},
         ])
@@ -343,7 +368,7 @@ class RoomWalkthroughTests(TestCase):
         self.client.force_login(self.tenant_user)
         response = self.client.get(reverse("room-walkthrough", args=[self.fifth_room.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.context["tour_config"], {"entryRoom": "A105", "rooms": ["A105"]})
+        self.assertTourConfig(response, 'A105', ['A105'])
         self.assertEqual(response.context["tour_rooms"], [
             {"number": "A105", "images": [self.fifth_image], "videos": [self.fifth_video]},
         ])
@@ -360,9 +385,9 @@ class RoomWalkthroughTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["room_images"], [])
         self.assertEqual(response.context["room_videos"], [])
-        self.assertEqual(response.context["tour_rooms"][-1], {"number": "A105", "images": [], "videos": []})
+        self.assertEqual(response.context["tour_rooms"][4], {"number": "A105", "images": [], "videos": []})
 
-    def test_room_list_and_editor_link_only_to_supported_room(self):
+    def test_room_list_and_editor_link_to_every_accessible_room(self):
         self.client.force_login(self.owner)
         list_response = self.client.get(reverse("rooms"))
         self.assertContains(list_response, self.url)
@@ -374,7 +399,7 @@ class RoomWalkthroughTests(TestCase):
         self.assertContains(list_response, fourth_url)
         fifth_url = reverse("room-walkthrough", args=[self.fifth_room.id])
         self.assertContains(list_response, fifth_url)
-        self.assertNotContains(list_response, reverse("room-walkthrough", args=[self.other_room.id]))
+        self.assertContains(list_response, reverse("room-walkthrough", args=[self.other_room.id]))
         self.assertNotContains(list_response, reverse("room-walkthrough", args=[self.private_room.id]))
         edit_response = self.client.get(reverse("room-update", args=[self.room.id]))
         self.assertContains(edit_response, self.url)
@@ -387,8 +412,90 @@ class RoomWalkthroughTests(TestCase):
         fifth_edit = self.client.get(reverse("room-update", args=[self.fifth_room.id]))
         self.assertContains(fifth_edit, fifth_url)
         other_edit = self.client.get(reverse("room-update", args=[self.other_room.id]))
-        self.assertNotContains(other_edit, "Tham quan 3D")
+        self.assertContains(other_edit, reverse("room-walkthrough", args=[self.other_room.id]))
 
     def test_walkthrough_does_not_accept_post_requests(self):
         self.client.force_login(self.owner)
         self.assertEqual(self.client.post(self.url).status_code, 405)
+
+    def test_all_existing_floors_and_statuses_are_used_without_inventing_rooms(self):
+        # The stored floor wins over a number that looks like another floor.
+        rooms = [self.room, self.adjacent_room, self.third_room, self.fourth_room, self.fifth_room]
+        for room, status in zip(rooms, Room.Status.values):
+            Room.objects.filter(pk=room.pk).update(status=status)
+        Room.objects.filter(pk=self.other_room.pk).update(number="Suite-9", floor=3)
+        ground_room = Room.objects.create(
+            building=self.building, number="A999", floor=0, monthly_rent=3000000,
+        )
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("room-walkthrough", args=[ground_room.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTourConfig(response, "A999", ["A999", "A101", "A102", "A103", "A104", "A105", "Suite-9"])
+        config = response.context["tour_config"]
+        self.assertEqual(config["floors"], [0, 1, 3])
+        self.assertEqual(config["entryFloor"], 0)
+        self.assertEqual([item["status"] for item in config["roomDetails"][1:6]], Room.Status.values)
+        self.assertEqual(config["roomDetails"][0]["profile"], "generic")
+
+    def test_generic_room_keeps_its_own_new_media(self):
+        image = RoomMedia.objects.create(
+            room=self.other_room, media_type="image", public_id="generic-room-image",
+            url="https://res.cloudinary.com/example/image/upload/a201.jpg",
+        )
+        video = RoomMedia.objects.create(
+            room=self.other_room, media_type="video", public_id="generic-room-video",
+            url="https://res.cloudinary.com/example/video/upload/a201.mp4",
+        )
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("room-walkthrough", args=[self.other_room.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["room_images"], [image])
+        self.assertEqual(response.context["room_videos"], [video])
+        detail = response.context["tour_config"]["roomDetails"][-1]
+        self.assertTrue(detail["hasMedia"])
+        self.assertEqual(detail["profile"], "generic")
+        self.assertContains(response, image.url)
+        self.assertContains(response, video.url)
+        self.assertNotContains(response, self.private_image.url)
+
+    def test_generic_room_permissions_match_detailed_rooms(self):
+        url = reverse("room-walkthrough", args=[self.other_room.id])
+        self.assertEqual(self.client.get(url).status_code, 302)
+        for user in (self.owner, self.staff, self.admin):
+            self.client.force_login(user)
+            with self.subTest(role=user.role, access=True):
+                self.assertEqual(self.client.get(url).status_code, 200)
+        for user in (self.other_owner, self.unassigned_staff, self.unlinked_tenant, self.tenant_user):
+            self.client.force_login(user)
+            with self.subTest(username=user.username, access=False):
+                self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_generic_tenant_gets_only_their_room_floor_and_entry_button(self):
+        Contract.objects.filter(representative__user=self.tenant_user).update(room=self.other_room)
+        self.client.force_login(self.tenant_user)
+        url = reverse("room-walkthrough", args=[self.other_room.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTourConfig(response, "A201", ["A201"])
+        self.assertEqual(response.context["tour_config"]["floors"], [2])
+        self.assertEqual(response.context["return_url"], reverse("tenant-rooms"))
+        self.assertEqual(response.context["tour_rooms"], [{"number": "A201", "images": [], "videos": []}])
+        for room in (self.room, self.adjacent_room, self.third_room, self.fourth_room, self.fifth_room, self.private_room):
+            self.assertEqual(self.client.get(reverse("room-walkthrough", args=[room.id])).status_code, 404)
+            for media in room.media.all():
+                self.assertNotContains(response, media.url)
+        portal = self.client.get(reverse("tenant-rooms"))
+        self.assertContains(portal, url)
+        self.assertNotContains(portal, self.url)
+
+    def test_opening_tours_never_creates_removes_or_updates_rooms_and_media(self):
+        self.client.force_login(self.admin)
+        before_rooms = list(Room.objects.order_by("id").values())
+        before_media = list(RoomMedia.objects.order_by("id").values())
+        for room in Room.objects.all():
+            with self.subTest(room=room.number, building=room.building_id):
+                response = self.client.get(reverse("room-walkthrough", args=[room.id]))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(len(response.context["tour_config"]["rooms"]), room.building.rooms.count())
+        self.assertEqual(list(Room.objects.order_by("id").values()), before_rooms)
+        self.assertEqual(list(RoomMedia.objects.order_by("id").values()), before_media)

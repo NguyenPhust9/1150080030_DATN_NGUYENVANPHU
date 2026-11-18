@@ -7,7 +7,7 @@ export function createWalkthroughMotion(world, position, { radius = .2, bodyHeig
   let jumpHeight = 0;
   const gravity = 14;
   const EPS = .006;
-  const insideLane = (room, x) => x >= room.stairs.minX + .07 && x <= room.stairs.maxX - .07;
+  const insideLane = (room, x) => !!room.stairs && x >= room.stairs.minX + .07 && x <= room.stairs.maxX - .07;
   const stairCenter = room => (room.stairs.minX + room.stairs.maxX) / 2;
   function rampHeight(room, z) {
     const stairs = room.stairs;
@@ -16,7 +16,7 @@ export function createWalkthroughMotion(world, position, { radius = .2, bodyHeig
   }
   function supportAt(x, z, level = state.level, room = stairRoom) {
     if (level === 'stairs') return rampHeight(room, z);
-    if (level === 'loft') return world.roomAt(x, z)?.loft.y ?? position.y;
+    if (level === 'loft') return world.roomAt(x, z)?.loft?.y ?? position.y;
     return world.groundAt(x, z);
   }
   function overlaps(x, z, rect) {
@@ -28,7 +28,7 @@ export function createWalkthroughMotion(world, position, { radius = .2, bodyHeig
     if (x < world.bounds.minX || x > world.bounds.maxX || z < world.bounds.minZ || z > world.bounds.maxZ) return false;
     const room = world.roomAt(x, z);
     if (z < 0 && (!room || x < room.minX + radius || x > room.maxX - radius)) return false;
-    if (level === 'loft' && (!room || z > room.loft.maxZ - radius || z < room.loft.minZ + radius)) return false;
+    if (level === 'loft' && (!room?.loft || z > room.loft.maxZ - radius || z < room.loft.minZ + radius)) return false;
     if (y + bodyHeight > world.ceilingAt(x, z, level) + EPS) return false;
     if (world.obstacles.some(rect => {
       if (rect.tag === 'stairs' && level === 'stairs' && activeStairs && rect.roomNumber === activeStairs.number) return false;
