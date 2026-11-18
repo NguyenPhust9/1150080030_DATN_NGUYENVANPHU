@@ -24,15 +24,16 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }, { createBuildingNavigation }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=building-tour-1"),
+    import("./room-tour-world.js?v=landscape-1"),
     import("./walkthrough-avatar.js?v=a105-tour-1"),
     import("./walkthrough-motion.js?v=building-tour-1"),
     import("./building-tour-navigation.js?v=building-tour-1"),
   ]);
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xc1d0cf);
-  scene.fog = new THREE.Fog(0xc1d0cf, 17, 48);
-  const camera = new THREE.PerspectiveCamera(59, 1, 0.06, 80);
+  // Keep the courtyard and neighbouring skyline visible from upper floors.
+  scene.background = new THREE.Color(0xc8e2ef);
+  scene.fog = new THREE.Fog(0xc8e2ef, 40, 145);
+  const camera = new THREE.PerspectiveCamera(59, 1, 0.06, 190);
   const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.7));
   renderer.shadowMap.enabled = true;
@@ -373,10 +374,13 @@ try {
       currentRoom = room.number;
       document.querySelectorAll("[data-room-media]").forEach(panel => { panel.hidden = panel.dataset.roomMedia !== currentRoom; });
       document.getElementById("media-title").textContent = `Ảnh & video phòng ${currentRoom}`;
-      document.getElementById('tour-model-note').textContent = roomDetails.get(currentRoom)?.profile === 'generic'
+    }
+    const modelNote = !inside ? 'Cảnh quan minh họa · Bố trí mô phỏng'
+      : roomDetails.get(currentRoom)?.profile === 'generic'
         ? 'Nội thất mô phỏng cơ bản · Chưa dựng theo tư liệu'
         : 'Phỏng dựng từ ảnh và video · Kích thước ước lượng';
-    }
+    const noteElement = document.getElementById('tour-model-note');
+    if (noteElement.textContent !== modelNote) noteElement.textContent = modelNote;
     const heading = atElevator ? `Thang máy · Tầng ${activeFloor}` : `Phòng ${currentRoom}`;
     if (document.getElementById('tour-room-name').textContent !== heading) document.getElementById('tour-room-name').textContent = heading;
     navigation.update({ floor: activeFloor, room: currentRoom, inside, nearElevator: atElevator && !traveling });

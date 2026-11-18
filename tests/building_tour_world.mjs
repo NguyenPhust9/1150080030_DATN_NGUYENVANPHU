@@ -31,6 +31,15 @@ const overlapsBody = (obstacle, x, z) => {
   return obstacle.minY < 1.4 && obstacle.maxY > .05 && x + radius > obstacle.minX && x - radius < obstacle.maxX
     && z + radius > obstacle.minZ && z - radius < obstacle.maxZ;
 };
+const cameraDoorHits = (world, room, fromY, toY) => {
+  world.group.updateMatrixWorld(true);
+  const origin = new THREE.Vector3(room.doorX, fromY, 2.4);
+  const offset = new THREE.Vector3(room.doorX, toY, -.3).sub(origin);
+  const ray = new THREE.Raycaster(origin, offset.clone().normalize(), 0, offset.length());
+  const doorParts = new Set();
+  room.door.traverse(item => { if (item.isMesh) doorParts.add(item); });
+  return ray.intersectObjects(world.cameraObstacles, false).filter(hit => doorParts.has(hit.object));
+};
 
 test('existing A101–A105 keep their coordinates, interiors and loft access', () => {
   const { world } = fixture();
@@ -70,6 +79,34 @@ test('only the active floor has interiors; a generic room has a traversable entr
   world.dispose();
 });
 
+test('the follow camera stops at a closed generic door after turning toward the courtyard', () => {
+  const { world } = fixture({ activeFloor: 2, entryRoom: 'A203' });
+  const room = world.rooms.find(room => room.number === 'A203');
+  // Reproduce the standing avatar's follow-camera segment after a 180° turn.
+  assert.ok(cameraDoorHits(world, room, 1.07, 1.94).length > 0, 'a closed solid door must shorten the camera segment');
+  room.door.rotation.y = Math.PI / 2;
+  assert.equal(cameraDoorHits(world, room, 1.07, 1.94).length, 0, 'the open door must not leave an invisible camera blocker');
+  world.dispose();
+});
+
+test('detailed room doors block the camera at solid panels and rails without blocking transparent glass', () => {
+  const { world } = fixture();
+  for (const room of world.rooms) {
+    // A104 is a glazed door with a middle rail; the others have lower panels.
+    const height = room.number === 'A104' ? 1.11 : .4;
+    assert.ok(cameraDoorHits(world, room, height, height).length > 0, `${room.number}: closed solid door part blocks the camera`);
+    room.door.traverse(item => {
+      if (!item.isMesh) return;
+      const glass = [].concat(item.material || []).every(material => material.transparent && material.opacity < 1);
+      const registrations = world.cameraObstacles.filter(obstacle => obstacle === item).length;
+      assert.equal(registrations, glass ? 0 : 1, `${room.number}: each opaque door mesh is registered once; glass stays transparent`);
+    });
+    room.door.rotation.y = Math.PI / 2;
+    assert.equal(cameraDoorHits(world, room, height, height).length, 0, `${room.number}: camera obstacles follow the open door`);
+  }
+  world.dispose();
+});
+
 test('lift is reachable along the hallway on all five floors and its cab is walkable', () => {
   for (let floor = 1; floor <= 5; floor++) {
     const { world } = fixture({ activeFloor: floor });
@@ -103,7 +140,11 @@ test('floor changes release every geometry, material and texture once', () => {
   const { scene, world } = fixture({ activeFloor: 3 });
   world.setDestination('A303');
   const resources = new Set();
+  let instanceBatches = 0;
   world.group.traverse(item => {
+    // InstancedMesh owns separate GPU attributes; disposing its shared geometry
+    // alone does not release instanceMatrix/instanceColor when leaving a floor.
+    if (item.isInstancedMesh) { resources.add(item); instanceBatches++; }
     if (item.geometry) resources.add(item.geometry);
     for (const material of [].concat(item.material || [])) {
       resources.add(material);
@@ -115,7 +156,90 @@ test('floor changes release every geometry, material and texture once', () => {
   world.dispose(); world.dispose();
   assert.equal(scene.children.length, 0);
   assert.ok(resources.size > 20);
+  assert.ok(instanceBatches > 0, 'landscape instancing participates in resource cleanup');
   counts.forEach(count => assert.equal(count, 1));
+});
+
+test('the outdoor ground stays below floors 1, 2 and 5 while room coordinates stay local', () => {
+  let centerX;
+  for (const floor of [1, 2, 5]) {
+    const { world } = fixture({ activeFloor: floor });
+    const landscape = world.landscape;
+    assert.ok(landscape?.group, `floor ${floor} has an outdoor environment`);
+    assert.equal(landscape.group.name, 'tour-landscape');
+    assert.equal(landscape.group.parent, world.group, 'the floor owns all outdoor resources');
+    near(landscape.groundY, -(floor - 1) * 4.8);
+    near(landscape.group.position.y, landscape.groundY);
+    if (centerX === undefined) centerX = landscape.centerX;
+    near(landscape.centerX, centerX);
+    for (const [index, room] of world.rooms.entries()) {
+      near(room.offsetX, -3.6 * index);
+      near(room.spawn.x, .55 - 3.6 * index);
+      near(room.spawn.y, 0);
+      near(world.groundAt(room.doorX, -1), 0);
+    }
+    near(world.elevator.spawn.y, 0);
+    world.dispose();
+  }
+});
+
+test('landscape never enters the walkable corridor or takes over the follow camera', () => {
+  for (const floor of [1, 2, 5]) {
+    const { world } = fixture({ activeFloor: floor });
+    const landscapeObjects = new Set();
+    world.landscape.group.traverse(item => {
+      landscapeObjects.add(item);
+      assert.ok(!item.isLight, 'outdoor decoration must reuse scene lighting');
+    });
+    const outdoorBounds = new THREE.Box3().setFromObject(world.landscape.group);
+    assert.ok(!outdoorBounds.isEmpty());
+    assert.ok(outdoorBounds.min.z > world.bounds.maxZ, 'trees and buildings stay outside the playable corridor');
+    assert.ok(!world.cameraObstacles.some(item => landscapeObjects.has(item)), 'distant scenery cannot force the camera into the avatar');
+    const position = { ...world.rooms[0].spawn };
+    const motion = createWalkthroughMotion(world, position);
+    for (let tick = 0; tick < 1600 && position.x > world.elevator.spawn.x + .1; tick++) {
+      motion.step(1 / 60, { strafe: -1 });
+    }
+    assert.ok(Math.abs(position.x - world.elevator.spawn.x) < .12, `floor ${floor}: walking to the lift is unchanged`);
+    near(position.z, 2.4);
+    near(position.y, 0);
+    world.dispose();
+  }
+});
+
+test('single-room tenant tours keep the true outdoor elevation without exposing other rooms', () => {
+  const details = [roomDetails.find(room => room.number === 'A501')];
+  const { world } = fixture({
+    rooms: ['A501'], roomDetails: details,
+    entryRoom: 'A501', entryFloor: 5, activeFloor: 5,
+  });
+  near(world.landscape.groundY, -19.2);
+  assert.deepEqual(world.rooms.map(room => room.number), ['A501']);
+  assert.equal(world.setDestination('A101'), false);
+  assert.equal(world.setDestination('A502'), false);
+  near(world.rooms[0].spawn.y, 0);
+  world.dispose();
+});
+
+test('the courtyard remains beneath a tenant room with a preserved sparse slot', () => {
+  const details = [roomDetails.find(room => room.number === 'A105')];
+  const { world } = fixture({ rooms: ['A105'], roomDetails: details, entryRoom: 'A105' });
+  near(world.rooms[0].offsetX, -14.4);
+  near(world.landscape.centerX, world.rooms[0].offsetX);
+  assert.deepEqual(world.rooms.map(room => room.number), ['A105']);
+  world.dispose();
+});
+
+test('an explicitly configured ground floor zero remains at ground level', () => {
+  const details = [{ number: 'Ground', floor: 0, profile: 'generic' }];
+  const { world } = fixture({
+    rooms: ['Ground'], roomDetails: details,
+    entryRoom: 'Ground', entryFloor: 0, activeFloor: 0,
+  });
+  near(world.landscape.groundY, 0);
+  near(world.landscape.group.position.y, 0);
+  near(world.rooms[0].spawn.y, 0);
+  world.dispose();
 });
 
 test('room allow-list is respected even when metadata contains more rooms', () => {

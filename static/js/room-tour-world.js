@@ -4,6 +4,7 @@ import { buildA103World } from './a103-world.js?v=a105-tour-1';
 import { buildA104World } from './a104-world.js?v=a105-tour-1';
 import { buildA105World } from './a105-world.js?v=a105-tour-1';
 import { buildGenericRoomWorld } from './generic-room-world.js?v=building-tour-1';
+import { buildTourLandscape } from './tour-landscape.js?v=landscape-1';
 
 // All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -63,6 +64,13 @@ export function buildRoomTourWorld(THREE, scene, config) {
     rooms.push({ ...description, ...built, hingeX: description.offsetX, doorX: description.offsetX + .55 });
     obstacles.push(...built.obstacles.map(rect => ({ ...rect, roomNumber: description.number })));
     cameraObstacles.push(...built.cameraObstacles);
+    // Doors rotate independently of the static room walls. Include their opaque
+    // panels in the follow-camera raycast so orbiting cannot enter a closed door.
+    built.door?.traverse(item => {
+      if (!item.isMesh || cameraObstacles.includes(item)) return;
+      const materials = [].concat(item.material || []);
+      if (materials.some(material => !material.transparent || material.opacity >= 1)) cameraObstacles.push(item);
+    });
     const lightSpecs = built.loft ? [[-1, 3.35, 13], [-4.5, 1.94, 10], [-4.4, built.loft.ceilingY - .3, 12]] : [[-2.6, 3.6, 20], [-5.2, 2.5, 9]];
     for (const [z, y, intensity] of lightSpecs) {
       const light = new THREE.PointLight(0xfff5e4, intensity, 7, 2);
@@ -147,6 +155,20 @@ export function buildRoomTourWorld(THREE, scene, config) {
     box(landingCenterX, y + 1.05, 3.57, landingWidth, .055, .055, metal);
     for (const x of [landingMinX + .15, landingMaxX - .15]) box(x, y + 2.3, .13, .16, 4.6, .45, trim);
   }
+  // Use a stable envelope across authorized floors, preserving sparse A101–A105
+  // slots too. A tenant who sees only A105 still has the courtyard below A105.
+  const landscapeOffsets = [];
+  for (const otherFloor of allFloors) {
+    const candidates = details.filter(room => allowed.has(room.number) && Number(room.floor) === otherFloor)
+      .sort((a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }));
+    const known = candidates.filter(room => /^A10[1-5]$/.test(room.number)).map(room => Number(room.number.at(-1)) - 1);
+    let next = known.length ? Math.max(...known) + 1 : 0;
+    for (const room of candidates) landscapeOffsets.push(-3.6 * (/^A10[1-5]$/.test(room.number) ? Number(room.number.at(-1)) - 1 : next++));
+  }
+  const landscape = buildTourLandscape(THREE, owned, {
+    activeFloor: floor, lowestFloor: Math.min(1, ...allFloors),
+    centerX: (Math.min(...landscapeOffsets) + Math.max(...landscapeOffsets)) / 2,
+  });
   // A small planter beside A101 preserves the sunny landing's visual cue.
   if (rooms.some(room => room.number === 'A101')) {
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(.23, .17, .43, 14), trim);
@@ -170,14 +192,16 @@ export function buildRoomTourWorld(THREE, scene, config) {
   }
   let route = null, disposed = false;
   function disposeObjects(group) {
-    const geometries = new Set(), materials = new Set(), textures = new Set();
+    const geometries = new Set(), materials = new Set(), textures = new Set(), instancedMeshes = new Set();
     group.traverse(object => {
       if (object.geometry) geometries.add(object.geometry);
+      if (object.isInstancedMesh) instancedMeshes.add(object);
       for (const mat of [].concat(object.material || [])) {
         materials.add(mat);
         for (const value of Object.values(mat)) if (value?.isTexture) textures.add(value);
       }
     });
+    instancedMeshes.forEach(mesh => mesh.dispose());
     textures.forEach(texture => texture.dispose()); materials.forEach(mat => mat.dispose());
     geometries.forEach(geometry => geometry.dispose());
   }
@@ -229,7 +253,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
   if (!entry) throw new Error('No accessible walkthrough room');
   const roomAt = (x, z) => rooms.find(room => x >= room.minX && x <= room.maxX && z <= 0 && z >= -6.6);
   return {
-    group: owned, floor, rooms, obstacles, cameraObstacles, elevator, spawn: entry.spawn, setDestination,
+    group: owned, floor, rooms, obstacles, cameraObstacles, elevator, landscape, spawn: entry.spawn, setDestination,
     bounds: { minX: landingMinX + .3, maxX: landingMaxX - .3, minZ: -6.4, maxZ: 3.35 },
     roomAt,
     nearestRoom: (x, z) => roomAt(x, z) || rooms.reduce((best, room) => Math.abs(room.doorX - x) < Math.abs(best.doorX - x) ? room : best, entry),

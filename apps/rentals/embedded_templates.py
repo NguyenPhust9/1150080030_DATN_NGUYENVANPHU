@@ -4839,7 +4839,7 @@ TEMPLATES = {'accounts/account_detail.html': '{% extends "base.html" %}\n'
                                   '  <script src="{% static \'lucide.min.js\' %}"></script>\n'
                                   '  <script>lucide.createIcons();</script>\n'
                                   '  <script type="module" src="{% static \'js/room-walkthrough.js\' '
-                                  '%}?v=building-tour-1"></script>\n'
+                                  '%}?v=landscape-1"></script>\n'
                                   '</body>\n'
                                   '</html>\n',
  'rentals/service_list.html': '{% extends "base.html" %}\n'
