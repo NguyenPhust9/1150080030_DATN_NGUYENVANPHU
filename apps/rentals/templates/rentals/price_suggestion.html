@@ -55,7 +55,7 @@
       {% for amenity in room.amenities.all %}
       <span class="amenity-chip"><i data-lucide="check"></i> {{ amenity.name }}</span>
       {% empty %}
-      <span class="amenity-chip" style="opacity:0.75;background:#f5f5f4;border-color:#e7e5e4;color:#78716c;">Chưa gán tiện nghi</span>
+      <span class="amenity-chip" style="opacity:0.75;background:var(--admin-soft);border-color:var(--admin-line);color:var(--admin-muted);">Chưa gán tiện nghi</span>
       {% endfor %}
     </div>
   </section>
@@ -81,7 +81,7 @@
       <div>
         <p class="price-meta-note">
           <strong>Tiền cọc quy định:</strong> {{ room.deposit_amount|vnd }} đ<br>
-          <span style="color:#a8a29e;font-size:12px;">Mức giá đang hiển thị công khai trên hệ thống & ứng dụng khách thuê.</span>
+          <span style="color:var(--admin-muted);font-size:12px;">Mức giá đang hiển thị công khai trên hệ thống & ứng dụng khách thuê.</span>
         </p>
       </div>
     </div>
@@ -135,7 +135,7 @@
             <span class="price-number">{{ latest_suggestion.suggested_price|vnd }} đ</span>
             <span class="price-unit">/ tháng &bull; Đề xuất lúc {{ latest_suggestion.created_at|date:"H:i - d/m/Y" }}</span>
           {% else %}
-            <span class="price-number" style="font-size:22px;color:#a8a29e;font-weight:700;">Chưa tạo gợi ý</span>
+            <span class="price-number" style="font-size:22px;color:var(--admin-muted);font-weight:700;">Chưa tạo gợi ý</span>
             <span class="price-unit">Nhấn "Chạy phân tích AI" để nhận mức giá tối ưu</span>
           {% endif %}
         </div>

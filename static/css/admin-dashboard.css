@@ -20,6 +20,9 @@
 }
 
 .management-app main.content .admin-dashboard .dashboard-stats-grid .stat {
+  --stat-bg: var(--admin-info-bg);
+  --stat-ink: var(--admin-info-ink);
+  --stat-line: var(--admin-info-line);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -27,12 +30,33 @@
   min-height: 116px;
   padding: 20px !important;
   border: 0 !important;
-  border-right: 1px solid var(--admin-line, #d5e3f5) !important;
+  border-right: 1px solid var(--stat-line) !important;
   border-radius: 0 !important;
-  background: transparent !important;
+  background: var(--stat-bg) !important;
   box-shadow: none !important;
   transform: none !important;
   transition: none !important;
+}
+
+.management-app main.content .admin-dashboard .dashboard-stats-grid .stat:nth-child(2) {
+  --stat-bg: var(--admin-success-bg);
+  --stat-ink: var(--admin-success-ink);
+  --stat-line: var(--admin-success-line);
+}
+.management-app main.content .admin-dashboard .dashboard-stats-grid .stat:nth-child(4) {
+  --stat-bg: var(--admin-cyan-bg);
+  --stat-ink: var(--admin-cyan-ink);
+  --stat-line: var(--admin-cyan-line);
+}
+.management-app main.content .admin-dashboard .dashboard-stats-grid .stat:nth-child(5) {
+  --stat-bg: var(--admin-warning-bg);
+  --stat-ink: var(--admin-warning-ink);
+  --stat-line: var(--admin-warning-line);
+}
+.management-app main.content .admin-dashboard .dashboard-stats-grid .stat:nth-child(6) {
+  --stat-bg: var(--admin-danger-bg);
+  --stat-ink: var(--admin-danger-ink);
+  --stat-line: var(--admin-danger-line);
 }
 
 .management-app main.content .admin-dashboard .dashboard-stats-grid .stat:last-child {
@@ -40,7 +64,7 @@
 }
 
 .management-app main.content .admin-dashboard .dashboard-stats-grid .stat span {
-  color: var(--admin-muted, #365477) !important;
+  color: var(--stat-ink) !important;
   font-size: 13px !important;
   font-weight: 400 !important;
   line-height: 20px;
@@ -50,7 +74,7 @@
 }
 
 .management-app main.content .admin-dashboard .dashboard-stats-grid .stat strong {
-  color: var(--admin-text, #111111) !important;
+  color: var(--stat-ink) !important;
   font-size: 28px !important;
   font-weight: 500 !important;
   line-height: 32px !important;
@@ -253,6 +277,7 @@
 .management-app main.content .admin-dashboard .dashboard-panels .panel-heading {
   padding: 20px 24px;
   margin: 0;
+  background: var(--admin-info-bg);
 }
 
 .management-app main.content .admin-dashboard .panel-more-link {
@@ -301,7 +326,7 @@
   padding: 12px 16px !important;
   border-top: 1px solid var(--admin-line, #d5e3f5);
   border-bottom: 1px solid var(--admin-line, #d5e3f5) !important;
-  background: #eff6ff;
+  background: var(--admin-info-bg);
   color: var(--admin-muted, #365477) !important;
   font-size: 12px !important;
   line-height: 20px;

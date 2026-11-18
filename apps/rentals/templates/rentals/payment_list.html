@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block page_title %}Thanh toán{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/financial-lists.css' %}?v=1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/financial-lists.css' %}?v=2">{% endblock %}
 {% block content %}
 <div class="financial-heading">
   <p>Theo dõi dòng tiền theo ngày thanh toán và phương thức thu.</p>
@@ -68,9 +68,9 @@
           <td>{{ x.reference|default:"—" }}</td>
           <td>
             {% if x.is_void %}
-            <span class="badge" style="background:#ffebed;color:#ca3944;">Đã hủy</span>
+            <span class="badge badge-status-cancelled">Đã hủy</span>
             {% else %}
-            <span class="badge">Hợp lệ</span>
+            <span class="badge badge-status-paid">Hợp lệ</span>
             {% endif %}
           </td>
           <td>

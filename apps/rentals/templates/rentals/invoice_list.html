@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block page_title %}Hóa đơn{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/financial-lists.css' %}?v=1">{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/financial-lists.css' %}?v=2">{% endblock %}
 {% block content %}
 <div class="financial-heading">
   <p>Theo dõi hóa đơn, công nợ và số tiền đã thu.</p>
@@ -69,7 +69,7 @@
           <td>{{ x.paid_amount|vnd }} đ</td>
           <td><strong>{{ x.balance|vnd }} đ</strong></td>
           <td>{{ x.due_date|date:"d/m/Y" }}</td>
-          <td><span class="badge">{{ x.get_status_display }}</span></td>
+          <td><span class="badge badge-status-{{ x.status }}">{{ x.get_status_display }}</span></td>
           <td>
             <div style="display:flex;gap:6px;">
               <a class="btn compact" href="{% url 'invoice-detail' x.id %}">Chi tiết</a>

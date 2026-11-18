@@ -9,9 +9,9 @@
   <link rel="stylesheet" href="{% static 'css/app.css' %}"><link rel="stylesheet" href="{% static 'css/pagination.css' %}"><link rel="stylesheet" href="{% static 'css/room-map.css' %}"><link rel="stylesheet" href="{% static 'css/room-map-compact.css' %}"><link rel="stylesheet" href="{% static 'css/navigation.css' %}"><link rel="stylesheet" href="{% static 'css/management.css' %}"><link rel="stylesheet" href="{% static 'css/toast.css' %}">
   {% block extra_head %}{% endblock %}
   {% if user.role != 'tenant' %}
-  <link rel="stylesheet" href="{% static 'css/admin-shell.css' %}?v=admin-blue-2">
-  <link rel="stylesheet" href="{% static 'css/admin-components.css' %}?v=admin-blue-2">
-  {% if request.resolver_match.url_name == 'dashboard' %}<link rel="stylesheet" href="{% static 'css/admin-dashboard.css' %}?v=admin-blue-2">{% endif %}
+  <link rel="stylesheet" href="{% static 'css/admin-shell.css' %}?v=admin-cards-3">
+  <link rel="stylesheet" href="{% static 'css/admin-components.css' %}?v=admin-cards-3">
+  {% if request.resolver_match.url_name == 'dashboard' %}<link rel="stylesheet" href="{% static 'css/admin-dashboard.css' %}?v=admin-cards-3">{% endif %}
   {% endif %}
 </head>
 <body{% if user.role != 'tenant' %} class="management-app"{% endif %}>
