@@ -2,7 +2,7 @@ import json
 import os
 import time
 from datetime import date
-from urllib.parse import unquote, urlparse
+from urllib.parse import unquote, urlencode, urlparse
 
 import cloudinary
 import cloudinary.uploader
@@ -306,7 +306,34 @@ def public_about(request):
 
 
 def public_contact(request):
-    return render(request, "public/contact.html")
+    contact_buildings = []
+    for building in Building.objects.filter(is_active=True).only("id", "name", "address").order_by("name", "id"):
+        address = building.address.strip()
+        if not address:
+            continue
+        # Google currently resolves this address to the unrelated 360/118B alley.
+        # Show and link to the street area instead; keep the owner's address visible.
+        map_query = address
+        if address.casefold() == "118 nguyễn thị minh khai, quận 3, tp.hcm":
+            map_query = "Nguyễn Thị Minh Khai, Quận 3, TP.HCM"
+        contact_buildings.append({
+            "id": str(building.id),
+            "name": building.name,
+            "address": address,
+            "map_embed_url": "https://www.google.com/maps?" + urlencode({"q": map_query, "output": "embed", "hl": "vi"}),
+            "map_url": "https://www.google.com/maps/search/?" + urlencode({"api": 1, "query": map_query}),
+            "directions_url": "https://www.google.com/maps/dir/?" + urlencode({"api": 1, "destination": map_query}),
+            "rooms_url": reverse("public-rooms") + "?" + urlencode({"building": building.name}),
+        })
+    selected_id = request.GET.get("building", "")
+    selected_building = next(
+        (building for building in contact_buildings if building["id"] == selected_id),
+        contact_buildings[0] if contact_buildings else None,
+    )
+    return render(request, "public/contact.html", {
+        "contact_buildings": contact_buildings,
+        "selected_building": selected_building,
+    })
 
 
 @login_required

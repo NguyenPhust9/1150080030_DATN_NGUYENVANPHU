@@ -165,7 +165,7 @@
 .home-discovery .compact-room-grid .room-meta { gap: 8px; flex-wrap: wrap; padding: 12px 0 0; margin: 16px 0 12px; border-color: var(--home-line); color: var(--home-secondary); font-size: 13px; }
 .home-discovery .compact-room-grid .room-meta svg { width: 16px; height: 16px; color: var(--home-muted); }
 .home-discovery .compact-room-grid .availability { border: 0; border-radius: 4px; padding: 4px 8px; color: #326245; background: #edf4ee; font-size: 12px; font-weight: 400; }
-.home-discovery .room-carousel-controls { padding: 12px 20px 16px; color: var(--home-muted); font-size: 13px; }
+.home-discovery .room-carousel-controls { justify-content: flex-end; padding: 12px 20px 16px; color: var(--home-muted); font-size: 13px; }
 .home-discovery .room-carousel-buttons button { width: 44px; height: 44px; border: 1px solid var(--home-line); border-radius: 8px; background: #fff; color: var(--home-secondary); }
 .home-discovery .room-carousel-buttons button:hover:not(:disabled) { background: var(--home-raised); border-color: #bdb5a9; }
 .home-discovery .empty-state { border-color: var(--home-line); padding: 40px 24px; background: #fff; color: var(--home-secondary); }
@@ -264,7 +264,6 @@
   .home-discovery .compact-room-grid { grid-auto-columns: min(280px, calc(100% - 28px)); gap: 12px; padding: 16px; scroll-padding-inline: 16px; }
   .home-discovery .compact-room-grid .room-visual { height: 176px; }
   .home-discovery .room-carousel-controls { padding: 12px 16px 16px; gap: 8px; font-size: 12px; }
-  .home-discovery .room-carousel-controls > span { gap: 4px; }
   .home-discovery .room-carousel-buttons { gap: 4px; }
   .home-discovery .room-carousel-buttons button { width: 44px; height: 44px; }
 }

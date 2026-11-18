@@ -1,7 +1,7 @@
 {% extends "public/discovery_base.html" %}
 {% load static %}
 {% block title %}Liên hệ{% endblock %}
-{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/public-information.css' %}?v=info-2">{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/public-information.css' %}?v=info-2"><link rel="stylesheet" href="{% static 'css/contact-locations.css' %}?v=locations-1">{% endblock %}
 {% block content %}
 <div class="information-page">
   <nav class="info-breadcrumb" aria-label="Đường dẫn"><a href="{% url 'public-home' %}">Trang chủ</a><i data-lucide="chevron-right" aria-hidden="true"></i><span aria-current="page">Liên hệ</span></nav>
@@ -13,6 +13,35 @@
   <section class="info-contact-methods" aria-label="Các cách liên hệ">
     <article class="info-contact-card"><div class="info-method-heading"><i data-lucide="phone" aria-hidden="true"></i><h2>Gọi điện trực tiếp</h2></div><a class="info-contact-address" href="tel:0902966704">0902 966 704</a><p>Trao đổi về phòng đang cho thuê, thông tin tòa nhà và việc hẹn xem phòng.</p><a class="btn primary" href="tel:0902966704"><i data-lucide="phone" aria-hidden="true"></i> Gọi 0902 966 704</a></article>
     <article class="info-contact-card"><div class="info-method-heading"><i data-lucide="mail" aria-hidden="true"></i><h2>Gửi email</h2></div><a class="info-contact-address info-email-address" href="mailto:1150080030@sv.hcmunre.edu.vn">1150080030@sv.hcmunre.edu.vn</a><p>Gửi nội dung cần hỗ trợ, câu hỏi chi tiết hoặc hình ảnh mô tả vấn đề bạn đang gặp.</p><a class="info-secondary-button" href="mailto:1150080030@sv.hcmunre.edu.vn"><i data-lucide="mail" aria-hidden="true"></i> Mở ứng dụng email</a></article>
+  </section>
+
+  <section id="contact-locations" class="info-section contact-locations" aria-labelledby="contact-locations-title">
+    <div class="info-section-heading"><p class="info-kicker">Địa chỉ các tòa nhà</p><h2 id="contact-locations-title">Tìm đường đến nơi bạn muốn ở</h2><p>Chọn tòa nhà để xem vị trí trên bản đồ. Bạn có thể mở chỉ đường và liên hệ trước để hẹn xem phòng.</p></div>
+    {% if selected_building %}
+    <div class="contact-locations-layout" data-contact-locations>
+      <nav class="contact-location-list" aria-label="Chọn tòa nhà trên bản đồ">
+        {% for building in contact_buildings %}
+        <a class="contact-location-choice" href="{% url 'public-contact' %}?building={{ building.id }}#contact-locations" {% if building.id == selected_building.id %}aria-current="location"{% endif %} data-building-id="{{ building.id }}" data-building-name="{{ building.name }}" data-building-address="{{ building.address }}" data-map-embed-url="{{ building.map_embed_url }}" data-map-url="{{ building.map_url }}" data-directions-url="{{ building.directions_url }}" data-rooms-url="{{ building.rooms_url }}">
+          <span class="contact-location-number" aria-hidden="true">{{ forloop.counter|stringformat:"02d" }}</span>
+          <span class="contact-location-copy"><strong>{{ building.name }}</strong><span>{{ building.address }}</span></span>
+          <i data-lucide="chevron-right" aria-hidden="true"></i>
+        </a>
+        {% endfor %}
+      </nav>
+      <div id="contact-map-panel" class="contact-map-panel" tabindex="-1" role="region" aria-label="Bản đồ tòa nhà">
+        <div class="contact-map-heading" aria-live="polite" aria-atomic="true"><h3 id="contact-map-name">{{ selected_building.name }}</h3><p id="contact-map-address">{{ selected_building.address }}</p></div>
+        <iframe id="contact-map" src="{{ selected_building.map_embed_url }}" title="Bản đồ tham khảo {{ selected_building.name }} — {{ selected_building.address }}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+        <p class="contact-map-note"><i data-lucide="info" aria-hidden="true"></i>Bản đồ khu vực mang tính tham khảo. Vui lòng liên hệ để xác nhận vị trí và lối vào trước khi đến.</p>
+        <div class="contact-map-actions">
+          <a id="contact-directions" class="btn primary" href="{{ selected_building.directions_url }}" target="_blank" rel="noopener noreferrer"><i data-lucide="navigation" aria-hidden="true"></i> Chỉ đường</a>
+          <a id="contact-building-rooms" class="info-text-link" href="{{ selected_building.rooms_url }}">Xem phòng <i data-lucide="arrow-right" aria-hidden="true"></i></a>
+          <a id="contact-open-map" class="contact-open-map" href="{{ selected_building.map_url }}" target="_blank" rel="noopener noreferrer">Mở Google Maps <i data-lucide="external-link" aria-hidden="true"></i></a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <p class="contact-locations-empty">Địa chỉ tòa nhà đang được cập nhật. Bạn có thể gọi điện hoặc gửi email để trao đổi về vị trí phòng cần tìm.</p>
+    {% endif %}
   </section>
 
   <section class="info-section" aria-labelledby="contact-prepare">
@@ -36,3 +65,4 @@
   <section class="info-callout"><div><h2>Bạn vẫn đang cân nhắc chỗ ở?</h2><p>Quay lại danh sách để xem thông tin và lưu các phòng bạn quan tâm.</p></div><a class="btn primary" href="{% url 'public-rooms' %}">Tiếp tục tìm phòng <i data-lucide="arrow-right" aria-hidden="true"></i></a></section>
 </div>
 {% endblock %}
+{% block extra_js %}{{ block.super }}<script src="{% static 'js/contact-locations.js' %}?v=locations-1" defer></script>{% endblock %}

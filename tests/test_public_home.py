@@ -3,6 +3,7 @@
 Run with --settings=config.test_indoor_settings to keep the database isolated.
 """
 from html.parser import HTMLParser
+from urllib.parse import parse_qs, urlsplit
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -221,3 +222,98 @@ class PublicInformationPageTests(TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertContains(response, f'href="{reverse(destination)}"')
             self.client.logout()
+
+
+class PublicContactLocationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.owner = get_user_model().objects.create_user(
+            username="contact-location-owner", password="test-only", role="owner"
+        )
+
+    def building(self, name="Tòa nhà An Tâm", address="118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", **kwargs):
+        return Building.objects.create(name=name, address=address, owner=self.owner, **kwargs)
+
+    def test_empty_and_nonpublic_locations_do_not_produce_a_map(self):
+        response = self.client.get(reverse("public-contact"))
+        self.assertEqual(response.context["contact_buildings"], [])
+        self.assertIsNone(response.context["selected_building"])
+        self.building(name="Inactive building", is_active=False)
+        self.building(name="Empty address", address="")
+        self.building(name="Whitespace address", address=" \t\n ")
+        response = self.client.get(reverse("public-contact"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["contact_buildings"], [])
+        self.assertIsNone(response.context["selected_building"])
+        elements = HomepageElements(response.content.decode())
+        self.assertFalse(elements.attributes("iframe"))
+
+    def test_active_buildings_are_ordered_and_include_those_without_available_rooms(self):
+        second = self.building(name="B Second building")
+        first = self.building(name="A First building")
+        Room.objects.create(
+            building=first, number="A101", monthly_rent=3000000,
+            status=Room.Status.OCCUPIED,
+        )
+        self.building(name="C Inactive building", is_active=False)
+        response = self.client.get(reverse("public-contact"))
+        locations = response.context["contact_buildings"]
+        self.assertEqual([location["id"] for location in locations], [str(first.pk), str(second.pk)])
+        self.assertEqual(response.context["selected_building"], locations[0])
+
+    def test_location_urls_preserve_vietnamese_and_query_characters(self):
+        address = "118 Nguyễn Thị Minh Khai & hẻm 2, Quận 3, TP.HCM"
+        building = self.building(name="Tòa nhà An Tâm & Bình An", address=f"  {address}\n")
+        response = self.client.get(reverse("public-contact"))
+        location = response.context["selected_building"]
+        self.assertEqual(location["address"], address)
+        expected_maps = {
+            "map_embed_url": ("/maps", {"q": [address], "output": ["embed"], "hl": ["vi"]}),
+            "map_url": ("/maps/search/", {"api": ["1"], "query": [address]}),
+            "directions_url": ("/maps/dir/", {"api": ["1"], "destination": [address]}),
+        }
+        for key, (path, params) in expected_maps.items():
+            with self.subTest(url=key):
+                url = urlsplit(location[key])
+                self.assertEqual((url.scheme, url.netloc, url.path), ("https", "www.google.com", path))
+                self.assertEqual(parse_qs(url.query), params)
+                self.assertIn("%26", location[key])
+        rooms_url = urlsplit(location["rooms_url"])
+        self.assertEqual(rooms_url.path, reverse("public-rooms"))
+        self.assertEqual(parse_qs(rooms_url.query), {"building": [building.name]})
+
+    def test_selection_uses_only_public_building_ids_with_safe_fallback(self):
+        first = self.building(name="A First building")
+        second = self.building(name="B Second building")
+        inactive = self.building(name="C Inactive building", is_active=False)
+        blank = self.building(name="D Blank address", address=" ")
+        response = self.client.get(reverse("public-contact"), {"building": str(second.pk)})
+        self.assertEqual(response.context["selected_building"]["id"], str(second.pk))
+        for invalid in ("not-a-uuid", second.name, str(inactive.pk), str(blank.pk), ""):
+            with self.subTest(selection=invalid):
+                response = self.client.get(reverse("public-contact"), {"building": invalid})
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["selected_building"]["id"], str(first.pk))
+
+    def test_ambiguous_address_uses_street_map_without_changing_displayed_address(self):
+        building = self.building()
+        response = self.client.get(reverse("public-contact"))
+        location = response.context["selected_building"]
+        self.assertEqual(location["address"], building.address)
+        self.assertEqual(
+            parse_qs(urlsplit(location["map_embed_url"]).query)["q"],
+            ["Nguyễn Thị Minh Khai, Quận 3, TP.HCM"],
+        )
+        self.assertEqual(parse_qs(urlsplit(location["directions_url"]).query)["destination"], ["Nguyễn Thị Minh Khai, Quận 3, TP.HCM"])
+        self.assertEqual(parse_qs(urlsplit(location["map_url"]).query)["query"], ["Nguyễn Thị Minh Khai, Quận 3, TP.HCM"])
+        self.assertContains(response, "Bản đồ khu vực mang tính tham khảo")
+
+    def test_address_edits_are_reflected_on_the_next_request(self):
+        building = self.building()
+        original = self.client.get(reverse("public-contact")).context["selected_building"]
+        updated_address = "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM"
+        Building.objects.filter(pk=building.pk).update(address=updated_address)
+        updated = self.client.get(reverse("public-contact")).context["selected_building"]
+        self.assertNotEqual(original["map_embed_url"], updated["map_embed_url"])
+        self.assertEqual(updated["address"], updated_address)
+        self.assertEqual(parse_qs(urlsplit(updated["map_embed_url"]).query)["q"], [updated_address])

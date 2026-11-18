@@ -70,9 +70,9 @@ def main():
         buildings = (
             ("A", "Tòa nhà An Tâm", "118 Nguyễn Thị Minh Khai, Quận 3, TP.HCM", 12),
             ("B", "Tòa nhà Bình An", "25 Nguyễn Gia Trí, Bình Thạnh, TP.HCM", 8),
-            ("C", "Tòa nhà Cát Tường", "36 Hoàng Diệu, Quận 4, TP.HCM", 5),
-            ("D", "Tòa nhà Duyên Hải", "17 Võ Văn Ngân, Thủ Đức, TP.HCM", 5),
-            ("E", "Tòa nhà Eden", "80 Nguyễn Văn Lượng, Gò Vấp, TP.HCM", 5),
+            ("C", "Tòa nhà Cát Tường", "42 Linh Trung, TP. Thủ Đức, TP.HCM", 5),
+            ("D", "Tòa nhà Duyên Hải", "86 Bến Vân Đồn, Quận 4, TP.HCM", 5),
+            ("E", "Tòa nhà Eden", "55 Phan Văn Trị, Gò Vấp, TP.HCM", 5),
         )
         for index, (prefix, name, address, count) in enumerate(buildings, start=1):
             building = Building.objects.create(

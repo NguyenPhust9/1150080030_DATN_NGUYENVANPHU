@@ -73,7 +73,6 @@
           {% for room in group.rooms %}{% include "public/room_card.html" with home_card=True %}{% endfor %}
         </div>
         <div class="room-carousel-controls" hidden>
-          <span><i data-lucide="move-horizontal"></i> Kéo ngang để xem thêm phòng</span>
           <div class="room-carousel-buttons">
             <button type="button" data-room-prev aria-controls="building-rooms-{{ group.building.id }}" aria-label="Xem phòng phía trước của {{ group.building.name }}"><i data-lucide="chevron-left"></i></button>
             <button type="button" data-room-next aria-controls="building-rooms-{{ group.building.id }}" aria-label="Xem phòng tiếp theo của {{ group.building.name }}"><i data-lucide="chevron-right"></i></button>
