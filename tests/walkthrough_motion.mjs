@@ -9,6 +9,7 @@ const variants = [
   { number: 'A102', deckY: 2.376, roofY: 4.5, groundCeiling: 2.16, stairBottomZ: -1.17 },
   { number: 'A103', deckY: 2.36, roofY: 4.4, groundCeiling: 2.16, stairBottomZ: -.85 },
   { number: 'A104', deckY: 2.4, roofY: 4.5, groundCeiling: 2.2, stairBottomZ: -.85 },
+  { number: 'A105', deckY: 2.4, roofY: 4.5, groundCeiling: 2.2, stairBottomZ: -.85 },
 ];
 const DT = 1 / 60;
 const close = (actual, expected, tolerance = .00001) => {

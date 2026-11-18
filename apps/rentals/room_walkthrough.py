@@ -9,7 +9,7 @@ from .models import RoomMedia
 from .permissions import get_accessible_rooms, is_tenant
 
 
-SUPPORTED_ROOMS = ("A101", "A102", "A103", "A104")
+SUPPORTED_ROOMS = ("A101", "A102", "A103", "A104", "A105")
 
 
 @login_required

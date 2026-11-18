@@ -24,9 +24,9 @@ try {
   const config = JSON.parse(document.getElementById("tour-config").textContent);
   const [THREE, { buildRoomTourWorld }, { createWalker }, { createWalkthroughMotion }] = await Promise.all([
     import("../vendor/three/three.module.js"),
-    import("./room-tour-world.js?v=a104-tour-1"),
-    import("./walkthrough-avatar.js?v=a104-tour-1"),
-    import("./walkthrough-motion.js?v=a104-tour-1"),
+    import("./room-tour-world.js?v=a105-tour-1"),
+    import("./walkthrough-avatar.js?v=a105-tour-1"),
+    import("./walkthrough-motion.js?v=a105-tour-1"),
   ]);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xc1d0cf);

@@ -101,16 +101,16 @@ async function jumpAndLand(floor, ceiling) {
 try {
   await openRoom('A104');
   await expect(page.locator('#tour-room-name')).toHaveText('Phòng A104');
-  await expect(page.locator('.connected-rooms')).toContainText('A104 ↔ A103 ↔ A102 ↔ A101');
+  await expect(page.locator('.connected-rooms')).toContainText('A105 ↔ A104 ↔ A103 ↔ A102 ↔ A101');
   expect((await position()).x).toBeCloseTo(xAt(.55), 3);
   expect((await position()).z).toBeCloseTo(2.4, 3);
   const map = await page.locator('#map-geometry').evaluate(group => {
-    const labels = [...group.querySelectorAll('text')].filter(item => /^A10[1-4]$/.test(item.textContent));
+    const labels = [...group.querySelectorAll('text')].filter(item => /^A10[1-5]$/.test(item.textContent));
     const sorted = labels.sort((a, b) => Number(a.getAttribute('x')) - Number(b.getAttribute('x')));
     const bounds = group.getBBox();
     return { rooms: sorted.map(item => item.textContent), x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height };
   });
-  expect(map.rooms).toEqual(['A104', 'A103', 'A102', 'A101']);
+  expect(map.rooms).toEqual(['A105', 'A104', 'A103', 'A102', 'A101']);
   expect(map.x).toBeGreaterThanOrEqual(0);
   expect(map.x + map.width).toBeLessThanOrEqual(220);
   expect(map.y).toBeGreaterThanOrEqual(0);
@@ -194,7 +194,7 @@ try {
   await expect(page.locator('#tour-position')).toHaveText('Bên trong phòng A104');
   expect(page.url()).toBe(sharedUrl);
   await expect(page.locator('#room-tour')).toHaveAttribute('data-view-mode', 'first-person');
-  console.log('A104: shared corridor to A103 and four-room minimap passed.');
+  console.log('A104: shared corridor to A103 and five-room minimap passed.');
 
   for (const [orientation, viewport] of [
     ['portrait', { width: 390, height: 844 }], ['landscape', { width: 667, height: 320 }],

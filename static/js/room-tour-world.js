@@ -1,7 +1,8 @@
-import { buildA101World } from './a101-world.js?v=a104-tour-1';
-import { buildA102World } from './a102-world.js?v=a104-tour-1';
-import { buildA103World } from './a103-world.js?v=a104-tour-1';
-import { buildA104World } from './a104-world.js?v=a104-tour-1';
+import { buildA101World } from './a101-world.js?v=a105-tour-1';
+import { buildA102World } from './a102-world.js?v=a105-tour-1';
+import { buildA103World } from './a103-world.js?v=a105-tour-1';
+import { buildA104World } from './a104-world.js?v=a105-tour-1';
+import { buildA105World } from './a105-world.js?v=a105-tour-1';
 
 // All doors face the shared landing; each interior keeps its own layout.
 export function buildRoomTourWorld(THREE, scene, config) {
@@ -14,6 +15,7 @@ export function buildRoomTourWorld(THREE, scene, config) {
     { number: 'A102', offsetX: -3.6, minX: -5.3, maxX: -1.9, headClearance: 2.16, build: () => buildA102World(THREE, scene, { offsetX: -3.6 }) },
     { number: 'A103', offsetX: -7.2, minX: -8.9, maxX: -5.5, headClearance: 2.16, build: () => buildA103World(THREE, scene, { offsetX: -7.2 }) },
     { number: 'A104', offsetX: -10.8, minX: -12.5, maxX: -9.1, headClearance: 2.2, build: () => buildA104World(THREE, scene, { offsetX: -10.8 }) },
+    { number: 'A105', offsetX: -14.4, minX: -16.1, maxX: -12.7, headClearance: 2.2, build: () => buildA105World(THREE, scene, { offsetX: -14.4 }) },
   ];
   const layout = [...descriptions].sort((a, b) => a.minX - b.minX);
   const landingMinX = layout[0].minX - .5;
