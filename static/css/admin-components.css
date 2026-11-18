@@ -1,0 +1,429 @@
+/* Management components: a daily property ledger, with orange reserved for actions.
+ * Design guidance adapted from unslop by Damir Sokolovsky (@heydamir), CC BY 4.0.
+ * Scoped to the authenticated management shell; public and tenant views are unchanged.
+ */
+
+/* Panels and shared typography */
+.management-app main.content :is(.panel, .building-panel, .room-form-panel, .warm-panel) {
+  min-width: 0;
+  max-width: 100%;
+  padding: 24px;
+  border: 1px solid var(--admin-line);
+  border-radius: 12px;
+  background: var(--admin-surface);
+  box-shadow: 0 1px 2px #25252204;
+}
+.management-app main.content :is(.panel h1, .panel h2, .panel h3, .room-form-panel h3) {
+  color: var(--admin-text);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.management-app main.content .panel h1 { font-size: 24px; margin: 0 0 24px; }
+.management-app main.content .panel h2 { font-size: 18px; }
+.management-app main.content .panel h3 { font-size: 16px; }
+.management-app main.content .panel-heading { flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.management-app main.content .panel-heading h2 { margin: 0; }
+.management-app main.content .panel-more-link { font-size: 13px; font-weight: 500; color: var(--admin-accent); }
+.management-app main.content :is(.detail-grid, .two-columns) { gap: 24px; }
+.management-app main.content .two-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.management-app main.content .detail-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.management-app main.content .detail-grid span { color: var(--admin-muted); font-size: 13px; }
+.management-app main.content .detail-grid strong { color: var(--admin-text); font-weight: 500; overflow-wrap: anywhere; }
+.management-app main.content .breadcrumbs { flex-wrap: wrap; gap: 8px; margin: 0 0 20px; font-size: 13px; }
+.management-app main.content .breadcrumbs :is(a, svg) { color: var(--admin-muted); }
+.management-app main.content .breadcrumbs span { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .breadcrumbs a:hover { color: var(--admin-accent); }
+
+/* Actions: no moving controls or gradient fills. Hidden controls keep their state. */
+.management-app main.content :is(.btn, .filter-button, .btn-warm-outline, .btn-warm-mini, .tenant-cancel, .tenant-upload-button) {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--admin-line);
+  border-radius: 8px;
+  background: var(--admin-surface);
+  color: var(--admin-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  text-decoration: none;
+  text-align: center;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.management-app main.content .btn:not([hidden]) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.management-app main.content :is(.btn, .btn-warm-outline, .btn-warm-mini, .filter-button, .tenant-cancel, .tenant-upload-button):hover {
+  background: #f1f1ee;
+  border-color: #b9b9b0;
+  color: var(--admin-text);
+  box-shadow: none;
+  transform: none;
+}
+.management-app main.content :is(.btn.primary, .btn-warm-apply, .btn-warm-generate, .tenant-submit) {
+  background: var(--admin-accent);
+  border: 1px solid var(--admin-accent);
+  border-radius: 8px;
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: none;
+  transform: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.management-app main.content :is(.btn.primary, .btn-warm-apply, .btn-warm-generate, .tenant-submit):hover {
+  background: #a93609;
+  border-color: #a93609;
+  color: #fff;
+  box-shadow: none;
+  transform: none;
+}
+.management-app main.content .btn.compact { min-height: 32px; padding: 6px 10px; font-size: 13px; }
+.management-app main.content .btn svg { width: 16px; height: 16px; flex: none; stroke-width: 1.7; }
+.management-app main.content :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--admin-accent);
+  outline-offset: 3px;
+}
+.management-app main.content :is(.btn, .filter-button, .tenant-submit):disabled {
+  opacity: .55;
+  cursor: not-allowed;
+}
+.management-app main.content .actions { flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+
+/* List controls and tables. Overflow belongs to the table, not the page. */
+.management-app main.content .page-actions { align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.management-app main.content :is(.search, .room-filters) { display: flex; flex: 1 1 520px; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.management-app main.content :is(.search, .room-filters) input { flex: 1 1 220px; min-width: 0; }
+.management-app main.content .room-filters select { flex: 0 1 auto; min-width: 160px; max-width: 280px; }
+.management-app main.content .page-actions > .btn { flex-shrink: 0; }
+.management-app main.content .page-actions > div { min-width: 0; max-width: 100%; flex-wrap: wrap; }
+.management-app main.content .list-summary {
+  display: block;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 16px;
+  margin-bottom: 0;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+.management-app main.content .list-summary:has(> span) { display: flex; }
+.management-app main.content .list-summary > span { flex-wrap: wrap; }
+.management-app main.content .list-summary strong { color: var(--admin-text); font-weight: 500; }
+.management-app main.content :is(.table-wrap, .warm-table-wrap) { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+.management-app main.content table { font-size: 14px; font-variant-numeric: tabular-nums; }
+.management-app main.content th {
+  padding: 12px;
+  border-bottom: 1px solid var(--admin-line);
+  background: #f7f7f5;
+  color: var(--admin-muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.management-app main.content td { padding: 12px; border-bottom: 1px solid #ebebe7; vertical-align: middle; }
+.management-app main.content tbody tr:last-child td { border-bottom: 0; }
+.management-app main.content tbody tr:hover td { background: #fafaf8; }
+.management-app main.content tbody tr:focus-within td { background: #fff8f3; }
+.management-app main.content td .btn { min-height: 32px; padding: 6px 10px; font-size: 13px; }
+.management-app main.content th.row-number,
+.management-app main.content td.row-number { width: 56px; color: var(--admin-muted); text-align: center; }
+.management-app main.content :is(.table-code-link, .table-price-val, .table-date-val) { font-weight: 500; font-variant-numeric: tabular-nums; }
+.management-app main.content .table-empty { font-style: normal; color: var(--admin-muted); }
+.management-app main.content .badge { border-radius: 6px; padding: 4px 8px; font-weight: 500; font-size: 12px; }
+.management-app main.content .badge:not([class*="badge-status-"]):not([class*="badge-room-"]) { background: #f2f2ee; color: #52524c; border-color: #e3e3dd; }
+.management-app main.content .status-pill { border-radius: 6px; padding: 4px 8px; font-weight: 500; }
+.management-app main.content .status-pill b { width: 6px; height: 6px; }
+.management-app main.content .pagination { flex-wrap: wrap; gap: 8px; margin: 24px 0 0; }
+.management-app main.content .pagination :is(a, span) { height: 36px; min-width: 36px; border-color: var(--admin-line); border-radius: 8px; font-size: 13px; }
+.management-app main.content .pagination a:hover { background: #f1f1ee; }
+.management-app main.content .pagination .current { background: var(--admin-soft); color: var(--admin-accent); border-color: #f0c9b6; font-weight: 500; }
+.management-app main.content .pagination .disabled { background: #f4f4f1; color: #85857d; }
+.management-app main.content .empty-state { padding: 32px 24px; border-color: var(--admin-line); background: #f7f7f5; color: var(--admin-muted); border-radius: 8px; }
+
+/* Form fields. Native file, range, checkbox and radio controls retain their sizing. */
+.management-app main.content :is(input, select, textarea) {
+  border-color: var(--admin-line);
+  border-radius: 8px;
+  color: var(--admin-text);
+  font-family: inherit;
+  accent-color: var(--admin-accent);
+}
+.management-app main.content :is(.form-panel, .room-fields, .tenant-field-grid, .page-actions, .card-filter-bar) :where(input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]), select, textarea) {
+  min-height: 40px;
+  padding: 8px 12px;
+  background: #fff;
+  font-size: 14px;
+  line-height: 1.5;
+  box-shadow: none;
+}
+.management-app main.content :is(input, textarea)::placeholder { color: #7b7b73; }
+.management-app main.content :is(input, select, textarea):disabled { background: #f3f3ef; color: var(--admin-muted); }
+.management-app main.content .form-panel { max-width: 920px; }
+.management-app main.content .form-panel form p { grid-template-columns: 200px minmax(0, 1fr); gap: 8px 24px; margin: 0 0 20px; }
+.management-app main.content .form-panel .two-columns p { grid-template-columns: minmax(0, 1fr); }
+.management-app main.content .form-panel .two-columns p > small { grid-column: 1; }
+.management-app main.content .form-panel form p:not(:has(input, select, textarea, label)) { display: block; }
+.management-app main.content .form-panel label { padding-top: 8px; color: var(--admin-text); font-size: 14px; font-weight: 500; }
+.management-app main.content .form-panel :is(.helptext, .help-text, form p > small) { grid-column: 2; color: var(--admin-muted); font-size: 12px; line-height: 1.6; }
+.management-app main.content .form-panel :is(input[type="checkbox"], input[type="radio"]) { width: 18px; height: 18px; margin: 10px 0 0; justify-self: start; }
+.management-app main.content .form-panel textarea { min-height: 120px; resize: vertical; }
+.management-app main.content .form-panel select[multiple] { min-height: 132px; }
+.management-app main.content .profile-layout { grid-template-columns: 280px minmax(0, 1fr) !important; }
+.management-app main.content .profile-avatar { background: #eeeee8; color: #66665b; font-weight: 500; box-shadow: none; }
+.management-app main.content :is(.errorlist, .tenant-errors, .auth-error) { font-size: 13px; line-height: 1.6; color: #b42318; overflow-wrap: anywhere; }
+.management-app main.content .errorlist { margin: 4px 0 12px; }
+.management-app main.content :is(.error, .alert):not(.fire-monitor) { border-radius: 8px; box-shadow: none; }
+.management-app main.content .room-form-panel { max-width: 1040px; margin: 0; }
+.management-app main.content .room-form-tabs { gap: 4px; padding: 4px; margin-bottom: 24px; background: #f2f2ef; border-radius: 8px; }
+.management-app main.content .room-form-tabs button { height: 40px; border-radius: 6px; color: var(--admin-muted); font-family: inherit; font-size: 14px; font-weight: 500; line-height: 1.4; }
+.management-app main.content .room-form-tabs button.active { color: var(--admin-accent); background: #fff; box-shadow: 0 1px 2px #25252212; }
+.management-app main.content .room-fields { gap: 20px 24px; }
+.management-app main.content .room-fields label { gap: 8px; min-width: 0; font-size: 14px; font-weight: 500; }
+.management-app main.content .upload-zone { padding: 32px 24px; min-height: 208px; border: 1px dashed #b9b9b0; border-radius: 8px; background: #f9f9f7; }
+.management-app main.content .upload-zone > svg { width: 32px; height: 32px; color: var(--admin-muted); }
+.management-app main.content .upload-zone h3 { font-size: 18px; margin: 12px 0 8px; }
+.management-app main.content .upload-zone p { color: var(--admin-muted); font-size: 14px; margin-bottom: 20px; }
+.management-app main.content .media-previews { gap: 16px; }
+.management-app main.content .media-preview { border-color: var(--admin-line); border-radius: 8px; }
+.management-app main.content .media-preview:has(input:checked) { border-color: var(--admin-accent); box-shadow: 0 0 0 1px var(--admin-accent); }
+.management-app main.content .media-preview:has(.delete-media input:checked) { border-color: #b42318; box-shadow: 0 0 0 1px #b42318; }
+.management-app main.content .media-preview input[type="radio"] { accent-color: var(--admin-accent); }
+.management-app main.content .media-preview input[type="checkbox"] { accent-color: #b42318; }
+.management-app main.content .upload-status { border: 1px solid #d8e5ef; background: #f1f7fc; color: #245775; }
+.management-app main.content .upload-status.error { border-color: #efc9c4; background: #fff1ef; color: #b42318; }
+.management-app main.content .room-form-actions { gap: 12px; padding-top: 20px; border-color: var(--admin-line); }
+.management-app main.content .tenant-dialog { border-color: var(--admin-line); border-radius: 12px; padding: 24px 24px 0; box-shadow: 0 16px 48px #25252226; }
+.management-app main.content .tenant-dialog-heading h2 { font-size: 22px; font-weight: 500; }
+.management-app main.content :is(.tenant-dialog-heading p, .tenant-hint, .tenant-image-status) { color: var(--admin-muted); }
+.management-app main.content .tenant-tabs { border-radius: 8px; margin: 20px 0 24px; background: #f2f2ef; }
+.management-app main.content .tenant-tabs button { border-radius: 6px; font-size: 14px; }
+.management-app main.content .tenant-tabs button[aria-selected="true"] { color: var(--admin-accent); box-shadow: 0 1px 2px #25252212; }
+.management-app main.content :is(.tenant-field-grid, .tenant-image-grid) { gap: 20px; }
+.management-app main.content .tenant-field-grid > label { gap: 8px; font-size: 14px; font-weight: 500; }
+.management-app main.content .tenant-tab-panel h3 { font-size: 18px; font-weight: 500; margin-bottom: 24px; }
+.management-app main.content .tenant-tab-panel h3 svg { color: var(--admin-muted); width: 18px; height: 18px; }
+.management-app main.content .tenant-image-preview { border: 1px dashed #b9b9b0; border-radius: 8px; background: #f9f9f7; box-shadow: none; }
+.management-app main.content .tenant-image-preview span { color: var(--admin-muted); font-size: 14px; }
+.management-app main.content .tenant-form-footer { gap: 12px; padding: 20px 0; margin-top: 24px; border-color: var(--admin-line); }
+
+/* Building inventory: room counts and occupancy carry the meaning. */
+.management-app main.content .building-overview { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.management-app main.content .overview-card { height: auto; min-height: 96px; padding: 16px; grid-template-columns: 32px minmax(0, 1fr); column-gap: 12px; border-color: var(--admin-line); border-radius: 12px; box-shadow: none; }
+.management-app main.content .overview-card > span { width: 32px; height: 32px; border: 0; border-radius: 8px; background: #f1f1ee; color: var(--admin-muted); }
+.management-app main.content .overview-card > span svg { width: 18px; height: 18px; }
+.management-app main.content .overview-card strong { font-size: 28px; font-weight: 500; color: var(--admin-text); font-variant-numeric: tabular-nums; }
+.management-app main.content .overview-card small { font-size: 12px; color: var(--admin-muted); }
+.management-app main.content .building-quote { grid-column: 1 / -1; display: flex; justify-content: flex-start; gap: 12px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--admin-muted); }
+.management-app main.content .building-quote > svg { width: 20px; height: 20px; opacity: 1; color: var(--admin-muted); stroke-width: 1.5; }
+.management-app main.content .building-quote p { margin: 0; min-width: 0; font-size: 13px; font-weight: 400; color: var(--admin-muted); }
+.management-app main.content .building-quote::after { content: none; }
+.management-app main.content .building-card-panel { padding: 0; }
+.management-app main.content .card-list-heading { flex-wrap: wrap; gap: 16px; padding: 24px; border-color: var(--admin-line); background: #fff; }
+.management-app main.content .card-list-heading h2 { font-size: 20px; font-weight: 500; color: var(--admin-text); }
+.management-app main.content .card-list-heading p { margin: 4px 0 0; color: var(--admin-muted); }
+.management-app main.content .add-building { height: 40px; padding: 8px 14px !important; border-radius: 8px !important; border-color: var(--admin-accent) !important; background: var(--admin-accent) !important; font-size: 14px; font-weight: 500 !important; box-shadow: none !important; }
+.management-app main.content .add-building:hover { background: #a93609 !important; transform: none; box-shadow: none !important; }
+.management-app main.content .card-filter-bar { grid-template-columns: minmax(200px, 1fr) 180px 180px auto auto; gap: 12px; padding: 20px 24px; margin-bottom: 24px; border-color: var(--admin-line); }
+.management-app main.content .building-search { height: 40px; padding: 0 12px; gap: 8px; border-color: var(--admin-line); border-radius: 8px; }
+.management-app main.content .building-search input { padding: 0; border: 0; min-height: 0; background: transparent; box-shadow: none; }
+.management-app main.content .building-search svg { width: 16px; height: 16px; color: var(--admin-muted); flex: none; }
+.management-app main.content .building-search:focus-within { outline: 2px solid var(--admin-accent); outline-offset: 2px; }
+.management-app main.content .building-search input:focus-visible { outline: 0; }
+.management-app main.content .select-field { gap: 8px; font-size: 12px; font-weight: 400; color: var(--admin-muted); }
+.management-app main.content .select-field select { height: 40px; border-color: var(--admin-line); }
+.management-app main.content .filter-button { height: 40px; }
+.management-app main.content .view-switch { height: 40px; padding: 4px; border-color: var(--admin-line); border-radius: 8px; }
+.management-app main.content .view-switch span { width: 30px; height: 30px; border-radius: 4px; }
+.management-app main.content .view-switch span.active { background: #f1f1ee; color: var(--admin-text); }
+.management-app main.content .building-card-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); padding: 0 24px 24px; gap: 20px; }
+.management-app main.content .property-card { padding: 20px; border-color: var(--admin-line); border-radius: 8px; box-shadow: none; transition: border-color 160ms ease; }
+.management-app main.content .property-card:hover { border-color: #b9b9b0; box-shadow: none; transform: none; }
+.management-app main.content .property-card h3 { font-size: 16px; font-weight: 600; color: var(--admin-text); }
+.management-app main.content .property-card header p { font-size: 12px; color: var(--admin-muted); }
+.management-app main.content .property-card header p svg { color: var(--admin-muted); }
+.management-app main.content .select-box { border-color: var(--admin-line); }
+.management-app main.content :is(.row-actions, .card-actions) a { border-color: var(--admin-line); background: #fff; color: var(--admin-muted); border-radius: 6px; box-shadow: none; transition: background-color 160ms ease, color 160ms ease; }
+.management-app main.content :is(.row-actions, .card-actions) a:hover { background: var(--admin-soft); color: var(--admin-accent); border-color: #efc9b6; }
+.management-app main.content .room-counts { margin: 20px 0 16px; border-color: var(--admin-line); border-radius: 6px; background: #f9f9f7; }
+.management-app main.content .room-counts span { padding: 12px 4px; border-color: var(--admin-line); }
+.management-app main.content .room-counts strong { font-size: 20px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.management-app main.content .room-counts small { font-size: 12px; color: var(--admin-muted); }
+.management-app main.content .occupancy > div { color: var(--admin-muted); font-weight: 400; }
+.management-app main.content .occupancy strong { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .occupancy progress { height: 6px; background: #e9e9e3; margin-top: 8px; }
+.management-app main.content .occupancy progress::-webkit-progress-bar { background: #e9e9e3; }
+.management-app main.content .occupancy progress::-webkit-progress-value { background: var(--admin-accent); border-radius: 4px; }
+.management-app main.content .occupancy progress::-moz-progress-bar { background: var(--admin-accent); border-radius: 4px; }
+.management-app main.content .amenity-tags { gap: 6px; margin: 16px 0; }
+.management-app main.content .amenity-tags span { background: #f5f5f1; border-color: #e9e9e3; color: var(--admin-muted); border-radius: 4px; font-weight: 400; font-size: 12px; }
+.management-app main.content .property-card > footer { flex-wrap: wrap; gap: 8px; border-color: var(--admin-line); color: var(--admin-muted); }
+.management-app main.content .status-dot { font-weight: 500; }
+.management-app main.content .building-card-panel > .building-footer { flex-wrap: wrap; gap: 12px; border-color: var(--admin-line); padding: 16px 24px; color: var(--admin-muted); }
+.management-app main.content .building-footer .pagination { margin: 0; }
+
+/* Room map: statuses remain distinct; floor and room coordinates do not change. */
+.management-app main.content :is(.map-control, .building-map) { border-color: var(--admin-line); box-shadow: none; }
+.management-app main.content :is(.map-stat, .amenity-summary) { background: #fff; border: 1px solid var(--admin-line); border-radius: 12px; box-shadow: none; }
+.management-app main.content .map-stat strong { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .map-stat :is(span, small) { color: var(--admin-muted); font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.management-app main.content .map-stat > svg { color: var(--admin-muted); }
+.management-app main.content .amenity-summary :is(b, small) { font-size: 12px; font-weight: 400; color: var(--admin-muted); text-transform: none; letter-spacing: 0; }
+.management-app main.content .amenity-summary strong { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .amenity-icon { background: #f1f1ee; color: var(--admin-muted); box-shadow: none; }
+.management-app main.content .amenity-summary .without-air { border-color: var(--admin-line); }
+.management-app main.content .building-map > header { background: #fafaf8; border-color: var(--admin-line); padding: 16px; }
+.management-app main.content .building-map .building-name > span { background: #f1f1ee; border-color: var(--admin-line); color: var(--admin-muted); box-shadow: none; }
+.management-app main.content .building-map .building-name h2 { font-weight: 500; color: var(--admin-text); }
+.management-app main.content .building-map .building-name small { font-size: 12px; color: var(--admin-muted); }
+.management-app main.content .building-badges b { font-size: 11px; font-weight: 500; border-radius: 4px; }
+.management-app main.content :is(.floor-row, .floor-label) { border-color: var(--admin-line); }
+.management-app main.content .floor-label { background: #fafaf8; }
+.management-app main.content .floor-label strong { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .floor-label span { color: var(--admin-muted); font-size: 11px; font-weight: 400; text-transform: none; }
+.management-app main.content .map-room { height: 76px; width: 88px; box-shadow: none; transition: border-color 160ms ease, filter 160ms ease; }
+.management-app main.content .map-room:hover { transform: none; box-shadow: none; filter: brightness(.97); }
+.management-app main.content .map-room > strong { font-weight: 600; }
+.management-app main.content .map-room > small { font-size: 11px; margin-top: 4px; }
+.management-app main.content .map-room .air { box-shadow: none; }
+.management-app main.content .map-legend span { color: var(--admin-muted); font-weight: 400; font-size: 12px; }
+
+/* Price review keeps every comparison and action, with a single orange emphasis. */
+.management-app main.content .price-page { max-width: 1200px; margin: 0; gap: 24px; }
+.management-app main.content .price-hero { background: #fff; box-shadow: none; border-color: var(--admin-line); }
+.management-app main.content .price-ai-badge-icon { width: 40px; height: 40px; border-radius: 8px; background: #f2f2ee; color: var(--admin-muted); box-shadow: none; }
+.management-app main.content .price-ai-badge-icon svg { width: 20px; height: 20px; }
+.management-app main.content .price-hero-titles h1 { font-size: 24px; font-weight: 500; color: var(--admin-text); }
+.management-app main.content .price-hero-titles p { color: var(--admin-muted); font-weight: 400; }
+.management-app main.content .price-hero-tag { border-radius: 4px; background: #f5f5f1; border-color: var(--admin-line); color: var(--admin-muted); font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.management-app main.content .room-spec-bar { border-color: var(--admin-line); border-top-style: solid; padding-top: 16px; gap: 8px; }
+.management-app main.content .spec-chip { border-color: var(--admin-line); border-radius: 6px; font-weight: 400; color: var(--admin-text); }
+.management-app main.content .spec-chip svg { color: var(--admin-muted); }
+.management-app main.content .spec-chip.status-avail { color: #15803d; border-color: #c5dfcd; background: #f0f7f2; }
+.management-app main.content .amenity-chip { background: #f5f5f1; border-color: var(--admin-line); color: var(--admin-muted); }
+.management-app main.content :is(.price-card, .price-diff-card, .metric-card, .step-card, .price-action-banner, .warm-table-wrap) { border: 1px solid var(--admin-line); background: #fff; border-radius: 12px; box-shadow: none; }
+.management-app main.content .price-card { padding: 24px; transition: none; }
+.management-app main.content .price-card:hover { box-shadow: none; transform: none; }
+.management-app main.content .price-card-recommended { border-color: #d9a087; }
+.management-app main.content .price-card-recommended::before { background: var(--admin-accent); height: 3px; border-radius: 12px 12px 0 0; }
+.management-app main.content .card-icon-pill { background: #f3f3ef; color: var(--admin-muted); border-radius: 6px; box-shadow: none; }
+.management-app main.content .card-title-group h2 { font-size: 14px; font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--admin-text); }
+.management-app main.content .card-status-badge { border-radius: 4px; font-weight: 400; }
+.management-app main.content .price-amount-box .price-number { font-size: clamp(24px, 2.4vw, 32px); font-weight: 500; line-height: 1.25; letter-spacing: 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; text-shadow: none; }
+.management-app main.content .price-card-current .price-number { color: var(--admin-text); }
+.management-app main.content .price-card-recommended .price-number { color: var(--admin-accent); }
+.management-app main.content .price-amount-box .price-unit { color: var(--admin-muted); font-weight: 400; }
+.management-app main.content .diff-badge { font-weight: 500; border-radius: 6px; }
+.management-app main.content .diff-text-summary { color: var(--admin-muted); font-weight: 400; font-size: 12px; }
+.management-app main.content :is(.price-action-left h3, .price-history-section h3) { font-size: 18px; font-weight: 500; color: var(--admin-text); }
+.management-app main.content .price-action-left { min-width: 0; }
+.management-app main.content .price-action-banner { padding: 24px; }
+.management-app main.content .metric-card { padding: 20px; gap: 12px; }
+.management-app main.content .metric-card-label { color: var(--admin-muted); font-size: 12px; font-weight: 400; text-transform: none; letter-spacing: 0; }
+.management-app main.content .metric-card-label svg { color: var(--admin-muted); }
+.management-app main.content .metric-card-val { font-weight: 500; color: var(--admin-text); font-variant-numeric: tabular-nums; }
+.management-app main.content .step-card { padding: 16px; background: #fafaf8; }
+.management-app main.content .step-num-pill { width: 28px; height: 28px; border-radius: 6px; background: #ecece7; color: var(--admin-muted); font-weight: 500; }
+.management-app main.content .step-card h4 { font-weight: 500; color: var(--admin-text); }
+.management-app main.content :is(.price-meta-note, .metric-card-desc, .step-card p, .price-action-left p) { color: var(--admin-muted); }
+.management-app main.content .price-empty-state-icon { border-radius: 8px; background: #f2f2ee; color: var(--admin-muted); }
+.management-app main.content .price-empty-state h4 { color: var(--admin-text); font-weight: 500; }
+
+/* Specialized workspaces: chrome only. Canvas, video, hidden states and live alerts
+ * keep their original layout and behavior, including semantic safety colors. */
+.management-app main.content :is(.messenger, .chat-sidebar, .chat-head, .chat-compose, .inbox-footer, .new-chat-dialog) { border-color: var(--admin-line); box-shadow: none; }
+.management-app main.content :is(.chat-workspace, .chat-messages) { background: #f7f7f5; }
+.management-app main.content .chat-icon-button { background: #f1f1ee; color: var(--admin-muted); }
+.management-app main.content .chat-icon-button:hover { background: #e9e9e3; }
+.management-app main.content .inbox-search { border-radius: 8px; background: #f3f3ef; color: var(--admin-muted); }
+.management-app main.content .inbox-search:focus-within { box-shadow: 0 0 0 2px #d9a087; }
+.management-app main.content .inbox-label { color: var(--admin-muted); font-weight: 500; }
+.management-app main.content .inbox-label span { background: #f1f1ee; color: var(--admin-muted); border-radius: 4px; }
+.management-app main.content .conversation-card:hover { background: #f5f5f1; }
+.management-app main.content .conversation-card.selected { background: var(--admin-soft); }
+.management-app main.content .conversation-avatar { background: #eeeee8; color: #66665b; font-weight: 500; }
+.management-app main.content .unread-dot { background: var(--admin-accent); }
+.management-app main.content :is(.conversation-title time, .conversation-subject, .conversation-main p, .inbox-footer, .chat-recipient > span, .connection-state, .chat-info, .compose-field > span) { color: var(--admin-muted); }
+.management-app main.content :is(.chat-recipient h2, .chat-welcome h2) { color: var(--admin-text); font-weight: 500; }
+.management-app main.content .welcome-art { background: #eeeee8; color: var(--admin-muted); border-radius: 16px; transform: none; }
+.management-app main.content .welcome-art span { color: var(--admin-muted); border-color: #f7f7f5; }
+.management-app main.content .welcome-eyebrow { color: var(--admin-muted); letter-spacing: 0; font-size: 12px; font-weight: 400; }
+.management-app main.content :is(.chat-welcome p, .welcome-note) { color: var(--admin-muted); }
+.management-app main.content .chat-bubble { border-radius: 12px 12px 12px 4px; box-shadow: 0 1px 2px #25252208; }
+.management-app main.content .mine .chat-bubble { border-radius: 12px 12px 4px 12px; background: #eaeae3; color: var(--admin-text); }
+.management-app main.content .compose-field textarea { background: #f3f3ef; border-radius: 8px; }
+.management-app main.content .compose-field textarea:focus { border-color: #d9a087; }
+.management-app main.content .send-message { background: var(--admin-accent); border-radius: 8px; }
+.management-app main.content .send-message:hover { background: #a93609; }
+.management-app main.content .chat-call-actions .chat-icon-button { color: var(--admin-muted); }
+.management-app main.content .new-chat-recipient { background: #f3f3ef; }
+.management-app main.content .reaction-badge.mine { background: var(--admin-soft); color: var(--admin-accent); }
+.management-app main.content .indoor-workspace { --im-blue: #c2410c; --im-line: #deded8; --im-muted: #666661; color: var(--admin-text); }
+.management-app main.content .indoor-layout { border-color: var(--admin-line); box-shadow: none; }
+.management-app main.content :is(.indoor-route-section, .indoor-selection, .indoor-panel-footer) { background: #fafaf8; }
+.management-app main.content .indoor-location-heading > svg { background: #f1f1ee; color: var(--admin-muted); }
+.management-app main.content .indoor-workspace .indoor-directory-item.is-selected { background: var(--admin-soft) !important; border-color: #efc9b6 !important; }
+.management-app main.content .indoor-workspace .indoor-primary-button:hover { background: #a93609; }
+.management-app main.content .indoor-workspace .indoor-route-summary strong { color: var(--admin-accent); }
+.management-app main.content .indoor-floor-switcher .is-active,
+.management-app main.content .indoor-workspace .indoor-view-switcher .is-active { background: var(--admin-soft); }
+.management-app main.content :is(.fire-toolbar, .camera-card, .alert-panel) { border-color: var(--admin-line); border-radius: 12px; box-shadow: none; }
+.management-app main.content .fire-monitor .metric { background: #f7f7f5; border-radius: 8px; }
+.management-app main.content :is(.fire-heading small, .camera-caution, .fire-monitor .metric span) { color: var(--admin-muted); }
+.management-app main.content .model-details { border-color: var(--admin-line); border-radius: 8px; }
+
+@media (max-width: 1280px) {
+  .management-app main.content .card-filter-bar { grid-template-columns: minmax(200px, 1fr) 160px 160px auto; }
+  .management-app main.content .building-search { grid-column: auto; }
+}
+@media (max-width: 1050px) {
+  .management-app main.content .building-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-app main.content .card-filter-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .management-app main.content .building-search { grid-column: 1 / -1; }
+  .management-app main.content .two-columns { grid-template-columns: minmax(0, 1fr); }
+  .management-app main.content .profile-layout { grid-template-columns: minmax(0, 1fr) !important; }
+}
+@media (max-width: 700px) {
+  .management-app main.content :is(.panel, .building-panel, .room-form-panel, .warm-panel) { padding: 16px; }
+  .management-app main.content .building-card-panel { padding: 0; }
+  .management-app main.content .page-actions { align-items: stretch; }
+  .management-app main.content :is(.search, .room-filters) { flex-basis: 100%; width: 100%; }
+  .management-app main.content .room-filters { display: grid; grid-template-columns: minmax(0, 1fr); }
+  .management-app main.content .room-filters :is(input, select) { min-width: 0; max-width: none; width: 100%; }
+  .management-app main.content .search input { width: auto; flex-basis: 160px; }
+  .management-app main.content .page-actions > .btn { min-height: 44px; }
+  .management-app main.content .form-panel form p { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .management-app main.content .form-panel label { padding: 0; }
+  .management-app main.content .form-panel :is(.helptext, .help-text, form p > small) { grid-column: 1; }
+  .management-app main.content .form-panel :is(input[type="checkbox"], input[type="radio"]) { margin-top: 0; }
+  .management-app main.content .room-fields { gap: 20px 16px; }
+  .management-app main.content :is(.room-form-actions, .actions) { flex-wrap: wrap; }
+  .management-app main.content :is(.room-form-actions, .actions) .btn { min-height: 44px; }
+  .management-app main.content .card-list-heading { padding: 20px 16px; }
+  .management-app main.content .card-filter-bar { padding: 16px !important; margin-bottom: 16px; }
+  .management-app main.content .building-card-grid { padding: 0 16px 16px; gap: 16px; }
+  .management-app main.content .property-card { padding: 16px; }
+  .management-app main.content .building-card-panel > .building-footer { padding: 16px; }
+  .management-app main.content .price-hero-actions { flex-wrap: wrap; }
+  .management-app main.content .price-action-banner { padding: 20px; }
+  .management-app main.content .price-amount-box .price-number { font-size: 28px; }
+}
+@media (max-width: 480px) {
+  .management-app main.content .overview-card { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 16px; }
+  .management-app main.content .overview-card > span { grid-row: auto; width: 24px; height: 24px; margin-bottom: 4px; }
+  .management-app main.content .overview-card strong { font-size: 24px; }
+  .management-app main.content .card-filter-bar { grid-template-columns: minmax(0, 1fr); }
+  .management-app main.content .room-form-tabs button { height: auto; min-height: 52px; flex-direction: column; gap: 4px; font-size: 12px; line-height: 1.4; padding: 6px 4px; }
+  .management-app main.content .room-form-tabs svg { width: 16px; height: 16px; }
+  .management-app main.content .upload-zone { padding: 24px 16px; }
+  .management-app main.content .tenant-dialog { padding: 20px 16px 0; }
+  .management-app main.content .tenant-form-footer { flex-wrap: wrap; }
+  .management-app main.content .tenant-form-footer > :is(a, button) { flex: 1; min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .management-app main.content :is(.btn, .property-card, .map-room, .filter-button, .btn-warm-outline, .btn-warm-mini, .btn-warm-apply, .btn-warm-generate) { transition: none; }
+}

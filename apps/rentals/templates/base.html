@@ -8,11 +8,24 @@
   <link rel="stylesheet" href="{% static 'css/loading.css' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}"><link rel="stylesheet" href="{% static 'css/pagination.css' %}"><link rel="stylesheet" href="{% static 'css/room-map.css' %}"><link rel="stylesheet" href="{% static 'css/room-map-compact.css' %}"><link rel="stylesheet" href="{% static 'css/navigation.css' %}"><link rel="stylesheet" href="{% static 'css/management.css' %}"><link rel="stylesheet" href="{% static 'css/toast.css' %}">
   {% block extra_head %}{% endblock %}
+  {% if user.role != 'tenant' %}
+  <link rel="stylesheet" href="{% static 'css/admin-shell.css' %}?v=admin-1">
+  <link rel="stylesheet" href="{% static 'css/admin-components.css' %}?v=admin-1">
+  {% if request.resolver_match.url_name == 'dashboard' %}<link rel="stylesheet" href="{% static 'css/admin-dashboard.css' %}?v=admin-1">{% endif %}
+  {% endif %}
 </head>
-<body>
+<body{% if user.role != 'tenant' %} class="management-app"{% endif %}>
   {% include 'includes/loading.html' %}
-  <aside class="sidebar">
-    <nav>
+  {% if user.role != 'tenant' %}<noscript><style>.management-app #site-loading { display: none; }</style></noscript>{% endif %}
+  {% if user.role != 'tenant' %}<a class="admin-skip-link" href="#main-content">Bỏ qua menu</a><button class="admin-nav-backdrop" id="admin-nav-backdrop" type="button" aria-label="Đóng menu quản trị" tabindex="-1" hidden></button>{% endif %}
+  <aside class="sidebar" id="admin-sidebar" aria-label="Menu quản trị">
+    {% if user.role != 'tenant' %}
+    <div class="admin-sidebar-heading">
+      <a class="admin-brand" href="{% url 'dashboard' %}"><i data-lucide="house"></i><span>QL Phòng Cho Thuê<small>Không gian quản lý</small></span></a>
+      <button class="admin-icon-button admin-menu-close" id="admin-menu-close" type="button" aria-label="Đóng menu"><i data-lucide="x"></i></button>
+    </div>
+    {% endif %}
+    <nav aria-label="Điều hướng chính">
       {% if user.role == 'tenant' %}
       <a class="{% if request.resolver_match.url_name == 'tenant-portal' %}active{% endif %}" href="{% url 'tenant-portal' %}"><i data-lucide="layout-dashboard"></i>Trang của tôi</a>
       <a class="{% if request.resolver_match.url_name == 'tenant-rooms' %}active{% endif %}" href="{% url 'tenant-rooms' %}"><i data-lucide="bed-double"></i>Phòng của tôi</a>
@@ -30,13 +43,15 @@
       <a class="nav-single {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}"><i data-lucide="chart-no-axes-column-increasing"></i>Thống kê</a>
       {% if user|has_perm_code:'accounts.view_user' %}<section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="shield"></i><span>Quản trị</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a class="{% if request.resolver_match.url_name == 'accounts' or request.resolver_match.url_name == 'account-create' or request.resolver_match.url_name == 'account-detail' or request.resolver_match.url_name == 'account-update' or request.resolver_match.url_name == 'account-reset-password' %}active{% endif %}" href="{% url 'accounts' %}">Quản lý tài khoản</a></div></section>{% endif %}
       <section class="nav-group is-open"><button class="nav-group-toggle" type="button"><i data-lucide="badge-dollar-sign"></i><span>Tài chính</span><i data-lucide="chevron-down"></i></button><div class="nav-group-links"><a class="{% if request.resolver_match.url_name == 'contracts' or request.resolver_match.url_name == 'contract-create' or request.resolver_match.url_name == 'contract-detail' or request.resolver_match.url_name == 'contract-update' %}active{% endif %}" href="{% url 'contracts' %}">Hợp đồng</a><a class="{% if request.resolver_match.url_name == 'invoices' or request.resolver_match.url_name == 'invoice-create' or request.resolver_match.url_name == 'invoice-bulk-create' or request.resolver_match.url_name == 'invoice-detail' or request.resolver_match.url_name == 'invoice-update' %}active{% endif %}" href="{% url 'invoices' %}">Hóa đơn</a><a class="{% if request.resolver_match.url_name == 'payments' or request.resolver_match.url_name == 'payment-create' %}active{% endif %}" href="{% url 'payments' %}">Thanh toán</a></div></section>
-      <div class="nav-extra"><a class="{% if request.resolver_match.url_name == 'indoor-map-list' or request.resolver_match.url_name == 'indoor-map' %}active{% endif %}" href="{% url 'indoor-map-list' %}"><i data-lucide="route"></i>Bản đồ trong nhà</a>{% if user.role == 'owner' or user.role == 'admin' or user.is_superuser %}<a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' or request.resolver_match.url_name == 'room-update' %}active{% endif %}" href="{% url 'rooms' %}"><i data-lucide="badge-dollar-sign"></i>Gợi ý giá thuê</a>{% endif %}<a class="{% if request.resolver_match.url_name == 'services' or request.resolver_match.url_name == 'service-create' or request.resolver_match.url_name == 'service-update' %}active{% endif %}" href="{% url 'services' %}"><i data-lucide="sparkles"></i>Dịch vụ</a><a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' or request.resolver_match.url_name == 'meter-update' %}active{% endif %}" href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a><a class="{% if request.resolver_match.app_name == 'fire_detection' %}active{% endif %}" href="{% url 'fire_detection:monitor' %}"><i data-lucide="flame"></i>Giám sát cháy</a><a class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident-detail' %}active{% endif %}" href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a><a class="{% if request.resolver_match.url_name == 'notifications' or request.resolver_match.url_name == 'notification-create' %}active{% endif %}" href="{% url 'notifications' %}"><i data-lucide="bell"></i>Thông báo</a>{% if user|has_perm_code:'accounts.view_permission_matrix' %}<a class="{% if request.resolver_match.url_name == 'permission-matrix' %}active{% endif %}" href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>{% endif %}{% if user|has_perm_code:'accounts.view_login_history' %}<a href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>{% endif %}<a href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a><a href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a></div>
+      <div class="nav-extra"><a class="{% if request.resolver_match.url_name == 'indoor-map-list' or request.resolver_match.url_name == 'indoor-map' %}active{% endif %}" href="{% url 'indoor-map-list' %}"><i data-lucide="route"></i>Bản đồ trong nhà</a>{% if user.role == 'owner' or user.role == 'admin' or user.is_superuser %}<a class="{% if request.resolver_match.url_name == 'rooms' or request.resolver_match.url_name == 'room-create' or request.resolver_match.url_name == 'room-update' %}active{% endif %}" href="{% url 'rooms' %}"><i data-lucide="badge-dollar-sign"></i>Gợi ý giá thuê</a>{% endif %}<a class="{% if request.resolver_match.url_name == 'services' or request.resolver_match.url_name == 'service-create' or request.resolver_match.url_name == 'service-update' %}active{% endif %}" href="{% url 'services' %}"><i data-lucide="wrench"></i>Dịch vụ</a><a class="{% if request.resolver_match.url_name == 'meters' or request.resolver_match.url_name == 'meter-create' or request.resolver_match.url_name == 'meter-update' %}active{% endif %}" href="{% url 'meters' %}"><i data-lucide="zap"></i>Điện nước</a><a class="{% if request.resolver_match.app_name == 'fire_detection' %}active{% endif %}" href="{% url 'fire_detection:monitor' %}"><i data-lucide="flame"></i>Giám sát cháy</a><a class="{% if request.resolver_match.url_name == 'incidents' or request.resolver_match.url_name == 'incident-detail' %}active{% endif %}" href="{% url 'incidents' %}"><i data-lucide="triangle-alert"></i>Sự cố</a><a class="{% if request.resolver_match.url_name == 'notifications' or request.resolver_match.url_name == 'notification-create' %}active{% endif %}" href="{% url 'notifications' %}"><i data-lucide="bell"></i>Thông báo</a>{% if user|has_perm_code:'accounts.view_permission_matrix' %}<a class="{% if request.resolver_match.url_name == 'permission-matrix' %}active{% endif %}" href="{% url 'permission-matrix' %}"><i data-lucide="shield-check"></i>Ma trận quyền</a>{% endif %}{% if user|has_perm_code:'accounts.view_login_history' %}<a href="{% url 'login-history' %}"><i data-lucide="history"></i>Lịch sử đăng nhập</a>{% endif %}<a href="{% url 'user-profile' %}"><i data-lucide="user"></i>Hồ sơ cá nhân</a><a href="{% url 'password-change' %}"><i data-lucide="key-round"></i>Đổi mật khẩu</a></div>
       {% endif %}
     </nav>
+    {% if user.role != 'tenant' %}<a class="admin-public-link" href="{% url 'public-home' %}"><i data-lucide="arrow-up-right"></i>Xem trang cho thuê</a>{% endif %}
     <small class="sidebar-version">Version 1.0.0</small>
   </aside>
-  <main class="content">
+  <main class="content" id="main-content" tabindex="-1">
     <header class="topbar">
+      {% if user.role != 'tenant' %}<button class="admin-icon-button admin-menu-toggle" id="admin-menu-toggle" type="button" aria-label="Mở menu quản trị" aria-controls="admin-sidebar" aria-expanded="false"><i data-lucide="menu"></i></button>{% endif %}
       <div class="page-heading">
         <h1>{% block page_title %}Quản lý phòng cho thuê{% endblock %}</h1>
         <p>{% block page_subtitle %}{% endblock %}</p>
@@ -83,7 +98,7 @@
             <!-- Organization / Role Card Pill -->
             <div class="user-popover-org-pill">
               <i data-lucide="building-2"></i>
-              <span>{{ user.get_role_display|upper }} &bull; QL PHÒNG</span>
+              <span>{{ user.get_role_display }} &bull; QL Phòng</span>
               <i data-lucide="chevron-right" class="org-pill-arrow"></i>
             </div>
 
@@ -104,7 +119,7 @@
               </a>
               {% endif %}
               <div class="user-popover-link static-lang">
-                <span class="lang-flag">🇻🇳</span>
+                <i data-lucide="languages"></i>
                 <span>Ngôn ngữ: Việt Nam</span>
                 <i data-lucide="chevron-down" class="lang-chevron"></i>
               </div>
@@ -182,4 +197,5 @@
     });
   </script>
   <script src="{% static 'js/loading.js' %}"></script>
+  {% if user.role != 'tenant' %}<script src="{% static 'js/admin-shell.js' %}?v=admin-1"></script>{% endif %}
 </body></html>
